@@ -8,10 +8,11 @@
 #include "hal/ClockManager.h" // for CRM_GetSrcFreq()
 // #include "venus_log.h"
 #include <assert.h>
+#include <stdio.h>
 
 #define DEBUG_LOG   1 // 1
 #if DEBUG_LOG
-#define LOGD(format, ...)   CLOG(format, ##__VA_ARGS__)
+#define LOGD(format, ...)   {}
 #else
 #define LOGD(format, ...)   ((void)0)
 #endif // DEBUG_LOG
@@ -24,7 +25,7 @@ CSK_DRIVER_VERSION spi_driver_version = { CSK_SPI_API_VERSION, CSK_SPI_DRV_VERSI
 
 static void spi_dma_tx_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param);
 static void spi_dma_rx_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param);
-static void spi_irq_handler(SPI_DEV *spi);
+void spi_irq_handler(SPI_DEV *spi);
 static void spi_abort_transfer(SPI_DEV *spi, bool keep_state);
 
 //------------------------------------------------------------------------------------
@@ -880,7 +881,7 @@ static bool spi_set_bus_speed(SPI_DEV *spi, uint32_t arg)
     uint32_t sclk_div, cs2sclk;
     sclk_div = (SPI_CLK(spi) / (2 * arg)) - 1;
     if (sclk_div >= 0xFF) {
-        CLOGW("%s: CANNOT support SCLK = %d (TOO LOW)! ", __func__, arg);
+        LOGD("%s: CANNOT support SCLK = %d (TOO LOW)! ", __func__, arg);
         return false;
     }
 
@@ -1157,7 +1158,7 @@ spi_dma_rx_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param)
 }
 
 
-static void
+void
 spi_irq_handler(SPI_DEV *spi)
 {
     uint32_t i, status; // j
