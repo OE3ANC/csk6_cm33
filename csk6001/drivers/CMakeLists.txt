@@ -25,7 +25,8 @@ elseif(${CONFIG_SOC_CSK6001})
                             cm33/gpt.c
                             cm33/gpt_pwm.c
                             cm33/mbox.c
-                            cm33/PSRAMManger.c)
+                            cm33/PSRAMManger.c
+                            cm33/i2c.c)
 else()
     message(FATAL_ERROR 'listenai hal driver does not support this platform')
 endif()
