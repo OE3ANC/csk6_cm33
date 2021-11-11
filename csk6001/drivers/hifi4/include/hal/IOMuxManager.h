@@ -65,5 +65,25 @@ int32_t IOMuxManager_PinConfigure (uint8_t pad, uint8_t pin_num, uint32_t pin_cf
 
 int32_t IOMuxManager_ModeConfigure(uint8_t pad, uint8_t pin_num, uint8_t pin_mode);
 
+/**
+      Attention:
+      
+      the new api for zephyr in blow   
+**/
+
+// IOMUX Register address base
+#define  CMN_IOMUX_A_BASE    0x46200000 // size=0x80
+#define  CMN_IOMUX_B_BASE    0x46200080 // size=0xC0
+
+#define   CSK_PINMUX_PULLUP_DISABLE  0
+#define   CSK_PINMUX_PULLUP_ENABLE   1
+
+int32_t csk_pinmux_set_func(uint8_t pad, uint8_t pin_num, uint32_t pin_cfg);
+
+int32_t csk_pinmux_get_func(uint8_t pad, uint8_t pin_num, uint32_t *pin_cfg);
+
+int32_t csk_pinmux_set_mode(uint8_t pad, uint8_t pin_num, uint8_t pin_mode);
+
+
 
 #endif /* __CSK_IOMUX_MANAGER_H */
