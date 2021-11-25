@@ -4,7 +4,7 @@
 #define FLASH_QUAD_MODE_EN
 
 #ifndef _RAM_CODE
-#define _EXT_RAM __attribute__((section(".data.code_eilm")))
+#define _EXT_RAM __attribute__((section(".ramfunc")))
 #else
 #define _EXT_RAM _FAST_FUNC_RO
 #endif
