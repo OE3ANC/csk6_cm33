@@ -27,12 +27,13 @@
 #else
 #define PSRAM_LOG(str, ...)
 #endif
-#define PSRAM_LOGE(str, ...) printk(str, ##__VA_ARGS__)
+#define PSRAM_LOGE(str, ...) printf(str, ##__VA_ARGS__)
 
 
 static uint32_t psram_src_array[PSRAM_SEARCH_DQS_NUM] __attribute__ ((aligned(32)));
 static uint32_t psram_dst_array[PSRAM_SEARCH_DQS_NUM] __attribute__ ((aligned(32)));
 
+extern int rand();
 static void psram_data_init(void){
     unsigned int i=0;
     //init src with random data
