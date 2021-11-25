@@ -1359,7 +1359,7 @@ uint32_t calc_max_burst_size(uint32_t items)
         return DMA_BSIZE_1;
     if (items > 256)
         return DMA_BSIZE_256;
-    for (i=7; i--; i>=2) { // 255 ~ 4
+    for (i=7; i>=2; i--) { // 255 ~ 4
         if (items >> i)
             break;
     }

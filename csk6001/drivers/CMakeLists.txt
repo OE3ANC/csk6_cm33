@@ -1,5 +1,5 @@
 
-if(${CONFIG_SOC_LS_CSK6})
+if(${CONFIG_SOC_LS_ADSP_CSK6})
     zephyr_include_directories(hifi4/xos hifi4/include)
     zephyr_library_sources(hifi4/venus_cp.c
                             hifi4/clock_config.c 

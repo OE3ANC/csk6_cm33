@@ -11,11 +11,9 @@
 #include <stddef.h> // for NULL etc.
 #include <stdint.h>
 
-#define PLATFORM_CP
-// #include "xos_types.h"
-//my define
+#include <toolchain/xcc.h>
 
-#define UINT32_C(x)     x
+
 #ifdef XOS_USED
 #include "xtensa/xos.h"
 #else
