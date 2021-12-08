@@ -305,7 +305,7 @@ static MBX_DEV mbx_res = {
 
 static void mbx_irq_handler(void)
 {
-	uint32_t status, i, val = 0;
+	uint32_t status, i = 0;
 
 	status = mbx_res.mbx_cb->REG_CP_MAILBOX_IRQ.all;
 

@@ -101,7 +101,6 @@ static bool w_protect = true;
 _EXT_RAM int sflash_init(void *dev)
 {
 	int ret;
-	unsigned long old;
 
 	if (NVS_RUN_MODE)
 	{
@@ -118,7 +117,6 @@ _EXT_RAM int sflash_init(void *dev)
 _EXT_RAM int sflash_init2(void *dev, int spi_enum, int clk)
 {
 	int ret;
-	unsigned long old;
 	static int init_flag = 0;
 	switch (spi_enum)
 	{
@@ -172,7 +170,7 @@ _EXT_RAM void sflash_switch_ext(int clk)
 _EXT_RAM int sflash_read(void *dev, off_t offset, void *data, size_t len)
 {
 	int ret, spi_enum;
-	unsigned long old, base;
+	unsigned base;
 	if (dev)
 	{
 		base = ((FLASH_DEV *)dev)->base_addr;
@@ -208,7 +206,7 @@ _EXT_RAM int sflash_read(void *dev, off_t offset, void *data, size_t len)
 _EXT_RAM int sflash_write(void *dev, off_t offset, const void *data, size_t len)
 {
 	int ret, spi_enum;
-	unsigned long old, base;
+	unsigned long base;
 	bool protect;
 
 	if (dev)
@@ -250,7 +248,7 @@ _EXT_RAM int sflash_write(void *dev, off_t offset, const void *data, size_t len)
 _EXT_RAM int sflash_erase(void *dev, off_t offset, size_t size)
 {
 	int ret, spi_enum;
-	unsigned long old, base;
+	unsigned base;
 	bool protect;
 
 	if (dev)
@@ -537,7 +535,7 @@ _EXT_RAM int mxic_unlock_chip(unsigned long base)
 unsigned int FlashType;
 _EXT_RAM int mxic_check(unsigned long base)
 {
-	unsigned int result, RetData, FlashId, i;
+	unsigned int result, RetData, FlashId;
 	unsigned char temp[4];
 	unsigned int SCLK_DIV = 0xff; //SCLK is the same as the SPI clock source
 
