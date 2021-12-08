@@ -602,12 +602,12 @@ disable_all_interrupts(uint32_t ch_bits)
 	CSK_DMA->MASK.ERROR = (ch_bits << 8);
 }
 
-//#define DECL_ENABLE_INTERRUPTS(name)     \
-//    __inline static void enable_##name_interrupts(uint32_t ch_bits) \
+//#define DECL_ENABLE_INTERRUPTS(name)
+//    __inline static void enable_##name_interrupts(uint32_t ch_bits)
 //    { CSK_DMA->MASK.##name = ((ch_bits << 8) | ch_bits); }
 //
-//#define DECL_DISABLE_INTERRUPTS(name)     \
-//    __inline static void disable_##name_interrupts(uint32_t ch_bits) \
+//#define DECL_DISABLE_INTERRUPTS(name)
+//    __inline static void disable_##name_interrupts(uint32_t ch_bits)
 //    { CSK_DMA->MASK.##name = (ch_bits << 8); }
 
 __inline static void
@@ -638,6 +638,7 @@ calc_burst_bytes(uint32_t width, uint32_t bsize)
 	return count;
 }
 
+/*
 static int32_t
 check_burst_bytes(uint8_t ch, uint32_t control)
 {
@@ -656,6 +657,7 @@ check_burst_bytes(uint8_t ch, uint32_t control)
 
 	return 0;
 }
+*/
 
 /**
   \fn  int32_t dma_channel_configure_internal (uint8_t     ch,
@@ -1344,10 +1346,10 @@ dma_irq_handler(void)
 uint32_t
 calc_max_burst_size(uint32_t items)
 {
-	uint32_t i, val;
+	uint32_t i;
 	if (items < 4) return DMA_BSIZE_1;
 	if (items > 256) return DMA_BSIZE_256;
-	for (i = 7; i--; i >= 2) {  // 255 ~ 4
+	for (i = 7; i >= 2; i--) {  // 255 ~ 4
 		if (items >> i) break;
 	}
 	return i - 1;

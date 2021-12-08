@@ -237,7 +237,6 @@ SPI_PowerControl(void *spi_dev, CSK_POWER_STATE state)
         return CSK_DRIVER_ERROR_PARAMETER;
     }
 
-    uint32_t val;
     switch (state) {
     case CSK_POWER_OFF:
         // disable SPI IRQ

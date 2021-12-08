@@ -300,7 +300,6 @@ int32_t GPT_Uninitialize(void *pGpt)
 int32_t GPT_PowerControl(void *pGpt, CSK_POWER_STATE state)
 {
 	GPT_RESOURCES * pGpt_Temp = (GPT_RESOURCES *)pGpt;
-	uint32_t ch;
 
 	switch(state){
 	case CSK_POWER_OFF:

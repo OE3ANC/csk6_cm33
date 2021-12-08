@@ -39,6 +39,7 @@ void dcache_invalidate_range(unsigned long start, unsigned long end)
 	uint32_t line_mask = __SCB_DCACHE_LINE_SIZE - 1;
 	assert((start & line_mask) == 0);
 	assert((end & line_mask) == 0);
+	(void)line_mask; /* Prevent gcc unused warning */
 	SCB_InvalidateDCache_by_Addr((uint32_t *)start, (end - start));
 #endif
 }

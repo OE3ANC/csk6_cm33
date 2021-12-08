@@ -293,7 +293,6 @@ I2C_MasterTransmit(void* res, uint32_t addr, const uint8_t* data, uint32_t num,
     I2C_RESOURCES* i2c = (I2C_RESOURCES*)res;
 
     uint32_t Tmp_C = 0;
-    int32_t stat = 0;
 
     // max 10-bit address(0x3FF), null data or num is no payload for acknowledge polling
     // If no I2C payload, set Phase_data=0x0
@@ -466,7 +465,6 @@ I2C_MasterReceive(void* res, uint32_t addr, uint8_t* data, uint32_t num,
     I2C_RESOURCES* i2c = (I2C_RESOURCES*)res;
 
     uint32_t Tmp_C = 0;
-    int32_t stat = 0;
 
     // max 10-bit address(0x3FF), null data or num is no payload for acknowledge polling
     // If no I2C payload, set Phase_data=0x0
@@ -1096,7 +1094,7 @@ i2cx_master_fifo_write(I2C_RESOURCES* i2c, uint8_t is_flash_addr)
 static void
 i2cx_slave_fifo_write(I2C_RESOURCES* i2c)
 {
-    uint32_t i = 0, write_fifo_count = 0, Tmp_C = 0;
+    uint32_t i = 0, write_fifo_count = 0;
     int32_t stat = 0;
 
     // slave TX 1 byte each time, since no information got
