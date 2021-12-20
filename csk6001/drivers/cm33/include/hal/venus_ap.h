@@ -34,9 +34,9 @@
 //fast function
 #define _FAST_FUNC_RO           __attribute__ ((section (".itcm")))
 //fast data value initialize
-#define _FAST_DATA_VI           __attribute__ ((section (".data2")))
+#define _FAST_DATA_VI
 //fast data zero initialize
-#define _FAST_DATA_ZI           __attribute__ ((section (".bss2")))
+#define _FAST_DATA_ZI
 
 #define _DMA                    _FAST_DATA_ZI
 #define _DMA_PRAM               __attribute__((aligned(32)))
