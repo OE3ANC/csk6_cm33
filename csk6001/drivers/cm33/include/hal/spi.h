@@ -19,7 +19,9 @@
 #define SPI_SLAVE                     (1UL << 2)
 #define SPI_LSB                       (1UL << 3)
 #define SPI_MERGE                     (1UL << 7)
+#define DATA_BITS_MASK                (0x1F << 8)
 #define DATA_BITS(data_bits)          (((data_bits) - 1) << 8)
+#define CPHA0_FAST_MODE               (1UL << 31) // Added in 6001 MP version
 
 /* Max RD/WR transfer count each time, limited by SPI transfer control register */
 #define MAX_TRANCNT                   512
