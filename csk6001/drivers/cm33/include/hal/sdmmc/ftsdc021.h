@@ -1,19 +1,20 @@
 #ifndef FTSDC021_H
 #define FTSDC021_H
 
+#include <kernel.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <FreeRTOS.h>
-#include <task.h>
-#include <semphr.h>
+// #include <FreeRTOS.h>
+// #include <task.h>
+// #include <semphr.h>
 #include <stdbool.h>
 
-#include "venus_ap.h"
-#include "cmn_sysctrl_reg_venus.h"
+#include "hal/venus_ap.h"
+#include "hal/reg/cmn_sysctrl_reg_venus.h"
 #include "lib_sdc.h"
 #include "drv_sdc.h"
-#include "venus_log.h"
+// #include "venus_log.h"
 #include "ftsdc021_mmc.h"
 #include "ftsdc021_sdio.h"
 
@@ -27,8 +28,12 @@
 #define SDC_FTSDC021_0_PA_SIZE      0x00100000
 #define SDC_FTSDC021_0_IRQ          IRQ_SDIO_VECTOR
 
-#define sdc_dbg_print(format, arg...) CLOGI(format, ## arg)
+#define sdc_dbg_print(format, arg...) printf(format, ## arg)
 #define sdc_dbg_print_level(level, format, arg...) ((void)0);
+
+#define pvPortMalloc    k_malloc
+#define vPortFree       k_free
+
 /**
  * Descriptor Table used for ADMA2 transfer.
  * One descriptor line consumes 8 bytes and can transfer
@@ -70,6 +75,7 @@
 
 #define SDC_PS_FUNC_NORMAL      0
 #define SDC_PS_FUNC_RESTORE     1
+
 /* For Initial E-MMC*/
 //#define EMBEDDED_MMC
 //#pragma pack(1)
@@ -421,7 +427,8 @@ typedef struct
     u8 module_sts;
     u8 reset_flag;
     u8 reserved[3];
-    xSemaphoreHandle sd_mutex;
+    struct k_mutex sd_mutex;
+    // xSemaphoreHandle sd_mutex;
     SDIO_ISR_handler sdio_card_int;
     SDC_device_handler sdcard_app_init;
     SDC_device_handler sdio_app_init;

@@ -1,11 +1,12 @@
 #include <time.h>
 #include "stdbool.h"
 #include "ftsdc021.h"
-#include "cache.h"
-#include "venus_ap.h"
+#include "hal/cache.h"
+#include "hal/venus_ap.h"
 //#include "nds32.h"
 
 #define FTSDC021_BASE_CLOCK  100
+typedef int64_t clock_t;
 
 volatile ftsdc021_reg* gpRegSD0 = (ftsdc021_reg*) SDC_FTSDC021_0_PA_BASE;
 //volatile ftsdc021_reg* gpRegSD1 = (ftsdc021_reg*) SDC_FTSDC021_1_PA_BASE;
@@ -41,8 +42,7 @@ ftsdc021_ErrorRecovery(u8 ip_idx);
 clock_t
 sdc_jiffies(void)
 {
-    return (clock_t) (xTaskGetTickCount() * portTICK_RATE_MS);
-    //return gm_timer_get_tick(0, 0);
+    return k_uptime_get();
 }
 
 volatile ftsdc021_reg*
@@ -60,20 +60,13 @@ gpRegSDC(u8 ip_idx)
 s32
 sd_mutex_create(u8 ip_idx)
 {
-    //SDHost[ip_idx].sd_mutex = xSemaphoreCreateMutex();
-    SDHost[ip_idx].sd_mutex = xSemaphoreCreateRecursiveMutex(); //BSD:
-    if (SDHost[ip_idx].sd_mutex == NULL) {
-        sdc_dbg_print("%s : create mutex fail\n", __func__);
-        return 1;
-    }
+    k_mutex_init(&SDHost[ip_idx].sd_mutex);
     return 0;
 }
 s32
 sd_mutex_lock(u8 ip_idx)
 {
-
-    //if (pdPASS == xSemaphoreTake(SDHost[ip_idx].sd_mutex, 5000)) { //portMAX_DELAY )){
-    if (pdPASS == xSemaphoreTakeRecursive(SDHost[ip_idx].sd_mutex, portMAX_DELAY )){ //5*configTICK_RATE_HZ //BSD:
+    if (k_mutex_lock(&SDHost[ip_idx].sd_mutex, K_FOREVER) == 0) {
         return 0;
     } else {
         sdc_dbg_print("%s : mutex lock fail\n", __func__);
@@ -83,9 +76,7 @@ sd_mutex_lock(u8 ip_idx)
 s32
 sd_mutex_unlock(u8 ip_idx)
 {
-
-    //if (pdPASS == xSemaphoreGive(SDHost[ip_idx].sd_mutex)) {
-    if (pdPASS == xSemaphoreGiveRecursive(SDHost[ip_idx].sd_mutex)) { //BSD:
+    if (k_mutex_unlock(&SDHost[ip_idx].sd_mutex) == 0) {
         return 0;
     } else {
         sdc_dbg_print("%s : mutex unlock fail\n", __func__);

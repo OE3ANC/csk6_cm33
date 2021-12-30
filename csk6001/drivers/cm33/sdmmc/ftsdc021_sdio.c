@@ -1,9 +1,9 @@
 #include <time.h>
-#include <sys/param.h>
+// #include <sys/param.h>
 #include "ftsdc021.h"
 #include "ftsdc021_sdio.h"
 //#include "castor.h"
-
+typedef int64_t clock_t;
 /**
  * SDIO card related operations
  */
@@ -52,7 +52,7 @@ ftsdc021_sdio_CMD52(u8 ip_idx, u32 write, u8 fn, u32 addr, u8 in, u8* out)
             SDHCI_CMD_TYPE_NORMAL, 0, SDHCI_CMD_RTYPE_R1R5R6R7, 1, arg);
     if (err) {
         sd_mutex_unlock(ip_idx);
-        CLOGE("%s send command fail\n", __func__);
+        printk("%s send command fail\n", __func__);
         return err;
     }
 

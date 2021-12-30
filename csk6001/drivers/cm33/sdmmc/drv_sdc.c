@@ -553,7 +553,7 @@ gm_api_sdc_platform_init(u32 sdc0_option, u32 sdc1_option, sdc_platform_setting_
 //        ftsdc021_init(SD_0);
 //        sd_mutex_unlock(SD_0);
     } else {
-        SDHost[SD_0].sd_mutex = NULL;
+        // SDHost[SD_0].sd_mutex = NULL;
         SDHost[SD_0].module_sts = 0;
         SDHost[SD_0].sdio_app_init = NULL;
         SDHost[SD_0].sdcard_app_init = NULL;
@@ -602,7 +602,7 @@ lib_sdc_detect(u8 ip_idx)
 {
     u32 card_type;
     {
-        if (SDHost[ip_idx].sd_mutex != NULL) {
+        // if (SDHost[ip_idx].sd_mutex != NULL) { //Here maybe lead to uninited mutex usage
             if ((SDHost[ip_idx].module_sts & SDHCI_MODULE_STS_FIXED) == 0)
                 ftsdc021_card_detection_handle(ip_idx);
             if (lib_sdc_card_exist(ip_idx) == ERR_SD_NO_ERROR) {
@@ -659,7 +659,7 @@ lib_sdc_detect(u8 ip_idx)
                         ftsdc021_card_detection_init(ip_idx);
                 }
             }
-        }
+        // }
     }
     return ERR_SD_NO_ERROR;
 }

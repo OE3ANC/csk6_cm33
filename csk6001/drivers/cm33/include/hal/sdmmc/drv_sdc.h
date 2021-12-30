@@ -1,6 +1,6 @@
 #ifndef _LIB_SDC_H_
 #define _LIB_SDC_H_
-#include "../../../include/driver/lib_sdc.h"
+#include "lib_sdc.h"
 #include "ftsdc021.h"
 
 #undef SDC021_BURNIN
