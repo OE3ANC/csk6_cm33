@@ -5,17 +5,29 @@
  */
 
 #include "hal/spi.h"
-#include "hal/ClockManager.h" // for CRM_GetSrcFreq()
+#include "hal/ClockManager.h" // for CRM_GetSrcFreq() etc.
 // #include "venus_log.h"
 #include <assert.h>
 #include <stdio.h>
+#include "hal/reg/cmn_sysctrl_reg_venus.h"
+
+#ifdef CSK6001_MPW
+#define VENUS6001_V1_MPW    1
+#define VENUS6001_V2_MP     0
+#else
+#define VENUS6001_V1_MPW    0
+#define VENUS6001_V2_MP     1
+#endif
 
 #define DEBUG_LOG   1 // 1
 #if DEBUG_LOG
 #define LOGD(format, ...)   {}
+#define CLOGW   printf
 #else
 #define LOGD(format, ...)   ((void)0)
 #endif // DEBUG_LOG
+
+#define IP_SYSCTRL               	((SYSCFG_RegDef *) CMN_SYSCTRL_BASE)
 
 #define CSK_SPI_DRV_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,0)
 
@@ -27,6 +39,86 @@ static void spi_dma_tx_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t 
 static void spi_dma_rx_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param);
 void spi_irq_handler(SPI_DEV *spi);
 static void spi_abort_transfer(SPI_DEV *spi, bool keep_state);
+
+inline static uint8_t HAL_CRM_Spi0ClkIsEnabled(){
+    return IP_SYSCTRL->REG_SPI_CLK_CFG.bit.ENA_SPI0_CLK;
+}
+
+inline static uint8_t HAL_CRM_Spi1ClkIsEnabled(){
+    return IP_SYSCTRL->REG_SPI_CLK_CFG.bit.ENA_SPI1_CLK;
+}
+
+inline static void HAL_CRM_GetSpi0ClkConfig(clock_src_name_t* src, uint8_t* div_n, uint8_t* div_m){
+    uint8_t src_t;
+    src_t = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.SEL_SPI0_CLK;
+    if (src_t == 0){
+        *src = CRM_IpSrcXtal;
+    }
+
+    if (src_t == 1){
+        *src = CRM_IpSrcSysPllUsb;
+    }
+
+    *div_n = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.DIV_SPI0_CLK_N;
+#if defined(CSK6001_MPW)
+    *div_m = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.DIV_SPI0_CLK_M;
+#elif defined(CSK6001)
+    *div_m = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.DIV_SPI0_CLK_M + 1;
+#endif
+
+}
+
+inline static void HAL_CRM_GetSpi1ClkConfig(clock_src_name_t* src, uint8_t* div_n, uint8_t* div_m){
+    uint8_t src_t;
+    src_t = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.SEL_SPI1_CLK;
+    if (src_t == 0){
+        *src = CRM_IpSrcXtal;
+    }
+
+    if (src_t == 1){
+        *src = CRM_IpSrcSysPllUsb;
+    }
+
+    *div_n = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.DIV_SPI1_CLK_N;
+#if defined(CSK6001_MPW)
+    *div_m = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.DIV_SPI1_CLK_M;
+#elif defined(CSK6001)
+    *div_m = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.DIV_SPI1_CLK_M + 1;
+#endif
+
+}
+
+uint32_t CRM_GetSpi0Freq(){
+#if (IC_BOARD == 0)
+    return IC_BOARD_FPGA_PHR_FREQ/2;
+#else
+    if (!HAL_CRM_Spi0ClkIsEnabled()){
+        return 0;
+    }
+    clock_src_name_t src;;
+    uint8_t div_n;
+    uint8_t div_m;
+    HAL_CRM_GetSpi0ClkConfig(&src, &div_n, &div_m);
+    return CRM_GetSrcFreq(src) * div_n / div_m;
+
+#endif
+}
+
+uint32_t CRM_GetSpi1Freq(){
+#if (IC_BOARD == 0)
+    return IC_BOARD_FPGA_PHR_FREQ/2;
+#else
+    if (!HAL_CRM_Spi1ClkIsEnabled()){
+        return 0;
+    }
+    clock_src_name_t src;;
+    uint8_t div_n;
+    uint8_t div_m;
+    HAL_CRM_GetSpi1ClkConfig(&src, &div_n, &div_m);
+    return CRM_GetSrcFreq(src) * div_n / div_m;
+
+#endif
+}
 
 //------------------------------------------------------------------------------------
 // SPI0
@@ -148,8 +240,17 @@ SPI_GetVersion()
 
 static uint32_t SPI_CLK(SPI_DEV *spi)
 {
-    uint32_t N, M;
+    if (spi->reg == CSK_SPI0) {
+        return CRM_GetSpi0Freq();
+    } else if (spi->reg == CSK_SPI1) {
+        return CRM_GetSpi1Freq();
+    } else {
+        LOGD("%s: invalid SPI device (reg = 0x%08x)!", __func__, spi->reg);
+        return 0;
+    }
 
+/*
+    uint32_t N, M;
     assert(spi != NULL);
     N = spi->ext_clk->bit.DIV_SPI_CLK_N;
     M = spi->ext_clk->bit.DIV_SPI_CLK_M;
@@ -161,7 +262,7 @@ static uint32_t SPI_CLK(SPI_DEV *spi)
     // it seems that max SPI clock is 60MHz (limited by SYSPLL_USB output)
     return CRM_GetSrcFreq(CRM_IpSrcSysPllUsb) * N / M;
 #endif
-
+*/
 }
 
 // export SPI API function: SPI_Initialize
@@ -272,6 +373,7 @@ SPI_PowerControl(void *spi_dev, CSK_POWER_STATE state)
             return CSK_DRIVER_OK;
 
         // enable SPI clock here
+        /*
         {
     #if (IC_BOARD == 0)
         // FIXME: SPI CLK M = 1 CANNOT work!!
@@ -286,6 +388,57 @@ SPI_PowerControl(void *spi_dev, CSK_POWER_STATE state)
         spi->ext_clk->all = SPI_CLK_ENABLE | SPI_CLK_M(divNM & 0xFFFF) | SPI_CLK_N((divNM >> 16) & 0xFFFF) | SPI_CLK_LD;
     #endif
         }
+        */
+
+        uint16_t divM, divN;
+    #if (IC_BOARD == 0)
+        {
+            divM = divN = 1;
+        }
+    #else // IC_BOARD == 1
+        {
+            uint32_t divNM, clk_out;
+        #if VENUS6001_V1_MPW
+            clk_out = 60000; //KHz, 60MHz
+        #else
+            clk_out = 100000; //KHz, FIXME: 100MHz?
+        #endif
+            divNM = eval_freq_divNM(SPI_CLK_N_MAX, SPI_CLK_M_MAX, CRM_GetSrcFreq(CRM_IpSrcSysPllUsb)/1000, clk_out, NULL);
+            assert(divNM != 0);
+            divM = divNM & 0xFFFF;
+            divN = (divNM >> 16) & 0xFFFF;
+        }
+    #endif
+
+    #if (VENUS6001_V1_MPW == 0)
+        divM -= 1;
+    #endif
+
+        spi->ext_clk->all = SPI_CLK_SEL_USBPLL | SPI_CLK_ENABLE | SPI_CLK_M(divM) | SPI_CLK_N(divN) | SPI_CLK_LD;
+
+        //// SPI0:
+        //HAL_CRM_SetSpi0ClkSrc(CRM_IpSrcSysPllUsb);
+        //HAL_CRM_SetSpi0ClkDiv(SPI_CLK_N(divM), SPI_CLK_M(divN));
+        //// SPI1:
+        //HAL_CRM_SetSpi1ClkSrc(CRM_IpSrcSysPllUsb);
+        //HAL_CRM_SetSpi1ClkDiv(SPI_CLK_N(divM), SPI_CLK_M(divN));
+
+        #if (VENUS6001_V1_MPW == 0)
+        //SPI1 handshaking signals are connected to AP or CP DMAC?
+        if (spi->reg == CSK_SPI1) {
+            #define DMA_HS_CP_SPI1_TX   (1 << 2) // 1 = CP DMAC, 0 = AP DMAC
+            #define DMA_HS_CP_SPI1_RX   (1 << 3) // 1 = CP DMAC, 0 = AP DMAC
+            #ifdef PLATFORM_CP
+                IP_SYSCTRL->REG_AP_CTRL5.bit.AP2CP_DMA_HS_SEL |= DMA_HS_CP_SPI1_TX | DMA_HS_CP_SPI1_RX;
+            #else
+                IP_SYSCTRL->REG_AP_CTRL5.bit.AP2CP_DMA_HS_SEL &= ~(DMA_HS_CP_SPI1_TX | DMA_HS_CP_SPI1_RX);
+            #endif
+        }
+        // CPHA=0 (mode0/mode2) fast mode,  frequency ratio of spi_clk and SCLK should be larger than 2
+        //NOTE: As of now (just before MP version), FAST_MODE doesn't work, so remove it!
+        //spi->reg->TRANSFMT |= CPHA0_FAST_MODE;
+        spi->reg->TRANSFMT &= ~CPHA0_FAST_MODE;
+        #endif // !VENUS6001_V1_MPW
 
         // DMA initialize
         dma_initialize();
@@ -877,11 +1030,18 @@ static bool spi_set_bus_speed(SPI_DEV *spi, uint32_t arg)
 {
     assert(spi != NULL && arg != 0);
 
-    uint32_t sclk_div, cs2sclk;
-    sclk_div = (SPI_CLK(spi) / (2 * arg)) - 1;
-    if (sclk_div >= 0xFF) {
-        LOGD("%s: CANNOT support SCLK = %d (TOO LOW)! ", __func__, arg);
-        return false;
+    uint32_t clk, sclk_div, cs2sclk;
+    clk = SPI_CLK(spi);
+
+    if (clk == arg) { // output = input
+        sclk_div = 0xFF;
+    } else {
+        sclk_div = (clk / (2 * arg)) - 1;
+        if (sclk_div >= 0xFF) {
+            CLOGW("%s: CANNOT support SCLK = %d (TOO LOW)! ", __func__, arg);
+            return false;
+        }
+        clk /= (sclk_div + 1) * 2;
     }
 
     //cs2sclk = 0;
@@ -895,8 +1055,8 @@ static bool spi_set_bus_speed(SPI_DEV *spi, uint32_t arg)
     spi->reg->TIMING |= (sclk_div & 0xff) | (cs2sclk & 0x3000);
 
     //LOGD("%s: sclk_div = %d\r\n", __func__, (spi->reg->TIMING & 0xFF));
-    LOGD("%s: sclk_div = %d, cs2sclk = %d\r\n",
-        __func__, (spi->reg->TIMING & 0xFF), ((spi->reg->TIMING >> 12) & 0x3));
+    LOGD("%s: sclk_div = %d (sclk: %d), cs2sclk = %d\r\n",
+        __func__, (spi->reg->TIMING & 0xFF), clk, ((spi->reg->TIMING >> 12) & 0x3));
     return true;
 }
 
@@ -1045,6 +1205,7 @@ SPI_Control(void *spi_dev, uint32_t control, uint32_t arg)
         if ((val < 1U) || (val > 32U))
             return CSK_SPI_ERROR_DATA_BITS;
         spi->info->data_bits = val;
+        spi->reg->TRANSFMT &= ~DATA_BITS_MASK;
         spi->reg->TRANSFMT |= DATA_BITS(val);
     } else {
         if (spi->info->data_bits == 0) {
@@ -1330,7 +1491,7 @@ spi_irq_handler(SPI_DEV *spi)
                 //}
                 count = dma_channel_get_count(spi->info->rx_dyn_dma_ch);
 
-                // LOGD("BSD: dma rx data count: %d => %d\n", spi->info->xfer.rx_cnt, count);
+                LOGD("BSD: dma rx data count: %d => %d\n", spi->info->xfer.rx_cnt, count);
                 spi->info->xfer.rx_cnt = count;
 
                 spi->info->xfer.dma_rx_done = 1;

@@ -12,7 +12,12 @@
 #include <stdint.h>
 #include "hal/ARMCM33_DSP_FP.h" // for IRQn_Type definition
 
-#define IC_BOARD  1
+#define TAG         CSK6001_MPW
+#define IC_BOARD    1
+
+#if TAG == CSK6001_MPW
+#define CSK6001_MPW
+#endif
 
 /*****************************************************************************
  * Macros for Register Access
