@@ -1,4 +1,3 @@
-#include <time.h>
 //#include "castor.h"
 #include "ftsdc021.h"
 #include "ftsdc021_sdio.h"
@@ -7,7 +6,7 @@
  */
 extern volatile ftsdc021_reg*
 gpRegSDC(u8 ip_idx);
-extern clock_t
+extern u32
 sdc_jiffies(void);
 
 

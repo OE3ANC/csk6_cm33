@@ -1,4 +1,3 @@
-#include <time.h>
 #include "stdbool.h"
 #include "ftsdc021.h"
 #include "hal/cache.h"
@@ -38,7 +37,7 @@ ftsdc021_ErrorRecovery(u8 ip_idx);
 
 #define jiffies sdc_jiffies
 
-clock_t
+u32
 sdc_jiffies(void)
 {
     return k_uptime_get();
@@ -285,7 +284,7 @@ ftsdc021_get_erase_address(u8 ip_idx, u32* start_addr, u32* end_addr, u32 start,
 void
 ftsdc021_delay(u32 ms)
 {
-    clock_t t0;
+    u32 t0;
 
     t0 = jiffies();
 
@@ -326,7 +325,7 @@ ftsdc021_dump_regs()
 u32
 ftsdc021_wait_for_state(u8 ip_idx, u32 state, u32 ms)
 {
-    clock_t t0;
+    u32 t0;
 
     t0 = jiffies();
     do {
@@ -357,7 +356,7 @@ ftsdc021_transfer_data(u8 ip_idx, Transfer_Act act, u32* buffer, u32 length)
 {
     u32 trans_sz = 0, len, wait_t, bf = (u32)buffer, size = length;
     u16 mask;
-    clock_t t0;
+    u32 t0;
 //sdc_dbg_print("i=%d,a=%s,d=%s,l=%04X\n", ip_idx, ((act == WRITE)?"w":"r"), ((SDHost[ip_idx].Card->FlowSet.UseDMA == SDMA)?"S":"N"), length);
 //sdc_dbg_print("i=%d,a=%s,l=%X\n", ip_idx, ((act == WRITE)?"w":"r"), length);
 //sdc_dbg_print("t=%d-", gm_timer_get_tick(0,0));
@@ -639,7 +638,7 @@ u32
 ftsdc021_send_abort_command(u8 ip_idx)
 {
     u16 val;
-    clock_t t0;
+    u32 t0;
 
     sdc_dbg_print_level(1, " Send Abort command ... ");
     SDHost[ip_idx].Card->ErrorSts = 0;
@@ -675,7 +674,7 @@ u32
 ftsdc021_send_stop_command(u8 ip_idx)
 {
     u16 val;
-    clock_t t0;
+    u32 t0;
 
     sdc_dbg_print_level(1, " Send Stop command ... ");
     SDHost[ip_idx].Card->ErrorSts = 0;
@@ -709,7 +708,7 @@ ftsdc021_send_command(u8 ip_idx, u8 CmdIndex, u8 CmdType, u8 DataPresent,
         u8 RespType, u8 InhibitDATChk, u32 Argu)
 {
     u16 val;
-    clock_t t0;
+    u32 t0;
     u32 err;
     u8 wait;
 //    sdc_dbg_print("***cmd%d cmdType=%d DataPresent=%d\n", CmdIndex, CmdType, DataPresent);
@@ -1510,7 +1509,7 @@ ftsdc021_execute_tuning(u8 ip_idx, u32 try)
 {
     u8 delay, cnt, hndshk;
     Transfer_Type dma;
-    clock_t t0;
+    u32 t0;
 
     delay = cnt = hndshk = 0;
 
