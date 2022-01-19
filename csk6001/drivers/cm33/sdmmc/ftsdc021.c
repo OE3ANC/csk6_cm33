@@ -6,7 +6,6 @@
 //#include "nds32.h"
 
 #define FTSDC021_BASE_CLOCK  100
-typedef int64_t clock_t;
 
 volatile ftsdc021_reg* gpRegSD0 = (ftsdc021_reg*) SDC_FTSDC021_0_PA_BASE;
 //volatile ftsdc021_reg* gpRegSD1 = (ftsdc021_reg*) SDC_FTSDC021_1_PA_BASE;

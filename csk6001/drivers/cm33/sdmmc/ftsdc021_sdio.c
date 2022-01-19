@@ -3,7 +3,7 @@
 #include "ftsdc021.h"
 #include "ftsdc021_sdio.h"
 //#include "castor.h"
-typedef int64_t clock_t;
+
 /**
  * SDIO card related operations
  */
