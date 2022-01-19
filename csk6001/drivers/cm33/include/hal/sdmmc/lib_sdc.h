@@ -9,6 +9,8 @@
 #define _LIB_SDC_API_H_
 //#include "types.h"
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -1,4 +1,3 @@
-#include <time.h>
 #include "drv_sdc.h"
 //#include "lib_pmu.h"
 //#include "lib_gpio.h"
@@ -190,7 +189,7 @@ SD_RESULT
 lib_sdc_read(u8 ip_idx, u32 addr, u32 cnt, void* buf)
 {
 
-    //clock_t t0, t1;
+    //u32 t0, t1;
 
     if (addr + cnt > (SDHost[ip_idx].Card->numOfBlocks + 1)) {
         /* For FPGA verification purpose, just give warning and allow the operation. */
@@ -221,7 +220,7 @@ SD_RESULT
 lib_sdc_write(u8 ip_idx, u32 addr, u32 cnt, u8 compare, void* buf)
 {
     //u32 i;
-    //clock_t t0, t1;
+    //u32 t0, t1;
 
     if (addr + cnt > (SDHost[ip_idx].Card->numOfBlocks + 1)) {
         /* For FPGA verification purpose, just give warning and allow the operation. */
