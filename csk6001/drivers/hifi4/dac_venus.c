@@ -22,10 +22,6 @@
 #define LOGD(format, ...)   ((void)0)
 #endif // DEBUG_LOG
 
-#define CLOGE printk
-#define CLOGD printk
-#define CLOGW printk
-#define CLOGI printk
 
 #define CSK_DAC_DRV_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,0)
 #define SYSCTRL_CFG    ((SYSCFG_RegDef*) CMN_SYSCTRL_BASE)
@@ -211,7 +207,6 @@ DAC_Initialize(void *dac_grp, CSK_DAC_SignalEvent_t cb_event, uint32_t usr_param
         return CSK_DRIVER_OK;
 
     // initialize APC init pclk init 5 channel disable interrupts
-    // 
     ret = apc_initialize();
     if (ret != CSK_DRIVER_OK) {
         LOGD("%s: failed to call apc_initialize()!", __func__);

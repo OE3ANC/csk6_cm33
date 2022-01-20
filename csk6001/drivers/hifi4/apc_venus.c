@@ -23,11 +23,6 @@
 #define LOGD(format, ...)   ((void)0)
 #endif // DEBUG_LOG
 
-#define CLOGE printk
-#define CLOGD printk
-#define CLOGW printk
-#define CLOGI printk
-
 //=============================================================================
 // APC channel information (fixed by IC design)
 typedef struct _APC_CH_FIXED
@@ -176,7 +171,7 @@ static volatile CSK_APC_RegDef * gApcReg = NULL;
 #define IS_APC_DCH_OCCUPIED(dch)      (g_apc_dev.dch_array[dch].intf_type != APC_INTF_UNSET)
 
 static void apc_dma_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param);
-void apc_irq_handler (void);
+static void apc_irq_handler (void);
 
 //=============================================================================
 
@@ -440,10 +435,10 @@ int32_t apc_initialize (void)
         CSK_APC->REG_APC_INTR_RX_CLR.all = 0x3FFFFFFF; // write 1 to clear
 
     // Register APC ISR
-    // register_ISR(IRQ_APC_VECTOR, (ISR)apc_irq_handler, NULL);
+    register_ISR(IRQ_APC_VECTOR, (ISR)apc_irq_handler, NULL);
 
     // Enable APC IRQ
-    // enable_IRQ(IRQ_APC_VECTOR);
+    enable_IRQ(IRQ_APC_VECTOR);
 
     // Initialize DMA Controller
     dma_initialize();
@@ -485,7 +480,7 @@ int32_t apc_uninitialize (void)
     disable_IRQ(IRQ_APC_VECTOR);
 
     // Unregister APC ISR
-    // register_ISR(IRQ_APC_VECTOR, NULL, NULL);
+    register_ISR(IRQ_APC_VECTOR, NULL, NULL);
 
     // Uninitialize DMA Controller
     dma_uninitialize();
@@ -1351,7 +1346,7 @@ apc_channel_read_LLP_internal (APC_DCH dch,
                             uint32_t dst_scat) // destination scatter setting (default 0, NO SG support)
 {
     // Check if parameters are valid, i.e. APC dual_channel is valid
-    if (dch > APC_DCH_IN_MAX || bufs == NULL || buf_cnt == 0)
+    if (dch < APC_DCH_OUT_MIN || dch > APC_DCH_OUT_MAX || bufs == NULL || buf_cnt == 0)
         return CSK_DRIVER_ERROR_PARAMETER;
 
     // Check if APC and specified dual_channel are both initialized
@@ -1418,7 +1413,6 @@ apc_channel_read_LLP_internal (APC_DCH dch,
     if (pdci->dma_width_bits == DMA_WIDTH_HALFWORD) // trim low 16bits
         src_addr += 2; // high 16bits address
 
-    DMA_LLP ip_first = NULL;
     ip_pre = NULL;
     for (i=0; i<buf_cnt; i++) {
         ip = &bufs[i].dma_lli;
@@ -1427,13 +1421,10 @@ apc_channel_read_LLP_internal (APC_DCH dch,
         ip->DAR = (uint32_t)(bufs[i].sample_data) + buf_offset;
         if (ip_pre != NULL)
             ip_pre->LLP = (uint32_t)ip;
-        if (ip_first == NULL)
-            ip_first = ip;
         ip->CTL_LO = control;
         ip->u.SIZE = (pdci->samp_bits > 16 ? bufs[i].sample_cnt : bufs[i].sample_cnt/2);
         ip_pre = ip; // save current DMA_LLI pointer
     }
-    ip->LLP = (uint32_t)ip_first;
     // DMA_LLI list (stored in AUDIO_BUFFER_LLI array) is to be accessed by DMAC,
     // So the AUDIO_BUFFER_LLI array memory space SHOULD be do cache sync operation
     dcache_flush_range((unsigned long)bufs, (unsigned long)(bufs + buf_cnt));
@@ -1556,7 +1547,6 @@ apc_channel_write_LLP_internal (APC_DCH dch,
     if (pdci->dma_width_bits == DMA_WIDTH_HALFWORD) // trim low 16bits
         dst_addr += 2; // high 16bits address
 
-    DMA_LLP ip_first = NULL;
     ip_pre = NULL;
     for (i=0; i<buf_cnt; i++) {
         ip = &bufs[i].dma_lli;
@@ -1565,13 +1555,10 @@ apc_channel_write_LLP_internal (APC_DCH dch,
         ip->DAR = dst_addr; //pdci->fixed_lr[lr_idx]->data_addr;
         if (ip_pre != NULL)
             ip_pre->LLP = (uint32_t)ip;
-        if (ip_first == NULL)
-            ip_first = ip;
         ip->CTL_LO = control;
         ip->u.SIZE = (pdci->samp_bits > 16 ? bufs[i].sample_cnt : bufs[i].sample_cnt/2);
         ip_pre = ip; // save current DMA_LLI pointer
     }
-    ip->LLP = (uint32_t)ip_first;
     // DMA_LLI list (stored in AUDIO_BUFFER_LLI array) is to be accessed by DMAC,
     // So the AUDIO_BUFFER_LLI array memory space SHOULD be do cache sync operation
     dcache_flush_range((unsigned long)bufs, (unsigned long)(bufs + buf_cnt));
@@ -2116,16 +2103,10 @@ int32_t apc_eq_clear(APC_DCH dch, uint8_t wait_done)
     return CSK_DRIVER_OK;
 }
 
-int intrrupt_set_flag = 0;
-uint32_t trans_bytes = 0;
-int r_cnt=0;
+
 static _FAST_FUNC_RO void
 apc_dma_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param)
 {
-    intrrupt_set_flag = 1;
-    trans_bytes = xfer_bytes;
-    r_cnt++;
-    // printk("cnt %d cnt%d\n",(count+3)%4+1,count);
     uint8_t event_type = event_info & 0xFF;
     APC_DCH dch = (usr_param >> 8) & 0xFF;
     APC_DCH_INFO *pdci = &g_apc_dev.dch_array[dch];
@@ -2182,7 +2163,7 @@ apc_dma_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param)
   \fn          void apc_irq_handler (void)
   \brief       APC interrupt handler
 */
-_FAST_FUNC_RO void apc_irq_handler (void)
+static _FAST_FUNC_RO void apc_irq_handler (void)
 {
     //TODO: Read interrupt status register, and check if
     // there are following interrupt conditions:
@@ -2215,34 +2196,34 @@ _FAST_FUNC_RO void apc_irq_handler (void)
 
         // RX FIFO full
         if ( IS_SET_RX_FULL (status) ) {
-            // apc_ch_intr_disable(i, APC_INTR_FIFO_FULL);
-            // CLOGW("APC CH %d FULL! mask INT\n", i);
-            // //CLOGW("APC CH %d Fu!\n", i);
+            apc_ch_intr_disable(i, APC_INTR_FIFO_FULL);
+            CLOGW("APC CH %d FULL! mask INT\n", i);
+            //CLOGW("APC CH %d Fu!\n", i);
 
-            // if (pdci->cb_event != NULL) {
-            //     event_info = (i << 8) | APC_EVENT_RX_FIFO_FULL;
-            //     pdci->cb_event(event_info, pdci->usr_param);
-            // }
+            if (pdci->cb_event != NULL) {
+                event_info = (i << 8) | APC_EVENT_RX_FIFO_FULL;
+                pdci->cb_event(event_info, pdci->usr_param);
+            }
         }
 
         // RX FIFO overflow
         if ( IS_SET_RX_OVERRUN (status) ) {
-            // if (mixed) { // both Left & Right channels
-            //     pdci->cfg_reg_p->all &= ~(APC_DCH_R_EN | APC_DCH_L_EN);
-            // } else if (lr_idx == 0) { // Left channel
-            //     pdci->cfg_reg_p->bit.CH_L_EN = 0;
-            // } else { // Right channel
-            //     pdci->cfg_reg_p->bit.CH_R_EN = 0;
-            // }
-            // apc_ch_intr_disable(i, APC_INTR_FIFO_OVERRUN);
-            // apc_ch_intr_clear(i, APC_INTR_FIFO_OVERRUN | APC_INTR_FIFO_DMA_REQ);
-            // CLOGW("APC CH %d OVERRUN! disable CH(mixed=%d)\n", i, mixed);
-            // //CLOGW("APC CH %d OV!\n", i);
+            if (mixed) { // both Left & Right channels
+                pdci->cfg_reg_p->all &= ~(APC_DCH_R_EN | APC_DCH_L_EN);
+            } else if (lr_idx == 0) { // Left channel
+                pdci->cfg_reg_p->bit.CH_L_EN = 0;
+            } else { // Right channel
+                pdci->cfg_reg_p->bit.CH_R_EN = 0;
+            }
+            apc_ch_intr_disable(i, APC_INTR_FIFO_OVERRUN);
+            apc_ch_intr_clear(i, APC_INTR_FIFO_OVERRUN | APC_INTR_FIFO_DMA_REQ);
+            CLOGW("APC CH %d OVERRUN! disable CH(mixed=%d)\n", i, mixed);
+            //CLOGW("APC CH %d OV!\n", i);
 
-            // if (pdci->cb_event != NULL) {
-            //     event_info = (i << 8) | APC_EVENT_RX_FIFO_OVERRUN;
-            //     pdci->cb_event(event_info, pdci->usr_param);
-            // }
+            if (pdci->cb_event != NULL) {
+                event_info = (i << 8) | APC_EVENT_RX_FIFO_OVERRUN;
+                pdci->cb_event(event_info, pdci->usr_param);
+            }
         }
 
         // TX FIFO empty

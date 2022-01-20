@@ -6,9 +6,6 @@
 
 #include <stdint.h>
 
-#define CP_APC_BASE 0x49000000
-#define CP_APC  ((APC_RegDef *)CP_APC_BASE)
-
 #define OFFSET_APC_APC_CFG                          0x000
 #define BITSET_0X000_AUTO_CLK_GATING                0x8
 #define BITSET_0X000_APC_TX_PATH_RESET              0x4
