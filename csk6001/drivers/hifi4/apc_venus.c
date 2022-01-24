@@ -23,6 +23,11 @@
 #define LOGD(format, ...)   ((void)0)
 #endif // DEBUG_LOG
 
+#define CLOGE printk
+#define CLOGD printk
+#define CLOGW printk
+#define CLOGI printk
+
 //=============================================================================
 // APC channel information (fixed by IC design)
 typedef struct _APC_CH_FIXED
@@ -171,7 +176,7 @@ static volatile CSK_APC_RegDef * gApcReg = NULL;
 #define IS_APC_DCH_OCCUPIED(dch)      (g_apc_dev.dch_array[dch].intf_type != APC_INTF_UNSET)
 
 static void apc_dma_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param);
-static void apc_irq_handler (void);
+void apc_irq_handler (void);
 
 //=============================================================================
 
@@ -435,10 +440,10 @@ int32_t apc_initialize (void)
         CSK_APC->REG_APC_INTR_RX_CLR.all = 0x3FFFFFFF; // write 1 to clear
 
     // Register APC ISR
-    register_ISR(IRQ_APC_VECTOR, (ISR)apc_irq_handler, NULL);
+    // register_ISR(IRQ_APC_VECTOR, (ISR)apc_irq_handler, NULL);
 
     // Enable APC IRQ
-    enable_IRQ(IRQ_APC_VECTOR);
+    // enable_IRQ(IRQ_APC_VECTOR);
 
     // Initialize DMA Controller
     dma_initialize();
@@ -480,7 +485,7 @@ int32_t apc_uninitialize (void)
     disable_IRQ(IRQ_APC_VECTOR);
 
     // Unregister APC ISR
-    register_ISR(IRQ_APC_VECTOR, NULL, NULL);
+    // register_ISR(IRQ_APC_VECTOR, NULL, NULL);
 
     // Uninitialize DMA Controller
     dma_uninitialize();
@@ -2163,7 +2168,7 @@ apc_dma_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param)
   \fn          void apc_irq_handler (void)
   \brief       APC interrupt handler
 */
-static _FAST_FUNC_RO void apc_irq_handler (void)
+_FAST_FUNC_RO void apc_irq_handler (void)
 {
     //TODO: Read interrupt status register, and check if
     // there are following interrupt conditions:
