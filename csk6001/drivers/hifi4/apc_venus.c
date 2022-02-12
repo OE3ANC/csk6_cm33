@@ -1552,6 +1552,7 @@ apc_channel_write_LLP_internal (APC_DCH dch,
     if (pdci->dma_width_bits == DMA_WIDTH_HALFWORD) // trim low 16bits
         dst_addr += 2; // high 16bits address
 
+    DMA_LLP ip_first = NULL;
     ip_pre = NULL;
     for (i=0; i<buf_cnt; i++) {
         ip = &bufs[i].dma_lli;
@@ -1560,10 +1561,13 @@ apc_channel_write_LLP_internal (APC_DCH dch,
         ip->DAR = dst_addr; //pdci->fixed_lr[lr_idx]->data_addr;
         if (ip_pre != NULL)
             ip_pre->LLP = (uint32_t)ip;
+        if (ip_first == NULL)
+            ip_first = ip;
         ip->CTL_LO = control;
         ip->u.SIZE = (pdci->samp_bits > 16 ? bufs[i].sample_cnt : bufs[i].sample_cnt/2);
         ip_pre = ip; // save current DMA_LLI pointer
     }
+    ip->LLP = (uint32_t)ip_first;
     // DMA_LLI list (stored in AUDIO_BUFFER_LLI array) is to be accessed by DMAC,
     // So the AUDIO_BUFFER_LLI array memory space SHOULD be do cache sync operation
     dcache_flush_range((unsigned long)bufs, (unsigned long)(bufs + buf_cnt));
