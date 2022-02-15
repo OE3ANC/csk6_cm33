@@ -17,7 +17,10 @@
 
 struct AUD_R0_RSVD_REG0_BITS
 {
-    volatile uint32_t AUD_REG_RSVD                  : 16; // bit 0~15
+    //volatile uint32_t AUD_REG_RSVD                  : 16; // bit 0~15
+    volatile uint32_t ADC01_DESKEW_CLK_INV          : 1; // bit 0, work in AON_CODEC
+    volatile uint32_t ADC23_DESKEW_CLK_INV          : 1; // bit 1, work in CP_CODEC
+    volatile uint32_t AUD_REG_RSVD                  : 14; // bit 2~15
     volatile uint32_t RESV_16_31                    : 16; // bit 16~31
 };
 
@@ -272,10 +275,26 @@ struct AUD_R11_ADC_CTRL6_BITS
     volatile uint32_t RESV_31_31                    : 1; // bit 31~31
 };
 
-#define R11_ADCL_EN         (1 << 1)
-#define R11_ADCR_EN         (1 << 0)
-#define R11_ADCLR_EN        (R11_ADCL_EN | R11_ADCR_EN)
-#define R11_ADC_RCCTRL_12M  (1 << 10)
+#define R11_ADCL_EN             (1 << 1)
+#define R11_ADCR_EN             (1 << 0)
+#define R11_ADCLR_EN            (R11_ADCL_EN | R11_ADCR_EN)
+
+#define R11_ADC_IB_CTRL(n)      (((n) & 0xF) << 3) // bit[6:3]
+
+#define R11_ADC_IDAC_CTRL(n)    (((n) & 0x3) << 7) // bit[8:7]
+#define R11_ADC_IDAC_7P5UA_5PERM    (0x0 << 7)
+#define R11_ADC_IDAC_7P5UA          (0x1 << 7)
+#define R11_ADC_IDAC_7P5UA_6PERP    (0x2 << 7)
+#define R11_ADC_IDAC_7P5UA_13PERP   (0x3 << 7)
+
+#define R11_ADC_CBIAS_CUR_10UA  (1 << 9) // bit[9]: 1 = 10uA, 0 = 20uA
+#define R11_ADC_CBIAS_CUR_20UA  (0 << 9)
+#define R11_ADC_RCCTRL_12MHZ    (1 << 10) // bit[10]: 1 = 12MHZ, 0 = 4MHZ
+#define R11_ADC_RCCTRL_4MHZ     (0 << 10)
+
+#define R11_ADC_QUAR_COV(n)     (((n) & 0x3F) << 16) //bit[21:16]
+#define R11_ADC_RSET_RC_CALI    (1 << 22)
+
 
 union AUD_R11_ADC_CTRL6 {
     volatile uint32_t                     all;
@@ -327,7 +346,9 @@ struct AUD_R12_ADC_CTRL7_BITS
 #define R12_ADC_VREF_EN                 (1 << 17)
 //#define R12_ADC_VREF_MODE
 #define R12_ADC_VREF_40UA               (1 << 19) // bit[19], 1=40uA, 0=20uA
+#define R12_ADC_VREF_20UA               (0 << 19)
 #define R12_ADC_VCM_BIAS_30UA           (1 << 20) // bit[20], 1=30uA, 0=10uA
+#define R12_ADC_VCM_BIAS_10UA           (0 << 20)
 #define R12_ADC_IDAC_TRIM(n)            (((n) & 0x7) << 21) // bit[23:21], default 000b
 //#define R12_IDAC_BIAS_VAL
 #define R12_IDAC_BIAS_EN                (1 << 25) // bit[25]
@@ -615,19 +636,35 @@ typedef struct {
 #define ARRAY_COUNT(a)  (sizeof(a)/sizeof(a[0]))
 
 
-#define LDO25_VOSEL_2P5V    (1 << 3) // 2.5V (Normal work)
-#define LDO25_VOSEL_1P8V    (0 << 3) // 1.8V (For Trimming, Default)
-#define LDO25_ENABLE        (1 << 4) // enable LDO25
-#define LDO25_DISABLE       (0 << 4) // disable LDO25
+#define LDO25_VOSEL_2P5V    (1 << 3) // bit[3]: 1 = 2.5V (Normal work), 0 = 1.8V (For Trimming, Default)
+#define LDO25_VOSEL_1P8V    (0 << 3)
+#define LDO25_ENABLE        (1 << 4) // bit[4]: 1 = enable LDO25, 0 = disable LDO25
+#define LDO25_DISABLE       (0 << 4)
+
+#define LDO25_VSEL(n)       (((n) & 0x3) << 7)
+#define LDO25_VSEL_MASK     (0x3 << 7)
+#define LDO25_VSEL_2P45     (0x0 << 7)
+#define LDO25_VSEL_2P50     (0x1 << 7)
+#define LDO25_VSEL_2P55     (0x2 << 7)
+#define LDO25_VSEL_2P60     (0x3 << 7)
+
+#define LDO18_VSEL(n)       (((n) & 0x3) << 7)
+#define LDO18_VSEL_MASK     (0x3 << 7)
+#define LDO18_VSEL_1P80     (0x0 << 7)
+#define LDO18_VSEL_1P85     (0x1 << 7)
+#define LDO18_VSEL_1P90     (0x2 << 7)
+#define LDO18_VSEL_1P95     (0x3 << 7)
 
 static inline void ENABLE_LDO25() {
     //AON_ANALOGCTRL->REG_0X038.bit.LDO25VOSEL = 0x1;
     //AON_ANALOGCTRL->REG_0X038.bit.LDO25_EN = 0x1;
-    uint32_t reg_val = AON_ANALOGCTRL->REG_0X038.all;
-    if ((reg_val & LDO25_VOSEL_2P5V) && (reg_val & LDO25_ENABLE))
-        return;
-    reg_val |= LDO25_VOSEL_2P5V | LDO25_ENABLE;
-    AON_ANALOGCTRL->REG_0X038.all = reg_val;
+    //AON_ANALOGCTRL->REG_0X038.bit.LDO18_VSEL = 0x1;
+    uint32_t reg_val, reg_org;
+    reg_org = reg_val = AON_ANALOGCTRL->REG_0X038.all;
+    reg_val &= ~LDO25_VSEL_MASK;
+    reg_val |= LDO25_VOSEL_2P5V | LDO25_ENABLE | LDO25_VSEL_2P50;
+    if (reg_val != reg_org)
+        AON_ANALOGCTRL->REG_0X038.all = reg_val;
 }
 
 static inline void DISABLE_LDO25() {
@@ -637,6 +674,7 @@ static inline void DISABLE_LDO25() {
     if (!(reg_val & LDO25_ENABLE))
         return;
     reg_val &= ~(LDO25_ENABLE | LDO25_VOSEL_2P5V);
+    AON_ANALOGCTRL->REG_0X038.all = reg_val;
 }
 
 static inline void CONFIG_CODEC_ANALOG() {
@@ -645,7 +683,7 @@ static inline void CONFIG_CODEC_ANALOG() {
     //AON_CODEC->REG_AUD_R2_GLOBAL1.all  = 0x564;
     AON_CODEC->REG_AUD_R2_GLOBAL1.all = MB0_MILLER_EXT_CAP | MB0_SET_2P0V |
                                         MB1_MILLER_EXT_CAP | MB1_SET_2P0V |
-                                        DAC_IREF_2P0UA | AUD_IREF_ENABLE |
+                                        DAC_IREF_1P5UA | AUD_IREF_ENABLE | // DAC_IREF_2P0UA
                                         AUD_VMID_50KOHM | AUD_VMID_ENABLE;
 }
 

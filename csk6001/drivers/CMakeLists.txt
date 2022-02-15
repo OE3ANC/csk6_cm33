@@ -11,7 +11,8 @@ if(${CONFIG_SOC_LS_ADSP_CSK6})
                             hifi4/IOMuxManager.c
                             hifi4/ClockManager.c
                             hifi4/apc_venus.c
-                            hifi4/dac_venus.c)
+                            hifi4/dac_venus.c
+                            hifi4/adc_pdm_venus.c)
 elseif(${CONFIG_SOC_CSK6001})
     zephyr_include_directories(cm33/include)
     zephyr_include_directories(cm33/include/hal/sdmmc)
