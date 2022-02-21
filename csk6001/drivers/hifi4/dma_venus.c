@@ -869,7 +869,7 @@ _FAST_FUNC_RO int32_t dma_channel_configure_LLP (
     //    return -1;
 
     cur = (DMA_LLP)(llp->LLP & ~0x3UL); // LLI address is 4bytes aligned
-    while(1){
+    while(cur){
     // for(int i = 0; i < 4; i++) {
         // Usually LMS bits SHOULD NOT change
         if (lms != (cur->LLP & 0x03))
