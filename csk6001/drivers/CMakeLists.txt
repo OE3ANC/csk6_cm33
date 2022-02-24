@@ -13,6 +13,7 @@ if(${CONFIG_SOC_LS_ADSP_CSK6})
 elseif(${CONFIG_SOC_CSK6001})
     zephyr_include_directories(cm33/include)
     zephyr_include_directories(cm33/include/hal/sdmmc)
+    zephyr_include_directories(cm33/include/hal/reg)
     zephyr_library_sources(cm33/venus_ap.c
                             cm33/clock_config.c 
                             cm33/dma.c
@@ -29,6 +30,7 @@ elseif(${CONFIG_SOC_CSK6001})
                             cm33/PSRAMManger.c
                             cm33/i2c.c
                             cm33/spi.c
+                            cm33/wdt.c
                             cm33/sdmmc/drv_sdc.c
                             cm33/sdmmc/ftsdc021_cis.c
                             cm33/sdmmc/ftsdc021_ops.c
