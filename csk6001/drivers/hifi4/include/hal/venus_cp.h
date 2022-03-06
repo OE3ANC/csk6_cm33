@@ -43,7 +43,7 @@
 
 //fast function
 #define _FAST_FUNC_RO           __attribute__ ((section (".iram0.text")))
-//#define _FAST_FUNC_RO           //FIXME:
+// #define _FAST_FUNC_RO           //FIXME:
 //fast data value initialize
 //#define _FAST_DATA_VI           __attribute__ ((section (".data_localmem.data")))
 #define _FAST_DATA_VI           //FIXME:

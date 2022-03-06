@@ -40,29 +40,34 @@ typedef enum _CSK_POWER_STATE
 } CSK_POWER_STATE;
 
 
-/** @addtogroup Exported_macro
-  * @{
-  */
-#define SET_BIT(REG, BIT)     ((REG) |= (BIT))
+// Audio buffer used for DMA transfer of multiple non-continuous buffers
+// NOTE: AUDIO_BUFFER_USER (array) SHOULD NOT be in the stack, and SHOULD NOT
+//      be released until data transfer is completed or aborted!
+typedef struct {
+    uint32_t dma_lli_words[12];
+} DMA_DESC;
 
-#define CLEAR_BIT(REG, BIT)   ((REG) &= ~(BIT))
+typedef struct {
+    uint32_t* sample_data;
+    uint32_t  sample_cnt; // SHOULD be EVEN when 16-bit sample!!
+    DMA_DESC  dma_desc; // DON'T TOUCH IT! reserved for DMA driver only
+} AUDIO_BUFFER_USER;
 
-#define READ_BIT(REG, BIT)    ((REG) & (BIT))
+// parameters setting of APC ECHO channels
+typedef struct {
+    uint32_t    samp_rate; // echo sample rate, generally equals to recording sample rate
+    uint8_t     echo_mixed; // if both L&R echo channels are used, whether L&R data are mixed
+                           // 1: mixed, 0: NOT mixed
+    uint8_t     trim_16bits;// only valid for 24 MSB and 32 channel mode, when set to 1:
+                            // record: trim low 16bits, get 16bits audio data
+                            // playback: 16bits audio data is placed at high 16bits of WORD
+    uint8_t     reserved[2];
+} ECHO_PARAMS;
 
-#define CLEAR_REG(REG)        ((REG) = (0x0))
-
-#define WRITE_REG(REG, VAL)   ((REG) = (VAL))
-
-#define READ_REG(REG)         ((REG))
-
-#define MODIFY_REG(REG, CLEARMASK, SETMASK)  WRITE_REG((REG), (((READ_REG(REG)) & (~(CLEARMASK))) | (SETMASK)))
-
-#define POSITION_VAL(VAL)     (__CLZ(__RBIT(VAL)))
-
-/**
-  * @}
-  */
-
+// Channel definition in audio interface, i.e. I2S, ADC_PDM couple, DAC couple etc.
+#define CH_BMP_LEFT    (0x1 << 0)
+#define CH_BMP_RIGHT   (0x1 << 1)
+#define CH_BMP_STEREO  (CH_BMP_LEFT | CH_BMP_RIGHT)
 
 
 #endif /* __DRIVER_COMMON_H */
