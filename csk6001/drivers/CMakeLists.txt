@@ -23,7 +23,7 @@ elseif(${CONFIG_SOC_CSK6001})
                             cm33/clock_config.c 
                             cm33/dma.c
                             cm33/cache_ap.c
-                            #cm33/gpio.c
+                            cm33/gpio.c
                             cm33/uart.c
                             cm33/IOMuxManager.c
                             cm33/ClockManager.c

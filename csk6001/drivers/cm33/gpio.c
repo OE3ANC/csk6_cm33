@@ -1,4 +1,4 @@
-#include "hal/gpio.h"
+#include "gpio.h"
 
 #define CSK_GPIO_DRV_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,1)
 
@@ -125,18 +125,17 @@ GPIO_GetVersion(void){
 
 int32_t
 GPIO_Initialize(void *res, CSK_GPIO_SignalEvent_t cb_event, void* workspace){
-#define SYSTEM_CLK    ((SYSCFG_RegDef* ) CMN_SYSCTRL_BASE)
 
     CHECK_RESOURCES(res);
 
     GPIO_RESOURCES* gpio = (GPIO_RESOURCES*)res;
 
     if (gpio == &gpioa_resources){
-        SYSTEM_CLK->REG_MISC_CLK_CFG1.bit.ENA_GPIOA_EXTCLK = 0x1;
-        SYSTEM_CLK->REG_SW_RESET2.bit.GPIO_A_RESET = 0x1;
+        IP_SYSCTRL->REG_MISC_CLK_CFG1.bit.ENA_GPIOA_EXTCLK = 0x1;
+        IP_SYSCTRL->REG_SW_RESET2.bit.GPIO_A_RESET = 0x1;
     } else if (gpio == &gpiob_resources){
-        SYSTEM_CLK->REG_MISC_CLK_CFG1.bit.ENA_GPIOB_EXTCLK = 0x1;
-        SYSTEM_CLK->REG_SW_RESET2.bit.GPIO_B_RESET = 0x1;
+        IP_SYSCTRL->REG_MISC_CLK_CFG1.bit.ENA_GPIOB_EXTCLK = 0x1;
+        IP_SYSCTRL->REG_SW_RESET2.bit.GPIO_B_RESET = 0x1;
     } else {
         return CSK_DRIVER_ERROR_PARAMETER;
     }
@@ -163,9 +162,9 @@ GPIO_Uninitialize(void *res){
     GPIO_RESOURCES* gpio = (GPIO_RESOURCES*)res;
 
     if (gpio == &gpioa_resources){
-        SYSTEM_CLK->REG_MISC_CLK_CFG1.bit.ENA_GPIOA_EXTCLK = 0x0;
+        IP_SYSCTRL->REG_MISC_CLK_CFG1.bit.ENA_GPIOA_EXTCLK = 0x0;
     } else if (gpio == &gpiob_resources){
-        SYSTEM_CLK->REG_MISC_CLK_CFG1.bit.ENA_GPIOB_EXTCLK = 0x0;
+        IP_SYSCTRL->REG_MISC_CLK_CFG1.bit.ENA_GPIOB_EXTCLK = 0x0;
     } else {
         return CSK_DRIVER_ERROR_PARAMETER;
     }
@@ -247,6 +246,7 @@ GPIO_Control(void* res, uint32_t control, uint32_t arg){
         gpio_set_pull_mode(gpio, csk_gpio_mode_none_pull, arg);
         break;
     }
+
 
     switch (control & CSK_GPIO_DEBOUNCE_CLK_Mask){
     case CSK_GPIO_DEBOUNCE_CLK_EXT:
