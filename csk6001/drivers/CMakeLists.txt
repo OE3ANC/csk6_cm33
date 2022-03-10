@@ -34,7 +34,7 @@ elseif(${CONFIG_SOC_CSK6001})
                             #cm33/mbox.c
                             #cm33/PSRAMManger.c
                             #cm33/i2c.c
-                            #cm33/spi.c
+                            cm33/spi.c
                             #cm33/sdmmc/drv_sdc.c
                             #cm33/sdmmc/ftsdc021_cis.c
                             #cm33/sdmmc/ftsdc021_ops.c
