@@ -30,7 +30,7 @@
 // #include <dual_timer_reg_venus.h>
 //#include <ftsdc021.h>
 #include <gpio_reg_venus.h>
-// #include <gpt_reg_venus.h>
+#include <gpt_reg_venus.h>
 #include <i2c_reg_venus.h>
 // #include <ir_reg_venus.h>
 // #include <keysense_reg_venus.h>

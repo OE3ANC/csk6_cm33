@@ -29,8 +29,8 @@
 
 
 /* Includes ------------------------------------------------------------------*/
-#include "hal/Driver_Common.h"
-#include "hal/gpt_common.h"
+#include "Driver_Common.h"
+#include "gpt_common.h"
 
 
 /** @addtogroup CSK_HAL_Driver

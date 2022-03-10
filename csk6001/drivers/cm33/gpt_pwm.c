@@ -18,8 +18,8 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "hal/gpt_pwm.h"
-#include "hal/reg/cmn_sysctrl_reg_venus.h"
+#include "gpt_pwm.h"
+#include "cmn_sysctrl_reg_venus.h"
 
 /** @addtogroup CSK_HAL_Driver
   * @{
@@ -297,18 +297,19 @@ int32_t HAL_GPT_PWMControl(void *pGpt, uint32_t control, GPT_CHANNEL_TYPE channe
 			pGptPWM->gpt_resources->ledc_transmit_info->ledc_tx_mode[channel] = INTERRUPT_MODE;
 		}else if(tmp == CSK_GPT_LEDC_TRANSFER_MODE_DMA){
 			pGptPWM->gpt_resources->ledc_transmit_info->ledc_tx_mode[channel] = DMA_MODE;
-
+/*
+//			uint32_t sysclock;
 //			//DMA request select GPT channel x
 //			#define SYSTEM_CLK    ((SYSCFG_RegDef* ) CMN_SYSCTRL_BASE)
 //			//channel0 => CFG0, channel1-channel3 => CFG1
-//			SYSTEM_CLK->REG_AP_CTRL1.bit.AP_DMA_HS_SEL &= ~(channel==0 ? AP_GPT_TX0:(channel==1 ? AP_GPT_TX1:
+//			SYSTEM_CLK->REG_AP_CTRL1.bit.AP_DMA_HS_SEL &= ~(channel==0 ? AP_GPT_TX0:(channel==1 ? AP_GPT_TX1:\
 //														   (channel==2 ? AP_GPT_TX2:(channel==3 ? AP_GPT_TX3 : 0x0))));
 //			SYSTEM_CLK->REG_AP_CTRL1.bit.AP_DMA_HS_SEL |= (channel==1 ? AP_GPT_TX1:
 //														  (channel==2 ? AP_GPT_TX2:(channel==3 ? AP_GPT_TX3 : 0x0)));
 //
 //			//GPT module DMA enable
 //			pGptPWM->gpt_resources->reg->DMA_CTRL |= 0x01<<channel;
-
+*/
 			dma_initialize();
 
 		}else{
@@ -617,11 +618,10 @@ int32_t HAL_GPT_LEDCOut(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_t *senddata
 	else if(pGptPWM->gpt_resources->ledc_transmit_info->ledc_tx_mode[channel] == DMA_MODE)
 	{
 		//DMA request select GPT channel x
-		#define SYSTEM_CLK    ((SYSCFG_RegDef* ) CMN_SYSCTRL_BASE)
 		//channel0 => CFG0, channel1-channel3 => CFG1
-		SYSTEM_CLK->REG_AP_CTRL1.bit.AP_DMA_HS_SEL &= ~(channel==0 ? AP_GPT_TX0:(channel==1 ? AP_GPT_TX1:\
+		IP_SYSCTRL->REG_AP_CTRL1.bit.AP_DMA_HS_SEL &= ~(channel==0 ? AP_GPT_TX0:(channel==1 ? AP_GPT_TX1:\
 													   (channel==2 ? AP_GPT_TX2:(channel==3 ? AP_GPT_TX3 : 0x0))));
-		SYSTEM_CLK->REG_AP_CTRL1.bit.AP_DMA_HS_SEL |= (channel==1 ? AP_GPT_TX1:
+		IP_SYSCTRL->REG_AP_CTRL1.bit.AP_DMA_HS_SEL |= (channel==1 ? AP_GPT_TX1:
 													  (channel==2 ? AP_GPT_TX2:(channel==3 ? AP_GPT_TX3 : 0x0)));
 
 		pGptPWM->dma_tx->reqsel = (channel==0 ? AP_GPT_TX0_REQINDEX:(channel==1 ? AP_GPT_TX1_REQINDEX:\
