@@ -8,6 +8,7 @@
 #define __DMA_VENUS_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef PLATFORM_CP
 #include "venus_cp.h"
@@ -212,6 +213,7 @@ extern int32_t dma_uninitialize (void);
                                         DMA_CACHE_SYNC     cache_sync)
   \brief        Select specified channel or dynamically allocate a free channel
                 before calling dma_channel_configure or dma_channel_configure_LLP.
+                The channel will be released when DMA operation is completed or channel is disabled.
   \param[in, out]   pch     pointer to Channel number
                             the preferred dma channel as input parameter,
                             the actual dma channel as output parameter.
@@ -228,6 +230,48 @@ extern uint8_t dma_channel_select(uint8_t *pch,
                                 uint32_t           usr_param,
                                 DMA_CACHE_SYNC     cache_sync);
 
+
+/**
+   \fn          int32_t dma_channel_reserve (uint8_t      ch,
+                                        DMA_SignalEvent_t  cb_event,
+                                        uint32_t           usr_param,
+                                        DMA_CACHE_SYNC     cache_sync)
+  \brief        Reserve specified channel for exclusive use
+                before calling dma_channel_configure or dma_channel_configure_LLP.
+                The channel will NOT be released when DMA operation is completed or channel is disabled,
+                So this API function is NOT RECOMMENDED to use if NOT necessary!!
+  \param[in]   ch          specified Channel number
+  \param[in]   cb_event     Channel callback pointer
+  \param[in]   usr_param    user-defined value, acts as last parameter of cb_event
+  \param[in]   cache_sync   cache coherence or sync policy for source/destination RAM buffer
+                            before DMA operation. see the definition of DMA_CACHE_SYNC.
+  \returns
+   - \b  the reserved DMA channel number if successful, or DMA_CHANNEL_ANY (0xFF) if failed.
+ */
+extern uint8_t dma_channel_reserve(uint8_t ch,
+                                  DMA_SignalEvent_t  cb_event,
+                                  uint32_t           usr_param,
+                                  DMA_CACHE_SYNC     cache_sync);
+
+
+/**
+   \fn          int32_t dma_channel_unreserve (uint8_t      ch)
+  \brief        Unreserve (or Release) specified channel exclusively used by some device.
+  \param[in]   ch          specified dedicated Channel number
+  \returns
+   - \b  no return value.
+ */
+extern void dma_channel_unreserve(uint8_t ch);
+
+
+/**
+   \fn          int32_t dma_channel_is_reserved (uint8_t      ch)
+  \brief        Check whether specified channel is reserved (exclusively used by some device) or not.
+  \param[in]   ch          specified dedicated Channel number
+  \returns
+   - \b  true indicates reserved, false indicates NOT reserved yet.
+ */
+extern bool dma_channel_is_reserved(uint8_t ch);
 
 /**
   \fn          int32_t dma_channel_configure (uint8_t      ch,
