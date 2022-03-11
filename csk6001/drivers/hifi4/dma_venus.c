@@ -1004,7 +1004,8 @@ _FAST_FUNC_RO int32_t dma_channel_configure_LLP (
     //    return -1;
 
     cur = (DMA_LLP)(llp->LLP & ~0x3UL); // LLI address is 4bytes aligned
-    while (cur != NULL) {
+    while(cur){
+    // for(int i = 0; i < 4; i++) {
         // Usually LMS bits SHOULD NOT change
         if (lms != (cur->LLP & 0x03))
             return -1;
@@ -1036,6 +1037,7 @@ _FAST_FUNC_RO int32_t dma_channel_configure_LLP (
         cur->CTL_LO &= ~DMA_CH_CTLL_LLP_EN_MASK;
 
         cur = next; // next LLI
+        if(cur == ((DMA_LLP)(llp->LLP & ~0x3UL))) break;
     } //end while
 
     // Check if channel is valid
@@ -1358,7 +1360,7 @@ uint32_t dma_channel_get_count (uint8_t ch) {
     return count;
 }
 
-
+uint32_t curr_addr =0;
 /**
   \fn          void dma_irq_handler (void)
   \brief       DMA interrupt handler
@@ -1452,13 +1454,20 @@ _FAST_FUNC_RO void dma_irq_handler (void) {
                     DMA_LLP cur = ch_info->llp;
                     ch_info->llp = (DMA_LLP)cur->LLP;
                     ch_info->SizeToXfer = cur->u.SIZE;
+                    curr_addr = cur->SSTAT;
 
                     size = cur->u.SIZE > MAX_BLK_TS ? FIT_BLK_TS : cur->u.SIZE;
                     update_next_xfer_addr(ch_info, cur->CTL_LO, cur->SAR, cur->DAR, size);
 
                     // do cache sync operation before the mock BLOCK transfer
                     do_cache_sync(ch_info, cur->CTL_LO, cur->SAR, cur->DAR, cur->u.SIZE);
-
+                    // Signal Event
+                    if (ch_info->cb_event) {
+                        ch_info->cb_event(
+                                (ch << 8) | DMA_EVENT_BLOCK_COMPLETE,
+                                ch_info->SizeXfered * ch_info->width_bytes,
+                                curr_addr);
+                    }
                     // Trigger first DMA transfer
                    dma_channel_configure_internal(ch, cur->SAR, cur->DAR, size, cur->CTL_LO,
                                                           config_low, config_high);
