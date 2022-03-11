@@ -34,17 +34,20 @@
 #define CSK_MBX_AP_CTRL_GET_CHS       (0x02)   //get enabled channels
 #define CSK_MBX_AP_CTRL_SET_LK        (0x03)   //set lock status of AP mailbox
 #define CSK_MBX_AP_CTRL_GET_LK        (0x04)   //get lock status of AP mailbox
+#define CSK_MBX_AP_CTRL_NOTIFY        (0x05)   //notify CP, the next package can receive
+#define CSK_MBX_AP_CTRL_GET_RX        (0x06)   //get receive buffer
 
 #define CSK_MBX_CP_CTRL_SET_CHS       (0x10)   //set channels to enable
 #define CSK_MBX_CP_CTRL_GET_CHS       (0x20)   //get enabled channels
 #define CSK_MBX_CP_CTRL_SET_LK        (0x30)   //set lock status of CP mailbox
 #define CSK_MBX_CP_CTRL_GET_LK        (0x40)   //get lock status of CP mailbox
-
+#define CSK_MBX_CP_CTRL_NOTIFY        (0x50)   //notify AP, the next package can receive
+#define CSK_MBX_CP_CTRL_GET_RX        (0x60)   //get receive buffer
 
 #define CSK_MBX_EVENT_SEND_COMPLETE     (1UL << 0)  // Data Send completed
 #define CSK_MBX_EVENT_RECEIVE_COMPLETE  (1UL << 1)  // Data Receive completed
 
-typedef void (*CSK_MBX_SignalEvent_t)(uint32_t event, uint32_t param);
+typedef int8_t (*CSK_MBX_SignalEvent_t)(uint32_t event, uint32_t param);
 
 
 // export MBX API function: MBX_GetVersion

@@ -6,9 +6,6 @@
 
 #include <stdint.h>
 
-#define CP_APC_BASE 0x49000000
-#define CP_APC  ((APC_RegDef *)CP_APC_BASE)
-
 #define OFFSET_APC_APC_CFG                          0x000
 #define BITSET_0X000_AUTO_CLK_GATING                0x8
 #define BITSET_0X000_APC_TX_PATH_RESET              0x4
@@ -253,7 +250,7 @@
 #define BITSET_0X0E8_I2S0_SERIAL_MODE               0xc00000
 #define BITSET_0X0E8_I2S0_MASTER_MODE               0x200000
 #define BITSET_0X0E8_I2S0_TX_DLY                    0x100000
-#define BITSET_0X0E8_I2S0_TX_DLY_S                  0x80000
+#define BITSET_0X0E8_I2S0_TX_RX_DLY_S               0x80000
 #define BITSET_0X0E8_I2S0_RX_DLY                    0x60000
 #define BITSET_0X0E8_I2S0_TX_HALF_CYCLE_DLY         0x10000
 #define BITSET_0X0E8_I2S0_RX_HALF_CYCLE_DLY         0x8000
@@ -285,7 +282,7 @@
 #define BITSET_0X0F0_I2S1_SERIAL_MODE               0xc00000
 #define BITSET_0X0F0_I2S1_MASTER_MODE               0x200000
 #define BITSET_0X0F0_I2S1_TX_DLY                    0x100000
-#define BITSET_0X0F0_I2S1_TX_DLY_S                  0x80000
+#define BITSET_0X0F0_I2S1_TX_RX_DLY_S               0x80000
 #define BITSET_0X0F0_I2S1_RX_DLY                    0x60000
 #define BITSET_0X0F0_I2S1_TX_HALF_CYCLE_DLY         0x10000
 #define BITSET_0X0F0_I2S1_RX_HALF_CYCLE_DLY         0x8000
@@ -317,7 +314,7 @@
 #define BITSET_0X0F8_I2S2_SERIAL_MODE               0xc00000
 #define BITSET_0X0F8_I2S2_MASTER_MODE               0x200000
 #define BITSET_0X0F8_I2S2_TX_DLY                    0x100000
-#define BITSET_0X0F8_I2S2_TX_DLY_S                  0x80000
+#define BITSET_0X0F8_I2S2_TX_RX_DLY_S               0x80000
 #define BITSET_0X0F8_I2S2_RX_DLY                    0x60000
 #define BITSET_0X0F8_I2S2_TX_HALF_CYCLE_DLY         0x10000
 #define BITSET_0X0F8_I2S2_RX_HALF_CYCLE_DLY         0x8000
@@ -595,17 +592,24 @@
 #define OFFSET_APC_I2S_SYNC_MODE                    0x148
 #define BITSET_0X148_I2S_SYNC_MODE                  0x3
 
-#define OFFSET_APC_APC_RSVD_RW_REG0                 0x14C
-#define BITSET_0X14C_APC_RSVD_RW_REG0               0xffffffff
+#define OFFSET_APC_APC_DAC_PATH_CTRL                0x14C
+#define BITSET_0X14C_BT_TRIGGER_BYPASS              0x100000
+#define BITSET_0X14C_BT_TXCH1_CTRL_BYPASS           0x80000
+#define BITSET_0X14C_BT_TXCH1_SWCTRL_START          0x40000
+#define BITSET_0X14C_BT_TRIGGER_THRES               0x3fffc
+#define BITSET_0X14C_DAC_DATA_DUPL_MODE             0x3
 
-#define OFFSET_APC_APC_RSVD_RW_REG1                 0x150
-#define BITSET_0X150_APC_RSVD_RW_REG1               0xffffffff
+#define OFFSET_APC_APC_RSVD_RW_REG0                 0x150
+#define BITSET_0X150_APC_RSVD_RW_REG0               0xffffffff
 
-#define OFFSET_APC_APC_RSVD_RO_REG0                 0x154
-#define BITSET_0X154_APC_RSVD_RO_REG0               0xffffffff
+#define OFFSET_APC_APC_RSVD_RW_REG1                 0x154
+#define BITSET_0X154_APC_RSVD_RW_REG1               0xffffffff
 
-#define OFFSET_APC_APC_RSVD_RO_REG1                 0x158
-#define BITSET_0X158_APC_RSVD_RO_REG1               0xffffffff
+#define OFFSET_APC_APC_RSVD_RO_REG0                 0x158
+#define BITSET_0X158_APC_RSVD_RO_REG0               0xffffffff
+
+#define OFFSET_APC_APC_RSVD_RO_REG1                 0x15C
+#define BITSET_0X15C_APC_RSVD_RO_REG1               0xffffffff
 
 struct APC_REG_APC_CFG_BITS
 {
@@ -1321,7 +1325,7 @@ struct APC_REG_APC_I2S0_CFG0_BITS
     volatile uint32_t I2S0_RX_HALF_CYCLE_DLY        : 1; // bit 15~15
     volatile uint32_t I2S0_TX_HALF_CYCLE_DLY        : 1; // bit 16~16
     volatile uint32_t I2S0_RX_DLY                   : 2; // bit 17~18
-    volatile uint32_t I2S0_TX_DLY_S                 : 1; // bit 19~19
+    volatile uint32_t I2S0_TX_RX_DLY_S              : 1; // bit 19~19
     volatile uint32_t I2S0_TX_DLY                   : 1; // bit 20~20
     volatile uint32_t I2S0_MASTER_MODE              : 1; // bit 21~21
     volatile uint32_t I2S0_SERIAL_MODE              : 2; // bit 22~23
@@ -1368,7 +1372,7 @@ struct APC_REG_APC_I2S1_CFG0_BITS
     volatile uint32_t I2S1_RX_HALF_CYCLE_DLY        : 1; // bit 15~15
     volatile uint32_t I2S1_TX_HALF_CYCLE_DLY        : 1; // bit 16~16
     volatile uint32_t I2S1_RX_DLY                   : 2; // bit 17~18
-    volatile uint32_t I2S1_TX_DLY_S                 : 1; // bit 19~19
+    volatile uint32_t I2S1_TX_RX_DLY_S              : 1; // bit 19~19
     volatile uint32_t I2S1_TX_DLY                   : 1; // bit 20~20
     volatile uint32_t I2S1_MASTER_MODE              : 1; // bit 21~21
     volatile uint32_t I2S1_SERIAL_MODE              : 2; // bit 22~23
@@ -1415,7 +1419,7 @@ struct APC_REG_APC_I2S2_CFG0_BITS
     volatile uint32_t I2S2_RX_HALF_CYCLE_DLY        : 1; // bit 15~15
     volatile uint32_t I2S2_TX_HALF_CYCLE_DLY        : 1; // bit 16~16
     volatile uint32_t I2S2_RX_DLY                   : 2; // bit 17~18
-    volatile uint32_t I2S2_TX_DLY_S                 : 1; // bit 19~19
+    volatile uint32_t I2S2_TX_RX_DLY_S              : 1; // bit 19~19
     volatile uint32_t I2S2_TX_DLY                   : 1; // bit 20~20
     volatile uint32_t I2S2_MASTER_MODE              : 1; // bit 21~21
     volatile uint32_t I2S2_SERIAL_MODE              : 2; // bit 22~23
@@ -1847,6 +1851,21 @@ union APC_REG_I2S_SYNC_MODE {
     struct APC_REG_I2S_SYNC_MODE_BITS               bit;
 };
 
+struct APC_REG_APC_DAC_PATH_CTRL_BITS
+{
+    volatile uint32_t DAC_DATA_DUPL_MODE            : 2; // bit 0~1
+    volatile uint32_t BT_TRIGGER_THRES              : 16; // bit 2~17
+    volatile uint32_t BT_TXCH1_SWCTRL_START         : 1; // bit 18~18
+    volatile uint32_t BT_TXCH1_CTRL_BYPASS          : 1; // bit 19~19
+    volatile uint32_t BT_TRIGGER_BYPASS             : 1; // bit 20~20
+    volatile uint32_t RESV_20_31                    : 12; // bit 20~31
+};
+
+union APC_REG_APC_DAC_PATH_CTRL {
+    volatile uint32_t                               all;
+    struct APC_REG_APC_DAC_PATH_CTRL_BITS           bit;
+};
+
 struct APC_REG_APC_RSVD_RW_REG0_BITS
 {
     volatile uint32_t APC_RSVD_RW_REG0              : 32; // bit 0~31
@@ -1972,10 +1991,11 @@ typedef struct
     union APC_REG_APC_INTR_TX_ISR                   REG_APC_INTR_TX_ISR; // 0x140
     union APC_REG_APC_INTR_RX_ISR                   REG_APC_INTR_RX_ISR; // 0x144
     union APC_REG_I2S_SYNC_MODE                     REG_I2S_SYNC_MODE; // 0x148
-    union APC_REG_APC_RSVD_RW_REG0                  REG_APC_RSVD_RW_REG0; // 0x14C
-    union APC_REG_APC_RSVD_RW_REG1                  REG_APC_RSVD_RW_REG1; // 0x150
-    union APC_REG_APC_RSVD_RO_REG0                  REG_APC_RSVD_RO_REG0; // 0x154
-    union APC_REG_APC_RSVD_RO_REG1                  REG_APC_RSVD_RO_REG1; // 0x158
+    union APC_REG_APC_DAC_PATH_CTRL                 REG_APC_DAC_PATH_CTRL; // 0x14C
+    union APC_REG_APC_RSVD_RW_REG0                  REG_APC_RSVD_RW_REG0; // 0x150
+    union APC_REG_APC_RSVD_RW_REG1                  REG_APC_RSVD_RW_REG1; // 0x154
+    union APC_REG_APC_RSVD_RO_REG0                  REG_APC_RSVD_RO_REG0; // 0x158
+    union APC_REG_APC_RSVD_RO_REG1                  REG_APC_RSVD_RO_REG1; // 0x15C
 } APC_RegDef;
 
 

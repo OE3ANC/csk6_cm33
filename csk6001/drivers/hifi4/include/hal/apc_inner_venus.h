@@ -10,8 +10,8 @@
 
 #include <stdint.h>
 #include "venus_cp.h"
-#include "hal/apc_venus.h"
-#include "hal/reg/apc_reg_venus.h" // APC Register Map
+#include "apc_venus.h"
+#include "apc_reg_venus.h" // APC Register Map
 
 //====================== Register-related Macros & Functions =====================
 #define CSK_APC_RegDef      APC_RegDef
@@ -114,6 +114,9 @@
 
 #define APC_DCH_R_EN                    0x10000
 #define APC_DCH_L_EN                    0x1
+
+#define APC_DCH_R_FLU                   (0x1 << 19)
+#define APC_DCH_L_FLU                   (0x1 << 3)
 
 //dual_channel configuration register bits (common part)
 typedef struct _APC_DCH_CFG_REG_BITS {

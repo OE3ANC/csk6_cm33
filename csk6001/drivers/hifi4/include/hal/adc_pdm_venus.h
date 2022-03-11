@@ -8,12 +8,12 @@
 #ifndef __ADC_PDM_VENUS_H
 #define __ADC_PDM_VENUS_H
 
-#include "hal/venus_cp.h"
-#include "hal/apc_venus.h"
-#include "hal/reg/apc_reg_venus.h"
-#include "hal/Driver_ADC_PDM.h"
-#include "hal/reg/aon_pmuctrl_reg_venus.h" // for pmuctrl regiger (power)
-#include "hal/reg/audio_codec_venus.h" // CODEC/AON_CODEC Registers etc.
+#include "venus_cp.h"
+#include "apc_venus.h"
+#include "apc_reg_venus.h"
+#include "Driver_ADC_PDM.h"
+#include "aon_pmuctrl_reg_venus.h" // for pmuctrl regiger (power)
+#include "audio_codec_venus.h" // CODEC/AON_CODEC Registers etc.
 
 //====================== Register-related Macros & Functions =================
 

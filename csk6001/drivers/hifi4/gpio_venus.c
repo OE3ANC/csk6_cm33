@@ -1,4 +1,4 @@
-#include "hal/gpio_venus.h"
+#include "gpio_venus.h"
 
 #define CSK_GPIO_DRV_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,1)
 

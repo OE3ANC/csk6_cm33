@@ -1,16 +1,16 @@
 /*
  * IOMuxManager.c
  *
- *  Created on: 2020��8��25��
+ *  Created on: 2020.8.25
  *      Author: USER
  */
 
-#include "hal/reg/cmn_iomux_reg_venus.h"
-#include "hal/reg/aon_iomux_reg_venus.h"
+#include "cmn_iomux_reg_venus.h"
+#include "aon_iomux_reg_venus.h"
 
-#include "hal/IOMuxManager.h"
+#include "IOMuxManager.h"
 
-#include "hal/venus_cp.h"
+#include "venus_cp.h" //BSD: ap -> cp
 
 static CMN_IOMUX_RegDef* iomux_reg = (CMN_IOMUX_RegDef*)CMN_IOMUX_BASE;
 static AON_IOMUX_RegDef* aon_iomux_reg = (AON_IOMUX_RegDef*)AON_IOMUX_BASE;
@@ -119,92 +119,4 @@ int32_t IOMuxManager_ModeConfigure(uint8_t pad, uint8_t pin_num, uint8_t pin_mod
     }
 
     return CSK_DRIVER_OK;
-}
-
-/**
-      Attention:
-      
-      the new api for zephyr in blow   
-**/
-
-int32_t csk_pinmux_set_func(uint8_t pad, uint8_t pin_num, uint32_t pin_cfg){
-    return IOMuxManager_PinConfigure (pad, pin_num, pin_cfg);
-}
-
-
-int32_t csk_pinmux_get_func(uint8_t pad, uint8_t pin_num, uint32_t *pin_cfg){
-    volatile uint32_t * volatile pin_base = NULL;
-    switch (pad){
-    case CSK_IOMUX_PAD_A:
-    {
-        if(pin_num > 31){
-            return CSK_DRIVER_ERROR_PARAMETER;
-        }
-        pin_base = (volatile uint32_t* volatile)&(iomux_reg->REG_PAD_GPIOA_00.all);
-
-    }
-        break;
-    case CSK_IOMUX_PAD_B:
-    {
-        if(pin_num > 15){
-            return CSK_DRIVER_ERROR_PARAMETER;
-        }
-        pin_base = (volatile uint32_t* volatile)&(iomux_reg->REG_PAD_GPIOB_00.all);  
-    }
-        break;
-    default:
-        return CSK_DRIVER_ERROR_PARAMETER;
-    }
-
-    pin_base += pin_num;
-    *pin_cfg = (*(volatile uint32_t* volatile)(pin_base)) & 0x1f;    
-    return CSK_DRIVER_OK;
-}
-
-int32_t csk_pinmux_set_mode(uint8_t pad, uint8_t pin_num, uint8_t pin_mode){
-    volatile uint32_t * volatile pin_base = NULL;
-
-    switch (pad){
-    case CSK_IOMUX_PAD_A:
-    {
-        if(pin_num > 31){
-            return CSK_DRIVER_ERROR_PARAMETER;
-        }
-        pin_base = (volatile uint32_t* volatile)&(iomux_reg->REG_PAD_GPIOA_00.all);
-
-    }
-        break;
-    case CSK_IOMUX_PAD_B:
-    {
-        if(pin_num > 15){
-            return CSK_DRIVER_ERROR_PARAMETER;
-        }
-        pin_base = (volatile uint32_t* volatile)&(iomux_reg->REG_PAD_GPIOB_00.all);  
-    }
-        break;   
-    default:
-        return CSK_DRIVER_ERROR_PARAMETER;
-    }
-
-    pin_base += pin_num;
-    switch (pin_mode){
-    case CSK_PINMUX_PULLUP_ENABLE:
-    {
-        // disable pull down
-        (*(volatile uint32_t* volatile)(pin_base)) &= (~0x10000);
-        (*(volatile uint32_t* volatile)(pin_base)) |= 0x40000;
-        // enable pull up
-        (*(volatile uint32_t* volatile)(pin_base)) |= 0x20000;
-    }
-        break;
-    case CSK_PINMUX_PULLUP_DISABLE:
-    {
-        // disable pull up
-        (*(volatile uint32_t* volatile)(pin_base)) &= (~0x20000);
-        (*(volatile uint32_t* volatile)(pin_base)) |= 0x40000;
-    }
-        break;
-    }
-
-    return CSK_DRIVER_OK;    
 }

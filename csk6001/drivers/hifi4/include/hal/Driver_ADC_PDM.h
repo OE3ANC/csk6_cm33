@@ -10,6 +10,7 @@
 
 #include "Driver_Common.h"
 
+#define USE_DIGTAL_ECHO     1 // 0
 #define CSK_ADC_PDM_API_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,0)  /* API version */
 
 /****** ADC_PDM Control Codes *****/
@@ -142,14 +143,13 @@ typedef struct {
 // ADCPDM status bit definitions
 typedef struct _CSK_ADCPDM_STATUS_BIT
 {
-    // FIXME:
-    uint32_t busy :1;       // Receive busy flag
+    uint32_t busy :2;       // Receive busy flag, bit[0] for left channel, bit[1] for right channel
     uint32_t rx_full :1;    // Receive RX FIFO full (cleared on start of transfer operation)
     uint32_t rx_ovf :1;     // Receive RX FIFO overflow (cleared on start of transfer operation)
     uint32_t l_mute :1;     // ADC0/2 (left channel) is mute or not, 1 means mute
     uint32_t r_mute :1;     // ADC1/3 (right channel) is mute or not, 1 means mute
 
-    uint32_t reserved :27;
+    uint32_t reserved :26;
 } CSK_ADCPDM_STATUS_BIT;
 
 // ADCPDM status
@@ -413,5 +413,53 @@ void* ADC_PDM01();
  \return      ADC/PDM23 device group instance
  */
 void* ADC_PDM23();
+
+/**
+ \fn          int32_t ADC_PDM_Quad_Receive(void *adc01_grp, void *adc23_grp, ...)
+ \brief       Receive data from all 4 channels of ADC/PDM01 and ADC/PDM23.
+ \param[in]   adc01_grp  Pointer to ADC/PDM01 device group instance
+ \param[in]   adc23_grp  Pointer to ADC/PDM23 device group instance
+ \param[out]  data  Pointer to buffer to receive data from ADC/PDM interfaces
+              data are arranged repeatedly in the order ADC0, ADC1, ADC2 and ADC3.
+ \param[in]   num   Number of data items to receive
+ \param[in]   rx_flag   bit flags of receive operation
+ \return      \ref execution_status
+*/
+int32_t
+ADC_PDM_Quad_Receive(void *adc01_grp, void *adc23_grp, uint32_t *data, uint32_t num, uint8_t rx_flag);
+
+
+#if USE_DIGTAL_ECHO
+
+/**
+ \fn          int32_t ADC_PDM_Quad_Receive2(void *adc_pdm_grp, void *dac01_grp, ...)
+ \brief       Receive data from 2 channels of ADC/PDM01 or ADC/PDM23 and 2 channels of DAC01 ECHO.
+ \param[in]   adc_pdm_grp  Pointer to ADC/PDM01 or ADC/PDM23 device group instance
+ \param[in]   dac01_grp  Pointer to DAC01 device group instance
+ \param[out]  data  Pointer to buffer to receive data from ADC/PDM and DAC01 ECHO interfaces
+              data are arranged repeatedly in the order ADC0/2, ADC1/3, DAC0 and DAC1.
+ \param[in]   num   Number of data items to receive
+ \param[in]   rx_flag   bit flags of receive operation
+ \return      \ref execution_status
+*/
+int32_t
+ADC_PDM_Quad_Receive2(void *adc_pdm_grp, void *dac01_grp, uint32_t *data, uint32_t num, uint8_t rx_flag);
+
+/**
+ \fn          int32_t ADC_PDM_Six_Receive(void *adc01_grp, void *adc23_grp, void *dac01_grp, ...)
+ \brief       Receive data from all 4 channels of ADC/PDM01 and ADC/PDM23 and 2 channels of DAC01 ECHO.
+ \param[in]   adc01_grp  Pointer to ADC/PDM01 device group instance
+ \param[in]   adc23_grp  Pointer to ADC/PDM23 device group instance
+ \param[in]   dac01_grp  Pointer to DAC01 device group instance
+ \param[out]  data  Pointer to buffer to receive data from ADC/PDM interfaces & DAC interfaces (for echo)
+              data are arranged repeatedly in the order ADC0, ADC1, ADC2, ADC3, DAC0 and DAC1.
+ \param[in]   num   Number of data items to receive
+ \param[in]   rx_flag   bit flags of receive operation
+ \return      \ref execution_status
+*/
+int32_t
+ADC_PDM_Six_Receive(void *adc01_grp, void *adc23_grp, void *dac01_grp, uint32_t *data, uint32_t num, uint8_t rx_flag);
+
+#endif // USE_DIGTAL_ECHO
 
 #endif /* __DRIVER_ADC_PDM_H */

@@ -5,27 +5,24 @@
  *
  */
 
-#include "hal/Driver_DAC.h"
-#include "hal/dac_venus.h"
-#include "hal/reg/cmn_sysctrl_reg_venus.h" // for sysctrl regiger (clock etc.)
-#include "hal/reg/codec_reg_venus.h"
+#include "Driver_DAC.h"
+#include "dac_venus.h"
+#include "cmn_sysctrl_reg_venus.h" // for sysctrl regiger (clock etc.)
+#include "ClockManager.h" // for CRM_GetSrcFreq()
+#include "codec_reg_venus.h"
 #include <assert.h>
 #include <string.h>
 
 #include <stdio.h>
-// #include "venus_log.h"
+#include "venus_log.h"
 
-#define DEBUG_LOG   0 // 0
+#define DEBUG_LOG   1 // 0
 #if DEBUG_LOG
 #define LOGD(format, ...)   CLOGD(format, ##__VA_ARGS__)
 #else
 #define LOGD(format, ...)   ((void)0)
 #endif // DEBUG_LOG
 
-#define CLOGE printk
-#define CLOGD printk
-#define CLOGW printk
-#define CLOGI printk
 
 #define CSK_DAC_DRV_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,0)
 #define SYSCTRL_CFG    ((SYSCFG_RegDef*) CMN_SYSCTRL_BASE)
@@ -41,8 +38,8 @@ static SYSCFG_RegDef *g_sysctrl = SYSCTRL_CFG;
 static CODEC_RegDef *g_cp_codec = (CODEC_RegDef *)CP_CODEC_BASE;
 
 // DAC01
-static DAC_INFO dac01_info = { 0 };
-static DAC_GRP dac01_grp = {
+_FAST_DATA_VI static DAC_INFO dac01_info = { 0 };
+_FAST_DATA_VI static DAC_GRP dac01_grp = {
         0, APC_DCH_DAC01, APC_DCH_ECHO,
         CSK_DAC_SAMPLE_BITS,
         CSK_DAC01,
@@ -54,7 +51,7 @@ void* DAC01() { return &dac01_grp; }
 
 //------------------------------------------------------------------------------------------
 
-static DAC_GRP * safe_dac_grp(void *dac_grp)
+DAC_GRP * safe_dac_grp(void *dac_grp)
 {
     // safe check of ADC/PDM device parameter
     if (dac_grp == &dac01_grp) {
@@ -69,7 +66,7 @@ static DAC_GRP * safe_dac_grp(void *dac_grp)
     return (DAC_GRP *)dac_grp;
 }
 
-static inline void enable_dac(DAC_GRP *dac, uint8_t dev_bmp)
+static void enable_dac(DAC_GRP *dac, uint8_t dev_bmp)
 {
     uint32_t reg_val, val;
     assert(dac != NULL);
@@ -98,7 +95,7 @@ static inline void enable_dac(DAC_GRP *dac, uint8_t dev_bmp)
     }
 }
 
-static inline void disable_dac(DAC_GRP *dac, uint8_t dev_bmp)
+static void disable_dac(DAC_GRP *dac, uint8_t dev_bmp)
 {
     uint32_t reg_val, val;
     assert(dac != NULL);
@@ -210,16 +207,14 @@ DAC_Initialize(void *dac_grp, CSK_DAC_SignalEvent_t cb_event, uint32_t usr_param
     if (dac->info->flags & DAC_FLAG_INITIALIZED)
         return CSK_DRIVER_OK;
 
-    // initialize APC init pclk init 5 channel disable interrupts
-    // 
+    // initialize APC
     ret = apc_initialize();
     if (ret != CSK_DRIVER_OK) {
         LOGD("%s: failed to call apc_initialize()!", __func__);
         return ret;
     }
 
-    // acquire APC channels of DAC APC_DCH_DAC01 = APC_DCH_OUT1
-    /* select the destination of TX_CH1, not support TX_CH0 */
+    // acquire APC channels of DAC
     ret = apc_dual_channel_acquire(dac->apc_dch, APC_INTF_DAC, dac->dev_idx, dac_apc_event, (uint32_t)dac);
     if (ret != CSK_DRIVER_OK) {
         LOGD("%s: failed to acquire APC channels of DAC!", __func__);
@@ -228,8 +223,7 @@ DAC_Initialize(void *dac_grp, CSK_DAC_SignalEvent_t cb_event, uint32_t usr_param
 
     // acquire APC channels of ECHO
     if (echo_bmp & CH_BMP_STEREO) {
-        /* DAC0  APC_DCH_DAC01 */
-        ret = apc_dual_channel_acquire(dac->apc_dch, APC_INTF_ECHO, APC_INTF_IDX_ECHO, dac_apc_event, (uint32_t)dac);
+        ret = apc_dual_channel_acquire(dac->dch_echo, APC_INTF_ECHO, APC_INTF_IDX_ECHO, dac_apc_event, (uint32_t)dac);
         if (ret != CSK_DRIVER_OK) {
             LOGD("%s: failed to acquire APC channels of ECHO!", __func__);
             return ret;
@@ -345,8 +339,12 @@ DAC_PowerControl(void *dac_grp, CSK_POWER_STATE state)
         if ((dac->info->flags & DAC_FLAG_POWERED) != 0U)
             return CSK_DRIVER_OK;
 
-        // disable DAC initially
-        disable_dac(dac, dac->info->ch_bmp);
+        // remove unnecessary disable operation, and it might cause some issue?
+        //disable_dac(dac, dac->info->ch_bmp);
+
+        // NOTE: enable DAC in advance when powered on, or else it may
+        // push out some garbage data during DAC initialization?
+        enable_dac(dac, dac->info->ch_bmp);
 
         // enable DAC clock here
         enable_dac_clk(dac);
@@ -364,7 +362,7 @@ DAC_PowerControl(void *dac_grp, CSK_POWER_STATE state)
 }
 
 
-static int32_t dac_enable_tx_channels(DAC_GRP *dac, uint8_t dev_bmp)
+int32_t dac_enable_tx_channels(DAC_GRP *dac, uint8_t dev_bmp)
 {
     int32_t ret = CSK_DRIVER_ERROR;
 
@@ -402,6 +400,25 @@ static int32_t dac_disable_tx_channels(DAC_GRP *dac, uint8_t dev_bmp)
 }
 
 
+static inline void clear_dac_data_dup() {
+    uint32_t reg_val;
+    reg_val = inw(DAC_DATA_DUP_REG);
+    if ((reg_val & DAC_DATA_DUP_MASK) != DAC_DATA_DUP_NONE) {
+        reg_val &= ~DAC_DATA_DUP_MASK;
+        outw(DAC_DATA_DUP_REG, reg_val);
+    }
+}
+
+static inline void set_dac_data_dup() {
+    uint32_t reg_val;
+    reg_val = inw(DAC_DATA_DUP_REG);
+    if ((reg_val & DAC_DATA_DUP_MASK) != DAC_DATA_DUP_LEFT) {
+        reg_val &= ~DAC_DATA_DUP_MASK;
+        reg_val |= DAC_DATA_DUP_LEFT;
+        outw(DAC_DATA_DUP_REG, reg_val);
+    }
+}
+
 /**
  \fn          int32_t DAC_Send(void *dac_grp, ...)
  \brief       Send data within the buffer
@@ -420,9 +437,9 @@ DAC_Send(void *dac_grp, const uint32_t *data, uint32_t num,
 {
     int32_t ret;
     DAC_GRP *dac = safe_dac_grp(dac_grp);
-    uint8_t bmp = (dac->info->ch_bmp & dev_bmp);
+    uint8_t bmp = 0;
 
-    if (dac == NULL || bmp == 0) {
+    if (dac == NULL || (bmp = dac->info->ch_bmp & dev_bmp) == 0) {
         CLOGW("%s: invalid parameter, DAC group: 0x%08x, dev_bmp: %d",
                 __func__, dac_grp, dev_bmp);
         return CSK_DRIVER_ERROR_PARAMETER;
@@ -434,7 +451,7 @@ DAC_Send(void *dac_grp, const uint32_t *data, uint32_t num,
         return CSK_DRIVER_ERROR;
     }
 
-    if (dac->info->status.bit.busy)
+    if (dac->info->status.bit.busy & bmp)
         return CSK_DRIVER_ERROR_BUSY;
 
     uint8_t start_now = tx_flag & DAC_TX_FLAG_START_NOW;
@@ -445,22 +462,34 @@ DAC_Send(void *dac_grp, const uint32_t *data, uint32_t num,
     }
 
     ret = CSK_DRIVER_ERROR;
-    if ((bmp & CH_BMP_STEREO) == CH_BMP_STEREO)
-        ret = apc_dual_channel_write(dac->apc_dch, data, num, 0, 0);
-    else if ((bmp & CH_BMP_STEREO) == CH_BMP_LEFT)
+
+    // clear data_duplicate bit if stereo source or mono channel output
+    if (dac->info->src_stereo || (bmp & CH_BMP_STEREO) != CH_BMP_STEREO) {
+        clear_dac_data_dup();
+    }
+
+    if ((bmp & CH_BMP_STEREO) == CH_BMP_STEREO) {
+        if (dac->info->src_stereo) { // stereo source
+            ret = apc_dual_channel_write(dac->apc_dch, data, num, 0, 0);
+        } else { // mono source
+            set_dac_data_dup();
+            ret = apc_channel_write(APC_DCH_TO_CH(dac->apc_dch, 0), data, num, 0, 0);
+        }
+    } else if ((bmp & CH_BMP_STEREO) == CH_BMP_LEFT) {
         ret = apc_channel_write(APC_DCH_TO_CH(dac->apc_dch, 0), data, num, 0, 0);
-    else if ((bmp & CH_BMP_STEREO) == CH_BMP_RIGHT)
+    } else if ((bmp & CH_BMP_STEREO) == CH_BMP_RIGHT) {
         ret = apc_channel_write(APC_DCH_TO_CH(dac->apc_dch, 1), data, num, 0, 0);
+    }
 
     if (ret != CSK_DRIVER_OK)
         return ret;
 
-    dac->info->status.bit.busy = 1;
+    dac->info->status.bit.busy |= bmp;
     dac->info->status.bit.tx_emp = 0;
     dac->info->status.bit.tx_undf = 0;
 
     if (start_now) {
-        enable_dac(dac, bmp); // enable DAC module
+        //enable_dac(dac, bmp); // enable DAC module
         ret = dac_enable_tx_channels(dac, bmp);
     }
 
@@ -486,9 +515,9 @@ DAC_Send_LLP(void *dac_grp, AUDIO_BUFFER_USER *bufs, uint32_t buf_cnt,
 {
     int32_t ret;
     DAC_GRP *dac = safe_dac_grp(dac_grp);
-    uint8_t bmp = (dac->info->ch_bmp & dev_bmp);
+    uint8_t bmp = 0;
 
-    if (dac == NULL || bmp == 0) {
+    if (dac == NULL || (bmp = dac->info->ch_bmp & dev_bmp) == 0) {
         CLOGW("%s: invalid parameter, DAC group: 0x%08x, dev_bmp: %d",
                 __func__, dac_grp, dev_bmp);
         return CSK_DRIVER_ERROR_PARAMETER;
@@ -500,7 +529,7 @@ DAC_Send_LLP(void *dac_grp, AUDIO_BUFFER_USER *bufs, uint32_t buf_cnt,
         return CSK_DRIVER_ERROR;
     }
 
-    if (dac->info->status.bit.busy)
+    if (dac->info->status.bit.busy & bmp)
         return CSK_DRIVER_ERROR_BUSY;
 
     uint8_t start_now = tx_flag & DAC_TX_FLAG_START_NOW;
@@ -511,22 +540,34 @@ DAC_Send_LLP(void *dac_grp, AUDIO_BUFFER_USER *bufs, uint32_t buf_cnt,
     }
 
     ret = CSK_DRIVER_ERROR;
-    if ((bmp & CH_BMP_STEREO) == CH_BMP_STEREO)
-        ret = apc_dual_channel_write_LLP(dac->apc_dch, (AUDIO_BUFFER_LLI *)bufs, buf_cnt, 0, 0);
-    else if ((bmp & CH_BMP_STEREO) == CH_BMP_LEFT)
+
+    // clear data_duplicate bit if stereo source or mono channel output
+    if (dac->info->src_stereo || (bmp & CH_BMP_STEREO) != CH_BMP_STEREO) {
+        clear_dac_data_dup();
+    }
+
+    if ((bmp & CH_BMP_STEREO) == CH_BMP_STEREO) {
+        if (dac->info->src_stereo) { // stereo source
+            ret = apc_dual_channel_write_LLP(dac->apc_dch, (AUDIO_BUFFER_LLI *)bufs, buf_cnt, 0, 0);
+        } else { // mono source
+            set_dac_data_dup();
+            ret = apc_channel_write_LLP(APC_DCH_TO_CH(dac->apc_dch, 0), (AUDIO_BUFFER_LLI *)bufs, buf_cnt, 0, 0);
+        }
+    } else if ((bmp & CH_BMP_STEREO) == CH_BMP_LEFT) {
         ret = apc_channel_write_LLP(APC_DCH_TO_CH(dac->apc_dch, 0), (AUDIO_BUFFER_LLI *)bufs, buf_cnt, 0, 0);
-    else if ((bmp & CH_BMP_STEREO) == CH_BMP_RIGHT)
+    } else if ((bmp & CH_BMP_STEREO) == CH_BMP_RIGHT) {
         ret = apc_channel_write_LLP(APC_DCH_TO_CH(dac->apc_dch, 1), (AUDIO_BUFFER_LLI *)bufs, buf_cnt, 0, 0);
+    }
 
     if (ret != CSK_DRIVER_OK)
         return ret;
 
-    dac->info->status.bit.busy = 1;
+    dac->info->status.bit.busy |= bmp;
     dac->info->status.bit.tx_emp = 0;
     dac->info->status.bit.tx_undf = 0;
 
     if (start_now) {
-        enable_dac(dac, bmp); // enable DAC module
+        //enable_dac(dac, bmp); // enable DAC module
         ret = dac_enable_tx_channels(dac, bmp);
      }
 
@@ -534,7 +575,7 @@ DAC_Send_LLP(void *dac_grp, AUDIO_BUFFER_USER *bufs, uint32_t buf_cnt,
 }
 
 
-static int32_t dac_enable_echo_channels(DAC_GRP *dac, uint8_t echo_bmp)
+int32_t dac_enable_echo_channels(DAC_GRP *dac, uint8_t echo_bmp)
 {
     int32_t ret = CSK_DRIVER_ERROR;
 
@@ -552,7 +593,7 @@ static int32_t dac_enable_echo_channels(DAC_GRP *dac, uint8_t echo_bmp)
     return ret;
 }
 
-static int32_t dac_disable_echo_channels(DAC_GRP *dac, uint8_t echo_bmp)
+int32_t dac_disable_echo_channels(DAC_GRP *dac, uint8_t echo_bmp)
 {
     int32_t ret = CSK_DRIVER_ERROR;
 
@@ -622,7 +663,7 @@ DAC_Echo_Receive(void *dac_grp, uint32_t *data, uint32_t num, uint8_t echo_bmp)
     //FIXME: SHOULD enable APC TX channels simultaneously if ECHO is required
     if (ret == CSK_DRIVER_OK) {
         ret = dac_enable_tx_channels(dac, bmp);
-        enable_dac(dac, bmp); // enable DAC device group
+        //enable_dac(dac, bmp); // enable DAC device group
     }
 
     return ret;
@@ -681,7 +722,7 @@ DAC_Echo_Receive_LLP(void *dac_grp, AUDIO_BUFFER_USER *bufs, uint32_t buf_cnt, u
     //FIXME: SHOULD enable APC TX channels simultaneously if ECHO is required
     if (ret == CSK_DRIVER_OK) {
         ret = dac_enable_tx_channels(dac, bmp);
-        enable_dac(dac, bmp); // enable DAC device group
+        //enable_dac(dac, bmp); // enable DAC device group
     }
 
     return ret;
@@ -696,24 +737,40 @@ DAC_Echo_Receive_LLP(void *dac_grp, AUDIO_BUFFER_USER *bufs, uint32_t buf_cnt, u
  \param[in]   dev_bmp  specify which DAC devices in the device group,
               DAC0 (Left Channel, @bit[0]) and DAC1 (Right Channel, @bit[1]),
               and dev_bmp = 0x3 indicates both DAC0 & DAC1
+ \param[in]   echo_bmp  receive data from which echo channels of DAC device group,
+              Left Echo Channel @bit[0] and Right Echo Channel @bit[1],
+              and echo_bmp = 0x3 indicates both echo channels of DAC device group
  \return      \ref execution_status
 */
 int32_t
-DAC_Enable(void *dac_grp, uint8_t dev_bmp)
+DAC_Enable(void *dac_grp, uint8_t dev_bmp, uint8_t echo_bmp)
 {
     int32_t ret = CSK_DRIVER_OK;
     DAC_GRP *dac = safe_dac_grp(dac_grp);
-    uint8_t bmp = (dac->info->ch_bmp & dev_bmp);
 
-    if (dac == NULL || bmp == 0) {
-        CLOGW("%s: invalid parameter, DAC group: 0x%08x, dev_bmp: %d",
-                __func__, dac_grp, dev_bmp);
+    dev_bmp &= dac->info->ch_bmp;
+    echo_bmp &= dac->info->echo_bmp;
+
+    if (dac == NULL || (!dev_bmp && !echo_bmp)) {
+        CLOGW("%s: invalid parameter, DAC group: 0x%08x, dev_bmp: 0x%x, dev_bmp: 0x%x",
+                __func__, dac_grp, dev_bmp, echo_bmp);
         return CSK_DRIVER_ERROR_PARAMETER;
     }
 
-    ret = dac_enable_tx_channels(dac, bmp);
-    if (ret == CSK_DRIVER_OK)
-        enable_dac(dac, bmp); // enable DAC module
+    if (dev_bmp != 0) {
+        ret = dac_enable_tx_channels(dac, dev_bmp);
+        if (ret != CSK_DRIVER_OK)
+            return ret;
+    }
+
+    if (echo_bmp != 0) {
+        ret = dac_enable_echo_channels(dac, echo_bmp);
+        if (ret != CSK_DRIVER_OK)
+            return ret;
+    }
+
+    //if (ret == CSK_DRIVER_OK)
+    //    enable_dac(dac, bmp); // enable DAC module
 
     return ret;
 }
@@ -726,24 +783,40 @@ DAC_Enable(void *dac_grp, uint8_t dev_bmp)
  \param[in]   dev_bmp  specify which DAC devices in the device group,
               DAC0 (Left Channel, @bit[0]) and DAC1 (Right Channel, @bit[1]),
               and dev_bmp = 0x3 indicates both DAC0 & DAC1
+ \param[in]   echo_bmp  receive data from which echo channels of DAC device group,
+              Left Echo Channel @bit[0] and Right Echo Channel @bit[1],
+              and echo_bmp = 0x3 indicates both echo channels of DAC device group
  \return      \ref execution_status
 */
 int32_t
-DAC_Disable(void *dac_grp, uint8_t dev_bmp)
+DAC_Disable(void *dac_grp, uint8_t dev_bmp, uint8_t echo_bmp)
 {
     int32_t ret = CSK_DRIVER_OK;
     DAC_GRP *dac = safe_dac_grp(dac_grp);
-    uint8_t bmp = (dac->info->ch_bmp & dev_bmp);
 
-    if (dac == NULL || bmp == 0) {
-        CLOGW("%s: invalid parameter, DAC group: 0x%08x, dev_bmp: %d",
-                __func__, dac_grp, dev_bmp);
+    dev_bmp &= dac->info->ch_bmp;
+    echo_bmp &= dac->info->echo_bmp;
+
+    if (dac == NULL || (!dev_bmp && !echo_bmp)) {
+        CLOGW("%s: invalid parameter, DAC group: 0x%08x, dev_bmp: 0x%x, dev_bmp: 0x%x",
+                __func__, dac_grp, dev_bmp, echo_bmp);
         return CSK_DRIVER_ERROR_PARAMETER;
     }
 
-    ret = dac_disable_tx_channels(dac, bmp);
-    if (ret == CSK_DRIVER_OK)
-        disable_dac(dac, bmp); // disable DAC module
+    if (dev_bmp != 0) {
+        ret = dac_disable_tx_channels(dac, dev_bmp);
+        if (ret != CSK_DRIVER_OK)
+            return ret;
+    }
+
+    if (echo_bmp != 0) {
+        ret = dac_disable_echo_channels(dac, echo_bmp);
+        if (ret != CSK_DRIVER_OK)
+            return ret;
+    }
+
+    //if (ret == CSK_DRIVER_OK)
+    //    disable_dac(dac, bmp); // disable DAC module
 
     return ret;
 }
@@ -766,24 +839,35 @@ DAC_Abort(void *dac_grp, uint8_t dev_bmp, uint8_t echo_bmp)
 {
     int32_t ret = CSK_DRIVER_OK;
     DAC_GRP *dac = safe_dac_grp(dac_grp);
-    uint8_t bmp = (dac->info->ch_bmp & dev_bmp);
-    uint8_t bmp2 = (dac->info->echo_bmp & echo_bmp);
+    uint8_t bmp = 0;
+    uint8_t bmp2 = 0;
 
-    if (dac == NULL || (bmp == 0 && bmp2 == 0)) {
+    if (dac == NULL || ((bmp = dac->info->ch_bmp & dev_bmp) == 0 &&
+                        (bmp2 = dac->info->echo_bmp & echo_bmp) == 0)) {
         CLOGW("%s: invalid parameter, DAC group: 0x%08x, dev_bmp: 0x%x, echo_bmp: 0x%x",
                 __func__, dac_grp, dev_bmp, echo_bmp);
         return CSK_DRIVER_ERROR_PARAMETER;
     }
 
     if (bmp != 0) { // OUT channels
-        ret = apc_dual_channel_abort(dac->apc_dch);
+        if (dac->info->ch_mix || bmp == CH_BMP_STEREO)
+            ret = apc_dual_channel_abort(dac->apc_dch);
+        else if (bmp == CH_BMP_LEFT)
+            ret = apc_channel_abort(APC_DCH_TO_CH(dac->apc_dch, 0));
+        else if (bmp == CH_BMP_RIGHT)
+            ret = apc_channel_abort(APC_DCH_TO_CH(dac->apc_dch, 1));
         if (ret != CSK_DRIVER_OK)
             return ret;
-        dac->info->status.bit.busy = 0;
+        dac->info->status.bit.busy &= ~bmp;
     }
 
     if (bmp2 != 0) { // ECHO channels
-        ret = apc_dual_channel_abort(dac->dch_echo);
+        if (dac->info->ch_mix || bmp == CH_BMP_STEREO)
+            ret = apc_dual_channel_abort(dac->dch_echo);
+        else if (bmp == CH_BMP_LEFT)
+            ret = apc_channel_abort(APC_DCH_TO_CH(dac->dch_echo, 0));
+        else if (bmp == CH_BMP_RIGHT)
+            ret = apc_channel_abort(APC_DCH_TO_CH(dac->dch_echo, 1));
         if (ret != CSK_DRIVER_OK)
             return ret;
     }
@@ -805,9 +889,9 @@ int32_t
 DAC_GetTxCount(void *dac_grp, uint8_t dev_bmp)
 {
     DAC_GRP *dac = safe_dac_grp(dac_grp);
-    uint8_t bmp = (dac->info->ch_bmp & dev_bmp);
+    uint8_t bmp = 0;
 
-    if (dac == NULL || bmp == 0) {
+    if (dac == NULL || (bmp = dac->info->ch_bmp & dev_bmp) == 0) {
         CLOGW("%s: invalid parameter, DAC group: 0x%08x, dev_bmp: %d",
                 __func__, dac_grp, dev_bmp);
         return CSK_DRIVER_ERROR_PARAMETER;
@@ -990,7 +1074,8 @@ static bool check_sr_osr_pair(DAC_GRP *dac)
 int32_t
 DAC_Control(void *dac_grp, uint32_t control, uint32_t arg)
 {
-    int32_t ret, val, mclk_flag;
+    int32_t ret, val;
+    uint32_t mclk_flag, tx_cfg;
     union AUD_R15_DAC_CTRL0 reg_r15;
     union AUD_R17_DAC_CTRL2 reg_r17;
     union AUD_R18_DAC_CTRL3 reg_r18;
@@ -1132,6 +1217,9 @@ DAC_Control(void *dac_grp, uint32_t control, uint32_t arg)
     if (mclk_flag == 0) { // use 24Mhz
         dac_clk_select(AUDIO_CLK_SRC_XTAL);
     } else if (mclk_flag == 1) { // use 22.05Mhz
+        uint8_t div_n = BOARD_BOOTCLOCKRUN_AUDPLL_DIV_N;
+        uint8_t div_m = BOARD_BOOTCLOCKRUN_AUDPLL_DIV_M;
+        AUDIOPLL_InitPLL(div_n, div_m, BOARD_BOOTCLOCKRUN_AUDPLL_DIV_NF);
         init_audpll_audio_clk(0); // DEF_AUDPLL_AUDIO_FREQ (22050000)
         dac_clk_select(AUDIO_CLK_SRC_AUDPLL);
     }
@@ -1195,20 +1283,16 @@ DAC_Control(void *dac_grp, uint32_t control, uint32_t arg)
     }
 
     // TX config  (mono/stereo, mixed or not)
-    switch (control & CSK_DAC_TXCFG_Msk) {
+    tx_cfg = control & CSK_DAC_TXCFG_Msk;
+    switch (tx_cfg) {
     // Keep TX config unchanged or default
     case CSK_DAC_TXCFG_UNSET:
         break;
 
     case CSK_DAC_TXCFG_MONO_SRC_MONO:
+    case CSK_DAC_TXCFG_STEREO_SRC_MONO:
         dac->info->ch_mix = 0;
         dac->info->src_stereo = 0;
-         break;
-
-    case CSK_DAC_TXCFG_STEREO_SRC_MONO:
-        dac->info->ch_mix = 1;
-        dac->info->src_stereo = 0;
-        return CSK_DRIVER_ERROR_UNSUPPORTED; //FIXME:
         break;
 
     case CSK_DAC_TXCFG_STEREO_SRC_STEREO:
@@ -1222,10 +1306,11 @@ DAC_Control(void *dac_grp, uint32_t control, uint32_t arg)
 
     val = dac->info->flags & DAC_FLAG_CONFIGURED;
 
+
     // call apc_dual_channel_setup to notify APC channels
     // FIXME: should it support APC_CHMODE_24BITS_LOW?
     // FIXME: check other conditions to avoid unnecessary call of apc_dual_channel_setup?
-    if ( val == 0 || (control & CSK_DAC_TXCFG_Msk) != CSK_DAC_TXCFG_UNSET ) {
+    if ( val == 0 || tx_cfg != CSK_DAC_TXCFG_UNSET ) {
         ret = apc_dual_channel_setup(dac->apc_dch,
                                     APC_CHMODE_24BITS_HIGH,
                                     dac->info->ch_bmp,
@@ -1240,8 +1325,6 @@ DAC_Control(void *dac_grp, uint32_t control, uint32_t arg)
     //------------------------------------------------
     // write settings into DAC registers
     //------------------------------------------------
-
-    //TODO: write dac->info->src_stereo into DAC register (not implemented yet!)
 
     //val = dac->info->flags & DAC_FLAG_CONFIGURED;
 
@@ -1274,7 +1357,16 @@ DAC_Control(void *dac_grp, uint32_t control, uint32_t arg)
     }
 
     if (val == 0) { // called only once
+        // initialize analog gain as 0 dB
+        reg_r22.all &= ~(R22_LOL_VOL_MASK | R22_LOR_VOL_MASK);
         reg_r22.all |= R22_LOL_VOL(9) | R22_LOR_VOL(9);
+
+        // initialize digital gain as 0 dB
+        uint32_t val_r16;
+        val_r16 = dac->reg->REG_AUD_R16_DAC_CTRL1.all;
+        val_r16 &= ~(R16_GAIN_L_MASK | R16_GAIN_R_MASK);
+        val_r16 |= R16_GAIN_L(0xe1) | R16_GAIN_R(0xe1);
+        dac->reg->REG_AUD_R16_DAC_CTRL1.all = val_r16;
 
         // enable 2.5V LDO
         ENABLE_LDO25();
@@ -1282,7 +1374,6 @@ DAC_Control(void *dac_grp, uint32_t control, uint32_t arg)
         // CODEC analog settings
         CONFIG_CODEC_ANALOG();
     }
-
 
     // R17
     //CP_CODEC->REG_AUD_R17_DAC_CTRL2.all = 0x60;
@@ -1417,9 +1508,9 @@ DAC_SetMute(void *dac_grp, uint8_t mute_val, uint8_t dev_bmp)
     //int32_t ret = CSK_DRIVER_OK;
     uint8_t mute;
     DAC_GRP *dac = safe_dac_grp(dac_grp);
-    uint8_t bmp = (dac->info->ch_bmp & dev_bmp);
+    uint8_t bmp = 0;
 
-    if (dac == NULL || bmp == 0) {
+    if (dac == NULL || (bmp = dac->info->ch_bmp & dev_bmp) == 0) {
         CLOGW("%s: invalid parameter, DAC group: 0x%08x, dev_bmp: %d",
                 __func__, dac_grp, dev_bmp);
         return CSK_DRIVER_ERROR_PARAMETER;
@@ -1530,7 +1621,67 @@ int32_t DAC_EQ_Clear(void *dac_grp, uint8_t wait_done)
 }
 
 
-static void
+//_FAST_FUNC_RO static void
+//dac_apc_event(uint32_t event_info, uint32_t usr_param)
+//{
+//    uint8_t ch_dir, notify = 1;
+//    uint32_t dac_event_info;
+//
+//    uint8_t event_type = event_info & 0xFF;
+//    DAC_GRP *dac = (DAC_GRP *)usr_param;
+//
+//    APC_CH apc_ch = (event_info >> 8) & 0xFF;
+//    apc_dual_channel_owner(APC_CH_TO_DCH(apc_ch), NULL, NULL, &ch_dir);
+//    dac_event_info = APC_CH_LR_IDX(apc_ch) << 8;
+//
+//    assert(dac != NULL);
+//    switch (event_type) {
+//    case APC_EVENT_TRANSFER_COMPLETE:
+//        if (ch_dir) { // ECHO
+//            if (dac->info->echo_bmp != 0 && APC_CH_TO_DCH(apc_ch) == dac->dch_echo)
+//                dac_event_info |= CSK_DAC_EVENT_ECHO_RX_COMPLETE;
+//            else
+//                assert(0);
+//        } else { // OUT
+//            if (dac->info->ch_mix) // mixed L/R channels
+//                dac->info->status.bit.busy &= ~CH_BMP_STEREO;
+//            else if (APC_CH_LR_IDX(apc_ch)) // right channel
+//                dac->info->status.bit.busy &= ~CH_BMP_RIGHT;
+//            else // left channel
+//                dac->info->status.bit.busy &= ~CH_BMP_LEFT;
+//            dac_event_info |= CSK_DAC_EVENT_SEND_COMPLETE;
+//        }
+//        break;
+//
+//    case APC_EVENT_TX_FIFO_UNDERRUN:
+//        //dac->info->status.bit.busy = 0;
+//        dac->info->status.bit.tx_undf = 1;
+//        dac_event_info |= CSK_DAC_EVENT_TX_FIFO_UNDERRUN;
+//        break;
+//
+//    case APC_EVENT_TX_FIFO_EMPTY:
+//        dac->info->status.bit.tx_emp = 1;
+//        dac_event_info |= CSK_DAC_EVENT_TX_FIFO_EMPTY;
+//        break;
+//
+//    case APC_EVENT_DMA_ERROR:
+//        //dac->info->status.bit.busy = 0;
+//        dac_event_info |= CSK_DAC_EVENT_OTHER_ERROR;
+//        break;
+//
+//    default:
+//        LOGD("%s: unknown APC event (0x%x)!", __func__, event_type);
+//        notify = 0;
+//        break;
+//    }
+//
+//    // notify DAC caller
+//    if (notify && dac->info->cb_event != NULL) {
+//        dac->info->cb_event(dac_event_info, dac->info->usr_param);
+//    }
+//}
+
+_FAST_FUNC_RO static void
 dac_apc_event(uint32_t event_info, uint32_t usr_param)
 {
     uint8_t ch_dir, notify = 1;
@@ -1544,39 +1695,38 @@ dac_apc_event(uint32_t event_info, uint32_t usr_param)
     dac_event_info = APC_CH_LR_IDX(apc_ch) << 8;
 
     assert(dac != NULL);
-    switch (event_type) {
-    case APC_EVENT_TRANSFER_COMPLETE:
+
+    if (event_type & APC_EVENT_TRANSFER_COMPLETE) {
         if (ch_dir) { // ECHO
             if (dac->info->echo_bmp != 0 && APC_CH_TO_DCH(apc_ch) == dac->dch_echo)
                 dac_event_info |= CSK_DAC_EVENT_ECHO_RX_COMPLETE;
             else
                 assert(0);
         } else { // OUT
-            dac->info->status.bit.busy = 0;
+            if (dac->info->ch_mix) // mixed L/R channels
+                dac->info->status.bit.busy &= ~CH_BMP_STEREO;
+            else if (APC_CH_LR_IDX(apc_ch)) // right channel
+                dac->info->status.bit.busy &= ~CH_BMP_RIGHT;
+            else // left channel
+                dac->info->status.bit.busy &= ~CH_BMP_LEFT;
             dac_event_info |= CSK_DAC_EVENT_SEND_COMPLETE;
         }
-        break;
+    }
 
-    case APC_EVENT_TX_FIFO_UNDERRUN:
+    if (event_type & APC_EVENT_TX_FIFO_UNDERRUN) {
         //dac->info->status.bit.busy = 0;
         dac->info->status.bit.tx_undf = 1;
         dac_event_info |= CSK_DAC_EVENT_TX_FIFO_UNDERRUN;
-        break;
+    }
 
-    case APC_EVENT_TX_FIFO_EMPTY:
+    if (event_type & APC_EVENT_TX_FIFO_EMPTY) {
         dac->info->status.bit.tx_emp = 1;
         dac_event_info |= CSK_DAC_EVENT_TX_FIFO_EMPTY;
-        break;
+    }
 
-    case APC_EVENT_DMA_ERROR:
+    if (event_type & APC_EVENT_DMA_ERROR) {
         //dac->info->status.bit.busy = 0;
         dac_event_info |= CSK_DAC_EVENT_OTHER_ERROR;
-        break;
-
-    default:
-        LOGD("%s: unknown APC event (0x%x)!", __func__, event_type);
-        notify = 0;
-        break;
     }
 
     // notify DAC caller

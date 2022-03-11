@@ -10,11 +10,11 @@
 
 #include "venus_cp.h"
 #include "apc_venus.h"
-#include "reg/apc_reg_venus.h"
+#include "apc_reg_venus.h"
 #include "Driver_DAC.h"
-#include "reg/aon_pmuctrl_reg_venus.h" // for pmuctrl regiger (power)
+#include "aon_pmuctrl_reg_venus.h" // for pmuctrl regiger (power)
 
-#include "reg/audio_codec_venus.h" // CODEC/AON_CODEC Registers etc.
+#include "audio_codec_venus.h" // CODEC/AON_CODEC Registers etc.
 
 //====================== Register-related Macros & Functions =================
 
@@ -50,6 +50,14 @@ static const VAL_PAIR sc_DAC_SR_OSR[] = {
         { 22050, 250 },
         { 11025, 250 }
 };
+
+
+// APC register offset 0x14C
+#define DAC_DATA_DUP_REG        (APC_BASE + 0x14c)
+#define DAC_DATA_DUP_MASK       (0x3 << 0)
+#define DAC_DATA_DUP_NONE       (0x0 << 0)
+#define DAC_DATA_DUP_LEFT       (0x1 << 0)
+#define DAC_DATA_DUP_RIGHT      (0x2 << 0)
 
 //====================== Register-irrelevant definitions =====================
 
@@ -92,5 +100,11 @@ typedef struct {
     CSK_DAC_RegDef *reg;  // pointer to CODEC(DAC) registers
     DAC_INFO *info;  // DAC run-time information
 } DAC_GRP;
+
+
+DAC_GRP * safe_dac_grp(void *dac_grp);
+int32_t dac_enable_tx_channels(DAC_GRP *dac, uint8_t dev_bmp);
+int32_t dac_enable_echo_channels(DAC_GRP *dac, uint8_t echo_bmp);
+int32_t dac_disable_echo_channels(DAC_GRP *dac, uint8_t echo_bmp);
 
 #endif /* __DAC_VENUS_H */
