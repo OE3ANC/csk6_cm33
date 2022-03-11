@@ -1547,7 +1547,7 @@ adc_pdm_apc_event(uint32_t event_info, uint32_t usr_param)
 
 
 #if USE_DIGTAL_ECHO
-#include "../dac/dac_venus.h"
+#include "dac_venus.h"
 
 /**
  \fn          int32_t ADC_PDM_Quad_Receive2(void *adc_pdm_grp, void *dac01_grp, ...)

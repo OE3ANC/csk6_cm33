@@ -9,7 +9,7 @@
 #include <string.h>
 #include <assert.h>
 #include "Driver_Common.h"
-#include "cache.h"
+#include "hal/cache.h"
 
 #include "cmn_sysctrl_reg_venus.h"
 #include "apc_inner_venus.h"
@@ -171,7 +171,7 @@ static volatile CSK_APC_RegDef * gApcReg = NULL;
 #define IS_APC_DCH_OCCUPIED(dch)      (g_apc_dev.dch_array[dch].intf_type != APC_INTF_UNSET)
 
 static void apc_dma_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param);
-static void apc_irq_handler (void);
+void apc_irq_handler (void);
 
 //=============================================================================
 
@@ -2215,7 +2215,7 @@ apc_dma_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param)
   \fn          void apc_irq_handler (void)
   \brief       APC interrupt handler
 */
-_FAST_FUNC_RO static void apc_irq_handler (void)
+_FAST_FUNC_RO void apc_irq_handler (void)
 {
     //TODO: Read interrupt status register, and check if
     // there are following interrupt conditions:

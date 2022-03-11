@@ -8,16 +8,20 @@
 #ifndef INCLUDE_DEBUG_VENUS_LOG_H_
 #define INCLUDE_DEBUG_VENUS_LOG_H_
 
-#include <stdint.h>
-#include <stdio.h>
+// #include <stdint.h>
+// #include <stdio.h>
+
+#include <stdarg.h>
+#include <zephyr.h>
+#include <sys/printk.h>
 
 //#include "tinyprintf.h"
 
-extern void logInit(int dbg, uint32_t baudrate);
-extern void logDbg(const char* format, ...);
-
-//#define CLOG(fmt, ...)   tfp_printf(fmt"\n", ##__VA_ARGS__)
-#define CLOG(fmt, ...)   logDbg(fmt"\n", ##__VA_ARGS__)
+#if 0
+#define CLOG(fmt, ...)   printk(fmt"\n", ##__VA_ARGS__)
+#else
+#define CLOG(fmt, ...)   
+#endif
 
 #define CLOG_LEVEL_NONE     0
 #define CLOG_LEVEL_ERROR    1

@@ -5,8 +5,8 @@
  */
 
 //#include "venus_log.h"
-#include "dma_venus.h"
-#include "cache.h"
+#include "hal/reg/dma_venus.h"
+#include "hal/cache.h"
 #include <string.h> // for memset
 #include <assert.h>
 //#define __aeabi_assert // for keil compiler

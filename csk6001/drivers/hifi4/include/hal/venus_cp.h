@@ -10,6 +10,9 @@
 
 #include <stddef.h> // for NULL etc.
 #include <stdint.h>
+
+#include <toolchain/xcc.h>
+
 #ifdef XOS_USED
 #define XOS_INCLUDE_INTERNAL // for xos_started() etc.
 #include "xtensa/xos.h"
@@ -46,7 +49,8 @@
 #include <psram_mc_reg_venus.h>
 #include <syspll_ctrl_reg_venus.h>
 #include <trng_reg_venus.h>
-#include <uart_reg_venus.h>
+// #include <uart_reg_venus.h>
+#include <dw_uart_reg_venus.h>
 #include <wdt_reg_venus.h>
 #include <vad_reg_venus.h>
 
@@ -72,10 +76,12 @@
 #define _FAST_FUNC_RO           __attribute__ ((section (".iram0.text")))
 //fast data value initialize
 //#define _FAST_DATA_VI           __attribute__ ((section (".data_localmem.data")))
-#define _FAST_DATA_VI           __attribute__ ((section (".dram0.data")))
+// #define _FAST_DATA_VI           __attribute__ ((section (".dram0.data")))
+#define _FAST_DATA_VI           //FIXME:
 //fast data zero initialize
 //#define _FAST_DATA_ZI           __attribute__ ((section (".data_localmem.bss")))
-#define _FAST_DATA_ZI           __attribute__ ((section (".dram0.bss")))
+// #define _FAST_DATA_ZI           __attribute__ ((section (".dram0.bss")))
+#define _FAST_DATA_ZI           //FIXME:
 
 #define _DMA                    _FAST_DATA_ZI
 #define _DMA_PRAM               __attribute__((aligned(32)))
@@ -394,8 +400,8 @@ static inline void register_ISR(uint32_t irq_no, ISR isr, ISR* isr_old)
 	//no old isr return!!
 	xos_register_interrupt_handler(irq_no, (XosIntFunc *)isr, NULL);
 #else
-	ISR old = _xtos_set_interrupt_handler(irq_no, isr);
-	if (isr_old != NULL)	*isr_old = old;
+	// ISR old = _xtos_set_interrupt_handler(irq_no, isr);
+	// if (isr_old != NULL)	*isr_old = old;
 #endif
 }
 
@@ -405,7 +411,7 @@ static inline void enable_IRQ(uint32_t irq_no)
 #ifdef XOS_USED
 	xos_interrupt_enable(irq_no);
 #else
-	xtos_interrupt_enable(irq_no);
+	// xtos_interrupt_enable(irq_no);
 #endif
 }
 
@@ -415,7 +421,7 @@ static inline void disable_IRQ(uint32_t irq_no)
 #ifdef XOS_USED
 	xos_interrupt_disable(irq_no);
 #else
-	xtos_interrupt_disable(irq_no);
+	// xtos_interrupt_disable(irq_no);
 #endif
 }
 

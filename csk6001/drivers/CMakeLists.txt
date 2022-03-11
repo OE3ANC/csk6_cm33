@@ -1,8 +1,10 @@
 
 if(${CONFIG_SOC_LS_ADSP_CSK6})
-    zephyr_include_directories(hifi4/xos hifi4/include)
+    zephyr_include_directories(hifi4/xos 
+                                hifi4/include
+                                hifi4/include/hal
+                                hifi4/include/hal/reg)
     zephyr_library_sources(hifi4/venus_cp.c
-                            hifi4/clock_config.c 
                             hifi4/dma_venus.c
                             hifi4/cache_cp.c
                             hifi4/gpio_venus.c
