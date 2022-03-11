@@ -65,5 +65,8 @@ int32_t IOMuxManager_PinConfigure (uint8_t pad, uint8_t pin_num, uint32_t pin_cf
 
 int32_t IOMuxManager_ModeConfigure(uint8_t pad, uint8_t pin_num, uint8_t pin_mode);
 
+int32_t IOMuxManager_GetConfig(uint8_t pad, uint8_t pin_num, uint32_t *pin_cfg);
+
+int32_t IOMuxManager_GetPad(uint32_t addr, uint8_t *pad);
 
 #endif /* __CSK_IOMUX_MANAGER_H */

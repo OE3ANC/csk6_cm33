@@ -120,3 +120,44 @@ int32_t IOMuxManager_ModeConfigure(uint8_t pad, uint8_t pin_num, uint8_t pin_mod
 
     return CSK_DRIVER_OK;
 }
+
+int32_t IOMuxManager_GetConfig(uint8_t pad, uint8_t pin_num, uint32_t *pin_cfg){
+    volatile uint32_t * volatile pin_base = NULL;
+    switch (pad){
+    case CSK_IOMUX_PAD_A:
+    {
+        if(pin_num > 31){
+            return CSK_DRIVER_ERROR_PARAMETER;
+        }
+        pin_base = (volatile uint32_t* volatile)&(iomux_reg->REG_PAD_GPIOA_00.all);
+
+    }
+        break;
+    case CSK_IOMUX_PAD_B:
+    {
+        if(pin_num > 15){
+            return CSK_DRIVER_ERROR_PARAMETER;
+        }
+        pin_base = (volatile uint32_t* volatile)&(iomux_reg->REG_PAD_GPIOB_00.all);  
+    }
+        break;
+    default:
+        return CSK_DRIVER_ERROR_PARAMETER;
+    }
+
+    pin_base += pin_num;
+    *pin_cfg = (*(volatile uint32_t* volatile)(pin_base)) & 0x1f;    
+    return CSK_DRIVER_OK;
+}
+
+int32_t IOMuxManager_GetPad(uint32_t addr, uint8_t *pad)
+{
+	if ((uint32_t)&iomux_reg->REG_PAD_GPIOA_00.all == addr) {
+		*pad = CSK_IOMUX_PAD_A;
+	} else if ((uint32_t)&iomux_reg->REG_PAD_GPIOB_00.all == addr) {
+		*pad = CSK_IOMUX_PAD_B;
+	} else {
+		return CSK_DRIVER_ERROR_PARAMETER;
+	}
+	return 0;
+}
