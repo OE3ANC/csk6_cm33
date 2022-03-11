@@ -5,8 +5,6 @@
 #define __UART_CSK6001_H__
 
 #include "dma_venus.h"
-#include "hal/reg/uart_reg_venus.h"
-
 #include "Driver_UART.h"
 #include "venus_cp.h"
 
@@ -91,55 +89,95 @@
 
 // CONSTANT MACRO
 // ******************************************UART0
-#define VENUS_UART0            ((DW_UART_RegDef *) UART0_BASE)
-
 #define CSK_UART0_FIFO            (32)// Depth of FIFO (Bytes)
 
-#define CSK_UART0_TX_DMA_CH       (0)
-#define CSK_UART0_TX_DMA_REQSEL   (DMA_HSID_UART0_TX)
-#define CSK_UART0_RX_DMA_CH       (1)
-#define CSK_UART0_RX_DMA_REQSEL   (DMA_HSID_UART0_RX)
+//FIXME: CP don't support DMA for UART0, here just for compiler pass
+#define CSK_UART0_TX_DMA_CH       (4)
+#define CSK_UART0_TX_DMA_REQSEL   (DMA_HSID_UART2_TX)
+#define CSK_UART0_RX_DMA_CH       (5)
+#define CSK_UART0_RX_DMA_REQSEL   (DMA_HSID_UART2_RX)
+
+#define IRQ_UART0_VECTOR          (SUB_IRQ_UART0_VECTOR)
 // ******************************************
 
 
 // ******************************************UART1
-#define VENUS_UART1            ((DW_UART_RegDef *) UART1_BASE)
-
 #define CSK_UART1_FIFO            (32)// Depth of FIFO (Bytes)
 
-#define CSK_UART1_TX_DMA_CH       (2)
-#define CSK_UART1_TX_DMA_REQSEL   (DMA_HSID_UART1_TX)
-#define CSK_UART1_RX_DMA_CH       (3)
-#define CSK_UART1_RX_DMA_REQSEL   (DMA_HSID_UART1_RX)
+//FIXME: CP don't support DMA for UART1, here just for compiler pass
+#define CSK_UART1_TX_DMA_CH       (4)
+#define CSK_UART1_TX_DMA_REQSEL   (DMA_HSID_UART2_TX)
+#define CSK_UART1_RX_DMA_CH       (5)
+#define CSK_UART1_RX_DMA_REQSEL   (DMA_HSID_UART2_RX)
+
+#define IRQ_UART1_VECTOR          (SUB_IRQ_UART1_VECTOR)
 // ******************************************
 
 
 // ******************************************UART2
-#define VENUS_UART2            ((DW_UART_RegDef *) UART2_BASE)
-
 #define CSK_UART2_FIFO            (32)// Depth of FIFO (Bytes)
 
 #define CSK_UART2_TX_DMA_CH       (4)
 #define CSK_UART2_TX_DMA_REQSEL   (DMA_HSID_UART2_TX)
 #define CSK_UART2_RX_DMA_CH       (5)
 #define CSK_UART2_RX_DMA_REQSEL   (DMA_HSID_UART2_RX)
+
+#define IRQ_UART2_VECTOR          (SUB_IRQ_UART2_VECTOR)
 // ******************************************
 
 #define CSK_UART_RX_TRIG_LVL_0   (1)           // 1 character in FIFO
-#define CSK_UART_RX_TRIG_LVL_1   (7)           // FIFO 1/4 full
-#define CSK_UART_RX_TRIG_LVL_2   (15)          // FIFO 1/2 full
-#define CSK_UART_RX_TRIG_LVL_3   (29)          // FIFO 2 less than full
+#define CSK_UART_RX_TRIG_LVL_1   (8)           // FIFO 1/4 full
+#define CSK_UART_RX_TRIG_LVL_2   (16)          // FIFO 1/2 full
+#define CSK_UART_RX_TRIG_LVL_3   (30)          // FIFO 2 less than full
 
-#define CSK_UART_RX_TRIG_LVL                   (CSK_UART_RX_TRIG_LVL_1)// 1 character in FIFO
+#define CSK_UART_RX_TRIG_LVL                   CSK_UART_RX_TRIG_LVL_0
+
+
+#if CSK_UART_RX_TRIG_LVL == CSK_UART_RX_TRIG_LVL_0     // Greater than or equal 1 character trigger DMA transmit
+#define CSK_UART_RX_TRIG_LVL_PARA              (UARTC_FCR_RFIFO_TRGL0)
+#define CSK_UART_RX_DMA_WIDTH_PARA             (DMA_WIDTH_BYTE)
+#define CSK_UART_RX_DMA_BSIZE_PARA             (DMA_BSIZE_1)
+#elif CSK_UART_RX_TRIG_LVL == CSK_UART_RX_TRIG_LVL_1   // Greater than or equal 8 character trigger DMA transmit
 #define CSK_UART_RX_TRIG_LVL_PARA              (UARTC_FCR_RFIFO_TRGL1)
 #define CSK_UART_RX_DMA_WIDTH_PARA             (DMA_WIDTH_BYTE)
+#define CSK_UART_RX_DMA_BSIZE_PARA             (DMA_BSIZE_4)
+#elif CSK_UART_RX_TRIG_LVL == CSK_UART_RX_TRIG_LVL_2   // Greater than or equal 16 character trigger DMA transmit
+#define CSK_UART_RX_TRIG_LVL_PARA              (UARTC_FCR_RFIFO_TRGL2)
+#define CSK_UART_RX_DMA_WIDTH_PARA             (DMA_WIDTH_BYTE)
 #define CSK_UART_RX_DMA_BSIZE_PARA             (DMA_BSIZE_8)
+#elif CSK_UART_RX_TRIG_LVL == CSK_UART_RX_TRIG_LVL_3   // Greater than or equal 30 character trigger DMA transmit
+#define CSK_UART_RX_TRIG_LVL_PARA              (UARTC_FCR_RFIFO_TRGL3)
+#define CSK_UART_RX_DMA_WIDTH_PARA             (DMA_WIDTH_BYTE)
+#define CSK_UART_RX_DMA_BSIZE_PARA             (DMA_BSIZE_16)
+#else
+#error "Parameter configure error in 'CSK_UART_RX_TRIG_LVL'"
+#endif
+
+#define CSK_UART_TX_TRIG_LVL_0   (0)           // Empty in FIFO
+#define CSK_UART_TX_TRIG_LVL_1   (2)           // 2 character in FIFO
+#define CSK_UART_TX_TRIG_LVL_2   (8)           // FIFO 1/4 full
+#define CSK_UART_TX_TRIG_LVL_3   (16)          // FIFO 1/2 full
+
+#define CSK_UART_TX_TRIG_LVL                   CSK_UART_TX_TRIG_LVL_2
 
 
-#define CSK_UART_TX_TRIG_LVL                   (8)// FIFO Empty
+#if CSK_UART_TX_TRIG_LVL == CSK_UART_TX_TRIG_LVL_0     // Less than or equal 0 character trigger DMA transmit
+#define CSK_UART_TX_TRIG_LVL_PARA              (UARTC_FCR_TFIFO_TRGL0)
+#define CSK_UART_TX_DMA_WIDTH_PARA             (DMA_WIDTH_BYTE)
+#define CSK_UART_TX_DMA_BSIZE_PARA             (DMA_BSIZE_32)
+#elif CSK_UART_TX_TRIG_LVL == CSK_UART_TX_TRIG_LVL_1     // Less than or equal 2 character trigger DMA transmit
+#define CSK_UART_TX_TRIG_LVL_PARA              (UARTC_FCR_TFIFO_TRGL1)
+#define CSK_UART_TX_DMA_WIDTH_PARA             (DMA_WIDTH_BYTE)
+#define CSK_UART_TX_DMA_BSIZE_PARA             (DMA_BSIZE_16)
+#elif CSK_UART_TX_TRIG_LVL == CSK_UART_TX_TRIG_LVL_2     // Less than or equal 8 character trigger DMA transmit
 #define CSK_UART_TX_TRIG_LVL_PARA              (UARTC_FCR_TFIFO_TRGL2)
 #define CSK_UART_TX_DMA_WIDTH_PARA             (DMA_WIDTH_BYTE)
-#define CSK_UART_TX_DMA_BSIZE_PARA             (DMA_BSIZE_8)
+#define CSK_UART_TX_DMA_BSIZE_PARA             (DMA_BSIZE_16)
+#elif CSK_UART_TX_TRIG_LVL == CSK_UART_TX_TRIG_LVL_3     // Less than or equal 16 character trigger DMA transmit
+#define CSK_UART_TX_TRIG_LVL_PARA              (UARTC_FCR_TFIFO_TRGL3)
+#define CSK_UART_TX_DMA_WIDTH_PARA             (DMA_WIDTH_BYTE)
+#define CSK_UART_TX_DMA_BSIZE_PARA             (DMA_BSIZE_16)
+#endif
 
 
 // Modem configure marco
@@ -201,6 +239,8 @@ typedef struct _UART_INFO
 // UART DMA
 typedef struct _UART_DMA
 {
+    uint8_t bsize_para;                    // DMA Burst size
+    uint8_t en;                            // DMA Enable
     uint8_t channel;                       // DMA Channel
     uint8_t reqsel;                        // DMA request selection
     DMA_SignalEvent_t cb_event;            // DMA Event callback
