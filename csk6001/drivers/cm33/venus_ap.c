@@ -5,26 +5,31 @@
  *
  */
 
-#include "hal/venus_ap.h"
+#include "venus_ap.h"
 
 // whether interrupt vectors table can be altered?
-#define VECTORS_ALTERABLE   0 // 1
+//#define VECTORS_ALTERABLE   1 // 0
 
 //default ISR for all interrupts, see startup_ARMCM33.S
-extern void Default_Handler(void);
+//extern void Default_Handler(void);
+//TODO 暂时不做任何处理
+void Default_Handler(void)
+{
+    (void) 0;
+}
 
 
 #if VECTORS_ALTERABLE // modify directly interrupt vectors table!!
 
 //TODO: _Vectors may be moved to elsewhere, SHOULD relocate it...
-//extern uint32_t __Vectors_vma;
-extern uint32_t __Vectors;
+extern uint32_t __VECTOR_ITCM;
+//extern uint32_t __Vectors;
 #define INTERRUPT0_OFFSET   16 // in WORD
 
 // Register ISR into Interrupt Vector Table
 void register_ISR(uint32_t irq_no, ISR isr, ISR* isr_old)
 {
-    uint32_t *pIVT = &__Vectors;
+    uint32_t *pIVT = &__VECTOR_ITCM;
     pIVT += INTERRUPT0_OFFSET;
 
     if (irq_no > IRQ_MAX)   return;
@@ -241,3 +246,81 @@ void test_divNM()
     divNM2 = eval_freq_divNM2(7, 7, 300000, clk_out, NULL);
 }
 */
+
+#define __HAL_CP_VECTOR_MAX        32
+
+void* CP_Vector_Table[__HAL_CP_VECTOR_MAX] = { 0 };
+
+static void HAL_CP_Interrupt_Handler(){
+    int locate = 0;
+    /// get interrupt status
+    uint32_t status = IP_SYSCTRL->REG_CP2AP_INTS.all;
+    /// locate the leading one position, if return value == -1, mean all interrupt have been disposed
+    locate = 31 - __CLZ(status);
+
+    while(locate != -1){
+
+        /// Run vector handler
+        if (CP_Vector_Table[(uint8_t)locate]){
+            ((ISR)(CP_Vector_Table[locate]))();
+        }
+        /// NULL, haven't been registered
+        else{
+            Default_Handler();
+        }
+
+        locate = 31 - __CLZ(status & ~(0x1 << locate));
+    }
+
+    /// clean all interrupt status
+    IP_SYSCTRL->REG_CP2AP_INTS.all = status;
+}
+
+static uint32_t hal_global_cpint_count = 0;
+
+void HAL_CP_Interrupt_Init(){
+    hal_global_cpint_count++;
+    if (hal_global_cpint_count > 1){
+        return;
+    }
+    /// enable CP to AP interrupt
+    register_ISR(IRQ_CP0_VECTOR, HAL_CP_Interrupt_Handler, NULL);
+    enable_IRQ(IRQ_CP0_VECTOR);
+}
+
+void HAL_CP_Interrupt_Deinit(){
+    if (hal_global_cpint_count == 0U){
+        return;
+    }
+
+    hal_global_cpint_count--;
+    if (hal_global_cpint_count != 0U){
+        return;
+    }
+    disable_IRQ(IRQ_CP0_VECTOR);
+    register_ISR(IRQ_CP0_VECTOR, NULL, NULL);
+}
+
+void HAL_CP_Interrupt_Enable(uint32_t irq_no){
+    if (irq_no > __HAL_CP_VECTOR_MAX){
+        return;
+    }
+    IP_SYSCTRL->REG_CP2AP_INTE.all |= (0x1 << irq_no);
+}
+
+void HAL_CP_Interrupt_Disable(uint32_t irq_no){
+    if (irq_no > __HAL_CP_VECTOR_MAX){
+        return;
+    }
+    IP_SYSCTRL->REG_CP2AP_INTE.all &= ~(0x1 << irq_no);
+}
+
+void HAL_CP_Interrupt_RegisterISR(uint32_t irq_no, ISR isr, ISR* isr_old){
+    if (irq_no > __HAL_CP_VECTOR_MAX){
+        return;
+    }
+    if (isr_old){
+        *isr_old = (ISR)(CP_Vector_Table[irq_no]);
+    }
+    CP_Vector_Table[irq_no] = isr;
+}
