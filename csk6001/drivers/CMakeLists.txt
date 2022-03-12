@@ -1,5 +1,9 @@
 
 if(${CONFIG_SOC_LS_ADSP_CSK6})
+    # add_definitions(-DIC_BOARD=1)
+    zephyr_compile_options(-DPLATFORM_CP -DCSK6001 -DIC_BOARD=1)
+
+    # add files
     zephyr_include_directories(hifi4/xos 
                                 hifi4/include
                                 hifi4/include/hal
