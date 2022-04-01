@@ -1,11 +1,48 @@
-#include "hal/wdt.h"
+#include "wdt.h"
 
 #define CSK_WDT_DRV_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,1)
 
 // Driver version
 static const CSK_DRIVER_VERSION
 wdt_driver_version = { CSK_WDT_API_VERSION, CSK_WDT_DRV_VERSION };
-#define CHECK_RESOURCES(res)
+
+static WDT_INFO wdt0_info = { 0 };
+static WDT_INFO aon_wdt_info = { 0 };
+
+static void WDT_IRQ_Handler(void);
+static const WDT_RESOURCES wdt0_resources = {
+        VENUS_WDT0,
+        IRQ_WDT_VECTOR,
+        WDT_IRQ_Handler,
+        &wdt0_info
+};
+
+static void AON_WDT_IRQ_Handler(void);
+static const WDT_RESOURCES aon_wdt_resources = {
+        VENUS_AON_WDT,
+        IRQ_AON_IWDT_VECTOR,
+        AON_WDT_IRQ_Handler,
+        &aon_wdt_info,
+};
+
+static CP_WDT_RESOURCES cp_wdt_resources = {
+        .cp_wdt_clbk = NULL,
+        .cp_wdt_para = NULL,
+};
+
+#define CHECK_RESOURCES(res)  do{\
+        if((res != &wdt0_resources) && (res != &aon_wdt_resources)){\
+            return CSK_DRIVER_ERROR_PARAMETER;\
+        }\
+}while(0)
+
+void* WDT(void){
+    return (void*)&wdt0_resources;
+}
+
+void* AON_WDT(void){
+    return (void*)&aon_wdt_resources;
+}
 
 CSK_DRIVER_VERSION
 WDT_GetVersion(void)
@@ -279,9 +316,7 @@ WDT_Refresh(void* res)
         return CSK_DRIVER_ERROR;
     }
 
-
     // enable write
-    wdt->reg->REG_ST.bit.INTEXPIRED = 1;
     wdt->reg->REG_WREN.all = WDT_MAGIC_WRITE_PROTECTION;
     // write restart register
     wdt->reg->REG_RESTART.all = WDT_MAGIC_RESTARTING;
@@ -309,4 +344,36 @@ WDT_Disable(void* res)
     wdt->reg->REG_CTRL.bit.EN = 0x0;
 
     return CSK_DRIVER_OK;
+}
+
+// TODO: maybe this should be design to global function,
+// this irq handler can be used by other driver if the want to
+// get interrupt from cp
+static void irq_handler_cp_wdt(){
+    cp_wdt_resources.cp_wdt_clbk((void*)cp_wdt_resources.cp_wdt_para);
+}
+
+int32_t HAL_CP_WDT_RegisterCallback(__cp_wdt_callback callback, void* para){
+    if (callback == NULL){
+        return CSK_DRIVER_ERROR_PARAMETER;
+    }
+
+    cp_wdt_resources.cp_wdt_clbk = callback;
+    cp_wdt_resources.cp_wdt_para = para;
+
+    HAL_CP_Interrupt_Init();
+    HAL_CP_Interrupt_RegisterISR(IRQ_CP_WDT_VECTOR, irq_handler_cp_wdt, NULL);
+    HAL_CP_Interrupt_Enable(IRQ_CP_WDT_VECTOR);
+
+    return CSK_DRIVER_OK;
+}
+
+static void
+WDT_IRQ_Handler(void){
+    while(1);
+}
+
+static void
+AON_WDT_IRQ_Handler(void){
+    while(1);
 }
