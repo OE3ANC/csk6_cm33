@@ -1,7 +1,7 @@
 #ifndef __FLASHROM__
 #define __FLASHROM__
-#include <stddef.h>
 #include <sys/types.h>
+#include <stddef.h>
 #include <stdbool.h>
 //#include "types.h"
 
@@ -14,15 +14,13 @@
 #define FT25F64B_ID 0xb4017
 #define GD25Q64EGIG_ID 0xc84017
 
-typedef struct FLASH_DEV
-{
-	unsigned long base_addr;
-	int spi_enum;
-	bool w_protect;
-} FLASH_DEV;
+typedef struct FLASH_DEV {
+	unsigned long	base_addr;
+	int				spi_enum;
+	bool		    w_protect;
+}FLASH_DEV;
 
-typedef enum
-{
+typedef enum {
 	FLASH_SPI_1_INN = 0,
 	FLASH_SPI_1_EXT,
 	FLASH_SPI_2_PA04_PA07 = 10,
@@ -30,14 +28,14 @@ typedef enum
 	FLASH_SPI_3_PA12_PA15 = 20,
 	FLASH_SPI_3_PA22_PA25,
 	FLASH_SPI_3_PA31_PB02
-} FLASH_ENUM;
+}FLASH_ENUM;
 
 /**
  *  @brief  initial spi flash device, default spi enum is FLASH_SPI_1_INN
  *
  *  @return  0 on success, negative errno code on fail.
  */
-int sflash_init(void *dev);
+int sflash_init(void);
 
 /**
  *  @brief  initial spi flash device
@@ -174,8 +172,8 @@ int sflash_get_page_info_by_offs(void *dev, off_t offset,
  *
  *  @return  0 on success, -EINVAL  if page of the index doesn't exist.
  */
-//__syscall int sflash_get_page_info_by_idx(struct device *dev, uint32_t page_index,
-//					 struct sflash_pages_info *info);
+// __syscall int sflash_get_page_info_by_idx(struct device *dev, uint32_t page_index,
+// 					 struct sflash_pages_info *info);
 
 /**
  *  @brief  Get the total number of flash pages.
@@ -184,7 +182,7 @@ int sflash_get_page_info_by_offs(void *dev, off_t offset,
  *
  *  @return  Number of flash pages.
  */
-//__syscall size_t sflash_get_page_count(struct device *dev);
+// __syscall size_t sflash_get_page_count(struct device *dev);
 
 /**
  * @brief Callback type for iterating over flash pages present on a device.

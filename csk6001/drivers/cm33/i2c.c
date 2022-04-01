@@ -1,4 +1,4 @@
-#include "hal/i2c.h"
+#include "i2c.h"
 
 #define CSK_I2C_DRV_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,1)
 
@@ -150,7 +150,6 @@ I2C_Uninitialize(void* res)
 int32_t
 I2C_PowerControl(void* res, CSK_POWER_STATE state)
 {
-#define SYSTEM_CLK    ((SYSCFG_RegDef* ) CMN_SYSCTRL_BASE)
     CHECK_RESOURCES(res);
 
     I2C_RESOURCES* i2c = (I2C_RESOURCES*)res;
@@ -182,11 +181,11 @@ I2C_PowerControl(void* res, CSK_POWER_STATE state)
 
         // reset i2c & enable i2c clock
         if (i2c == &i2c0_resources){
-            SYSTEM_CLK->REG_SW_RESET2.bit.I2C0_RESET = 0x1;
-            SYSTEM_CLK->REG_MISC_CLK_CFG2.bit.ENA_I2C0_CLK = 0x0;
+            IP_SYSCTRL->REG_SW_RESET2.bit.I2C0_RESET = 0x1;
+            IP_SYSCTRL->REG_MISC_CLK_CFG2.bit.ENA_I2C0_CLK = 0x0;
         }else if (i2c == &i2c1_resources){
-            SYSTEM_CLK->REG_SW_RESET2.bit.I2C1_RESET = 0x1;
-            SYSTEM_CLK->REG_MISC_CLK_CFG2.bit.ENA_I2C1_CLK = 0x0;
+            IP_SYSCTRL->REG_SW_RESET2.bit.I2C1_RESET = 0x1;
+            IP_SYSCTRL->REG_MISC_CLK_CFG2.bit.ENA_I2C1_CLK = 0x0;
         }else {
             return CSK_DRIVER_ERROR_PARAMETER;
         }
@@ -202,11 +201,11 @@ I2C_PowerControl(void* res, CSK_POWER_STATE state)
 
         // reset i2c & enable i2c clock
         if (i2c == &i2c0_resources){
-            SYSTEM_CLK->REG_SW_RESET2.bit.I2C0_RESET = 0x1;
-            SYSTEM_CLK->REG_MISC_CLK_CFG2.bit.ENA_I2C0_CLK = 0x1;
+            IP_SYSCTRL->REG_SW_RESET2.bit.I2C0_RESET = 0x1;
+            IP_SYSCTRL->REG_MISC_CLK_CFG2.bit.ENA_I2C0_CLK = 0x1;
         }else if (i2c == &i2c1_resources){
-            SYSTEM_CLK->REG_SW_RESET2.bit.I2C1_RESET = 0x1;
-            SYSTEM_CLK->REG_MISC_CLK_CFG2.bit.ENA_I2C1_CLK = 0x1;
+            IP_SYSCTRL->REG_SW_RESET2.bit.I2C1_RESET = 0x1;
+            IP_SYSCTRL->REG_MISC_CLK_CFG2.bit.ENA_I2C1_CLK = 0x1;
         }else {
             return CSK_DRIVER_ERROR_PARAMETER;
         }
@@ -293,6 +292,7 @@ I2C_MasterTransmit(void* res, uint32_t addr, const uint8_t* data, uint32_t num,
     I2C_RESOURCES* i2c = (I2C_RESOURCES*)res;
 
     uint32_t Tmp_C = 0;
+
 
     // max 10-bit address(0x3FF), null data or num is no payload for acknowledge polling
     // If no I2C payload, set Phase_data=0x0
@@ -465,6 +465,7 @@ I2C_MasterReceive(void* res, uint32_t addr, uint8_t* data, uint32_t num,
     I2C_RESOURCES* i2c = (I2C_RESOURCES*)res;
 
     uint32_t Tmp_C = 0;
+
 
     // max 10-bit address(0x3FF), null data or num is no payload for acknowledge polling
     // If no I2C payload, set Phase_data=0x0

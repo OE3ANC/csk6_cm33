@@ -18,8 +18,8 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "hal/gpt.h"
-#include "hal/reg/cmn_sysctrl_reg_venus.h"
+#include "gpt.h"
+#include "cmn_sysctrl_reg_venus.h"
 
 /** @addtogroup CSK_HAL_Driver
   * @{
@@ -99,11 +99,12 @@ static void gpt_irq_handler (void *pGpt) {
 			while((pGpt_Temp->reg->FIFO_STATUS_1 & (0x01<<ch)) == 0){
 				*pGpt_Temp->ic_capture_info->ic_buf[ch]++ = pGpt_Temp->reg->CHx_RX_FIFO[ch];
 				pGpt_Temp->ic_capture_info->ic_cnt[ch]++;
-				if(pGpt_Temp->ic_capture_info->ic_cnt[ch] == pGpt_Temp->ic_capture_info->ic_num[ch]){
+				if(pGpt_Temp->ic_capture_info->ic_cnt[ch] >= pGpt_Temp->ic_capture_info->ic_num[ch]){
 					//input capture interrupt disable
 					pGpt_Temp->reg->IMR_CH |= 0x01 << ch;
 					pGpt_Temp->ic_capture_info->ic_cnt[ch] = 0;
 					pGpt_Temp->info->cb_event[ch](CSK_GPT_EVENT_INPUTCAPTURE, pGpt_Temp->user_param);
+					break;
 				}
 			}
 		}
@@ -195,9 +196,8 @@ static void GPT_ResetRegisters(void *pGpt)
 {
 	GPT_RESOURCES * pGpt_Temp = (GPT_RESOURCES *)pGpt;
     // Reset peripheral GPT
-	#define SYSTEM_CLK    ((SYSCFG_RegDef* ) CMN_SYSCTRL_BASE)
-	SYSTEM_CLK->REG_SW_RESET2.bit.GPT_RESET = 1;
-
+	IP_SYSCTRL->REG_SW_RESET2.bit.GPT_RESET = 1;
+	IP_SYSCTRL->REG_SW_RESET2.bit.GPT_RESET = 0;
 	//clear all interrupt status
 	//stop timer and cnt
 	pGpt_Temp->reg->CH_TIMER_ENABLE = 0x0;

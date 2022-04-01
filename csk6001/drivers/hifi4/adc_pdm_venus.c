@@ -5,29 +5,25 @@
  *
  */
 
-#include "hal/Driver_ADC_PDM.h"
-#include "hal/adc_pdm_venus.h"
-#include "hal/reg/cmn_sysctrl_reg_venus.h" // for sysctrl regiger (clock etc.)
-#include "hal/ClockManager.h" // for CRM_GetSrcFreq()
-#include "hal/reg/codec_reg_venus.h"
-#include "hal/reg/aon_codec_reg_venus.h"
+#include "Driver_ADC_PDM.h"
+#include "adc_pdm_venus.h"
+#include "cmn_sysctrl_reg_venus.h" // for sysctrl regiger (clock etc.)
+#include "ClockManager.h" // for CRM_GetSrcFreq()
+#include "codec_reg_venus.h"
+#include "aon_codec_reg_venus.h"
 #include <assert.h>
 #include <string.h>
 
 #include <stdio.h>
-// #include "hal/venus_log.h"
+#include "venus_log.h"
 
 #define DEBUG_LOG   1 // 0
 #if DEBUG_LOG
-#define LOGD(format, ...)   printk(format, ##__VA_ARGS__)
+#define LOGD(format, ...)   CLOGD(format, ##__VA_ARGS__)
 #else
 #define LOGD(format, ...)   ((void)0)
 #endif // DEBUG_LOG
 
-#define CLOGE printk
-#define CLOGD printk
-#define CLOGW printk
-#define CLOGI printk
 
 #define CSK_ADC_PDM_DRV_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,0)
 #define SYSCTRL_CFG    ((SYSCFG_RegDef*) CMN_SYSCTRL_BASE)
@@ -44,8 +40,8 @@ static CODEC_RegDef *g_cp_codec = (CODEC_RegDef *)CP_CODEC_BASE;
 static AON_CODEC_RegDef *g_aon_codec = (AON_CODEC_RegDef *)AON_CODEC_BASE;
 
 // ADC_PDM01
-static ADC_PDM_INFO adc01_info = { 0 };
-static ADC_PDM_GRP adc01_grp = {
+_FAST_DATA_VI static ADC_PDM_INFO adc01_info = { 0 };
+_FAST_DATA_VI static ADC_PDM_GRP adc01_grp = {
         0, APC_DCH_ADC01,
         CSK_ADC_PDM_SAMPLE_BITS, 0,
         CSK_ADC01, // FIXME:
@@ -57,8 +53,8 @@ void* ADC_PDM01() { return &adc01_grp; }
 
 
 // ADC_PDM23
-static ADC_PDM_INFO adc23_info = { 0 };
-static ADC_PDM_GRP adc23_grp = {
+_FAST_DATA_VI static ADC_PDM_INFO adc23_info = { 0 };
+_FAST_DATA_VI static ADC_PDM_GRP adc23_grp = {
         1, APC_DCH_ADC23,
         CSK_ADC_PDM_SAMPLE_BITS, 0,
         CSK_ADC23, // FIXME:
@@ -90,7 +86,7 @@ static ADC_PDM_GRP * safe_adc_pdm_grp(void *adc_pdm_grp)
     return (ADC_PDM_GRP *)adc_pdm_grp;
 }
 
-static inline void enable_adc_pdm(ADC_PDM_GRP *adc, uint8_t dev_bmp)
+static void enable_adc_pdm(ADC_PDM_GRP *adc, uint8_t dev_bmp)
 {
     uint32_t reg_val, reg_org, val;
     assert(adc != NULL);
@@ -139,7 +135,7 @@ static inline void enable_adc_pdm(ADC_PDM_GRP *adc, uint8_t dev_bmp)
     }
 }
 
-static inline void disable_adc_pdm(ADC_PDM_GRP *adc) // for both L&R channels
+static void disable_adc_pdm(ADC_PDM_GRP *adc) // for both L&R channels
 {
     uint32_t reg_val;
     assert(adc != NULL);
@@ -400,9 +396,12 @@ ADC_PDM_PowerControl(void *adc_pdm_grp, CSK_POWER_STATE state)
             return CSK_DRIVER_OK;
         }
 
-        //NOTE: remove disable operation, or else disable_enable operation will cause audio data deformed...
-        // disable ADC/PDM initially
+        // remove disable operation, or else disable_enable operation will cause audio data deformed...
         //disable_adc_pdm(adc);
+
+        // NOTE: enable ADC/PDM in advance when powered on, so as to avoid
+        // taking in garbage recorded data during ADC/MIC initialization...
+        enable_adc_pdm(adc, adc->info->ch_bmp);
 
         // enable ADC/PDM clock here
         enable_adc_pdm_clk(adc);
@@ -519,7 +518,7 @@ ADC_PDM_Receive(void *adc_pdm_grp, uint32_t *data, uint32_t num,
         return CSK_DRIVER_ERROR;
     }
 
-    if (adc->info->status.bit.busy)
+    if (adc->info->status.bit.busy & bmp)
         return CSK_DRIVER_ERROR_BUSY;
 
     uint8_t start_now = rx_flag & ADC_PDM_RX_FLAG_START_NOW;
@@ -540,12 +539,12 @@ ADC_PDM_Receive(void *adc_pdm_grp, uint32_t *data, uint32_t num,
     if (ret != CSK_DRIVER_OK)
         return ret;
 
-    adc->info->status.bit.busy = 1;
+    adc->info->status.bit.busy |= bmp;
     adc->info->status.bit.rx_full = 0;
     adc->info->status.bit.rx_ovf = 0;
 
     if (start_now) {
-        enable_adc_pdm(adc, bmp); // enable ADC/PDM module
+        //enable_adc_pdm(adc, bmp); // enable ADC/PDM module
         ret = adc_enable_rx_channels(adc, bmp);
     }
 
@@ -584,7 +583,7 @@ ADC_PDM_Receive_LLP(void *adc_pdm_grp, AUDIO_BUFFER_USER *bufs, uint32_t buf_cnt
         return CSK_DRIVER_ERROR;
     }
 
-    if (adc->info->status.bit.busy)
+    if (adc->info->status.bit.busy & bmp)
         return CSK_DRIVER_ERROR_BUSY;
 
     uint8_t start_now = rx_flag & ADC_PDM_RX_FLAG_START_NOW;
@@ -605,14 +604,80 @@ ADC_PDM_Receive_LLP(void *adc_pdm_grp, AUDIO_BUFFER_USER *bufs, uint32_t buf_cnt
     if (ret != CSK_DRIVER_OK)
         return ret;
 
-    adc->info->status.bit.busy = 1;
+    adc->info->status.bit.busy |= bmp;
     adc->info->status.bit.rx_full = 0;
     adc->info->status.bit.rx_ovf = 0;
 
     if (start_now) {
-        enable_adc_pdm(adc, bmp); // enable ADC/PDM module
+        //enable_adc_pdm(adc, bmp); // enable ADC/PDM module
        ret = adc_enable_rx_channels(adc, bmp);
      }
+
+    return ret;
+}
+
+
+/**
+ \fn          int32_t ADC_PDM_Quad_Receive(void *adc01_grp, void *adc23_grp, ...)
+ \brief       Receive data from all 4 channels of ADC/PDM01 and ADC/PDM23.
+ \param[in]   adc01_grp  Pointer to ADC/PDM01 device group instance
+ \param[in]   adc23_grp  Pointer to ADC/PDM23 device group instance
+ \param[out]  data  Pointer to buffer to receive data from ADC/PDM interfaces
+              data are arranged repeatedly in the order ADC0, ADC1, ADC2 and ADC3.
+ \param[in]   num   Number of data items to receive
+ \param[in]   rx_flag   bit flags of receive operation
+ \return      \ref execution_status
+*/
+int32_t
+ADC_PDM_Quad_Receive(void *adc01_grp, void *adc23_grp, uint32_t *data, uint32_t num, uint8_t rx_flag)
+{
+    int32_t ret;
+    ADC_PDM_GRP *adc01 = safe_adc_pdm_grp(adc01_grp);
+    ADC_PDM_GRP *adc23 = safe_adc_pdm_grp(adc23_grp);
+
+    if (adc01 == NULL || adc23 == NULL) {
+        CLOGW("%s: invalid parameter, ADC/PDM devices: 0x%08x, 0x%08x",
+                __func__, adc01_grp, adc23_grp);
+        return CSK_DRIVER_ERROR_PARAMETER;
+    }
+
+    if (!(adc01->info->flags & ADC_PDM_FLAG_CONFIGURED) || !(adc23->info->flags & ADC_PDM_FLAG_CONFIGURED)) {
+        CLOGW("%s: ADC/PDM01 or ADC/PDM23 has NOT been configured!!", __func__);
+        return CSK_DRIVER_ERROR;
+    }
+
+    if (adc01->info->status.bit.busy || adc23->info->status.bit.busy)
+        return CSK_DRIVER_ERROR_BUSY;
+
+    uint8_t start_now = rx_flag & ADC_PDM_RX_FLAG_START_NOW;
+    if (!start_now) {
+        ret = adc_disable_rx_channels(adc01, CH_BMP_STEREO);
+        if (ret != CSK_DRIVER_OK)
+            return ret;
+        ret = adc_disable_rx_channels(adc23, CH_BMP_STEREO);
+        if (ret != CSK_DRIVER_OK)
+            return ret;
+    }
+
+    ret = apc_read_quad_channels (QCH_ADC01_ADC23, data, num);
+    if (ret != CSK_DRIVER_OK)
+        return ret;
+
+    adc01->info->status.bit.busy |= CH_BMP_STEREO;
+    adc01->info->status.bit.rx_full = 0;
+    adc01->info->status.bit.rx_ovf = 0;
+
+    adc23->info->status.bit.busy |= CH_BMP_STEREO;
+    adc23->info->status.bit.rx_full = 0;
+    adc23->info->status.bit.rx_ovf = 0;
+
+    if (start_now) {
+        //enable_adc_pdm(adc01, CH_BMP_STEREO); // enable ADC/PDM01
+        //enable_adc_pdm(adc23, CH_BMP_STEREO); // enable ADC/PDM23
+        ret = adc_enable_rx_channels(adc01, CH_BMP_STEREO);
+        if (ret == CSK_DRIVER_OK)
+            ret = adc_enable_rx_channels(adc23, CH_BMP_STEREO);
+    }
 
     return ret;
 }
@@ -699,11 +764,16 @@ ADC_PDM_Abort(void *adc_pdm_grp, uint8_t dev_bmp)
         return CSK_DRIVER_ERROR_PARAMETER;
     }
 
-    ret = apc_dual_channel_abort(adc->apc_dch);
+    if (adc->info->ch_mix || bmp == CH_BMP_STEREO)
+        ret = apc_dual_channel_abort(adc->apc_dch);
+    else if (bmp == CH_BMP_LEFT)
+        ret = apc_channel_abort(APC_DCH_TO_CH(adc->apc_dch, 0));
+    else if (bmp == CH_BMP_RIGHT)
+        ret = apc_channel_abort(APC_DCH_TO_CH(adc->apc_dch, 1));
     if (ret != CSK_DRIVER_OK)
         return ret;
 
-    adc->info->status.bit.busy = 0;
+    adc->info->status.bit.busy &= ~bmp;
     return ret;
 }
 
@@ -1013,10 +1083,9 @@ ADC_PDM_Control(void *adc_pdm_grp, uint32_t control, uint32_t arg)
     if (mclk_flag == 0) { // use 24Mhz
         adc_clk_select(AUDIO_CLK_SRC_XTAL);
     } else if (mclk_flag == 1) { // use 22.05Mhz
-        cmn_divider_t div;
-        div.divider_N = BOARD_BOOTCLOCKRUN_AUDPLL_DIV_N;
-        div.divider_M = BOARD_BOOTCLOCKRUN_AUDPLL_DIV_M;
-        AUDIOPLL_InitPLL(div, BOARD_BOOTCLOCKRUN_AUDPLL_DIV_NF);
+        uint8_t div_n = BOARD_BOOTCLOCKRUN_AUDPLL_DIV_N;
+        uint8_t div_m = BOARD_BOOTCLOCKRUN_AUDPLL_DIV_M;
+        AUDIOPLL_InitPLL(div_n, div_m, BOARD_BOOTCLOCKRUN_AUDPLL_DIV_NF);
         init_audpll_audio_clk(0); // DEF_AUDPLL_AUDIO_FREQ (22050000)
         adc_clk_select(AUDIO_CLK_SRC_AUDPLL);
     }
@@ -1127,10 +1196,11 @@ ADC_PDM_Control(void *adc_pdm_grp, uint32_t control, uint32_t arg)
 
         //R6: VOL/Gain, HPF Setting etc.
         //adc->reg->REG_AUD_R6_ADC_CTRL1.all =  0xCC6EFDF;
-        reg_r6.all |= R6_ADCR_VOL(0x5F) | R6_ADCR_VOL(0x5F) |   // L/R Digital Gain = +10dB
-                    R6_ADCR_PGA_VOL(6) | R6_ADCL_PGA_VOL(6);    // L/R PGA Vol = +6dB
+        reg_r6.all &= ~(R6_ADCR_VOL_MASK | R6_ADCL_VOL_MASK | R6_ADCR_PGA_MASK | R6_ADCL_PGA_MASK);
+        reg_r6.all |= R6_ADCR_VOL(0x55) | R6_ADCL_VOL(0x55) |   // L/R Digital Gain = 0dB
+                    R6_ADCR_PGA_VOL(6) | R6_ADCL_PGA_VOL(6);    // L/R (Analog) PGA Vol = 0dB
                     // R6_HPF2_EN | R6_HPF1_EN | R6_HPF_CUT(3);
-        adc->info->d_vol_left = adc->info->d_vol_right = 0x5F;
+        adc->info->d_vol_left = adc->info->d_vol_right = 0x55;
 
         // R9: 0x4100C6 if DMIC, default 0x810146 if AMIC
         // R12: 0x8C5 if DMIC, 0x208C5 if AMIC
@@ -1148,10 +1218,10 @@ ADC_PDM_Control(void *adc_pdm_grp, uint32_t control, uint32_t arg)
             // R12: 0x8C5 if DMIC
             reg_r12.bit.AUD_ADC_VREF_EN = 0; // VREF disabled
 
-            // R11: remove ADC-specific settings?
-            reg_val = adc->reg->REG_AUD_R11_ADC_CTRL6.all;
+            // R11: remove ADC-specific settings except L/R channels' enable status
+            reg_val = adc->reg->REG_AUD_R11_ADC_CTRL6.all & ~R11_ADCLR_EN;
             if (reg_val != 0)
-                adc->reg->REG_AUD_R11_ADC_CTRL6.all = 0;
+                adc->reg->REG_AUD_R11_ADC_CTRL6.all &= R11_ADCLR_EN;
 
         } else { // AMIC
             // R9: default 0x810146 if AMIC (DMIC_EN = 0)
@@ -1182,7 +1252,10 @@ ADC_PDM_Control(void *adc_pdm_grp, uint32_t control, uint32_t arg)
             // bit[6:3] = 1000b, ADC amp ibias control
             //      0000: 1.5uA, 0001: 2uA, 0010: 2.5uA, 0011: 3uA
             //reg_val = 0x4003C0; // 0x4003C0; // 0x380; // 0x780;
-            reg_val = R11_ADC_RSET_RC_CALI | R11_ADC_QUAR_COV(0) | R11_ADC_CBIAS_CUR_10UA |
+            //
+            // configure new settings except L/R channels' enable status
+            reg_val = adc->reg->REG_AUD_R11_ADC_CTRL6.all & R11_ADCLR_EN;
+            reg_val |= R11_ADC_RSET_RC_CALI | R11_ADC_QUAR_COV(0) | R11_ADC_CBIAS_CUR_10UA |
                       R11_ADC_IDAC_7P5UA_13PERP | R11_ADC_IB_CTRL(8);
             if (adc->info->rc_ctrl != 0)
                 reg_val |= R11_ADC_RCCTRL_12MHZ;
@@ -1374,7 +1447,59 @@ ADC_PDM_GetStatus(void *adc_pdm_grp, CSK_ADCPDM_STATUS *status)
 }
 
 
-static void
+//_FAST_FUNC_RO static void
+//adc_pdm_apc_event(uint32_t event_info, uint32_t usr_param)
+//{
+//    uint8_t notify = 1;
+//    uint32_t adc_event_info;
+//
+//    uint8_t event_type = event_info & 0xFF;
+//    ADC_PDM_GRP *adc = (ADC_PDM_GRP *)usr_param;
+//
+//    APC_CH apc_ch = (event_info >> 8) & 0xFF;
+//    adc_event_info = APC_CH_LR_IDX(apc_ch) << 8;
+//
+//    assert(adc != NULL);
+//    switch (event_type) {
+//    case APC_EVENT_TRANSFER_COMPLETE:
+//        if (adc->info->ch_mix) // mixed L/R channels
+//            adc->info->status.bit.busy &= ~CH_BMP_STEREO;
+//        else if (APC_CH_LR_IDX(apc_ch)) // right channel
+//            adc->info->status.bit.busy &= ~CH_BMP_RIGHT;
+//        else // left channel
+//            adc->info->status.bit.busy &= ~CH_BMP_LEFT;
+//        adc_event_info |= CSK_ADCPDM_EVENT_RECEIVE_COMPLETE;
+//        break;
+//
+//    case APC_EVENT_RX_FIFO_OVERRUN:
+//        //adc->info->status.bit.busy = 0;
+//        adc->info->status.bit.rx_ovf = 1;
+//        adc_event_info |= CSK_ADCPDM_EVENT_RX_FIFO_OVERRUN;
+//        break;
+//
+//    case APC_EVENT_RX_FIFO_FULL:
+//        adc->info->status.bit.rx_full = 1;
+//        adc_event_info |= CSK_ADCPDM_EVENT_RX_FIFO_FULL;
+//        break;
+//
+//    case APC_EVENT_DMA_ERROR:
+//        //adc->info->status.bit.busy = 0;
+//        adc_event_info |= CSK_ADCPDM_EVENT_OTHER_ERROR;
+//        break;
+//
+//    default:
+//        LOGD("%s: unknown APC event (0x%x)!", __func__, event_type);
+//        notify = 0;
+//        break;
+//    }
+//
+//    // notify ADC/PDM caller
+//    if (notify && adc->info->cb_event != NULL) {
+//        adc->info->cb_event(adc_event_info, adc->info->usr_param);
+//    }
+//}
+
+_FAST_FUNC_RO static void
 adc_pdm_apc_event(uint32_t event_info, uint32_t usr_param)
 {
     uint8_t notify = 1;
@@ -1387,32 +1512,31 @@ adc_pdm_apc_event(uint32_t event_info, uint32_t usr_param)
     adc_event_info = APC_CH_LR_IDX(apc_ch) << 8;
 
     assert(adc != NULL);
-    switch (event_type) {
-    case APC_EVENT_TRANSFER_COMPLETE:
-        adc->info->status.bit.busy = 0;
-        adc_event_info |= CSK_ADCPDM_EVENT_RECEIVE_COMPLETE;
-        break;
 
-    case APC_EVENT_RX_FIFO_OVERRUN:
+    if (event_type & APC_EVENT_TRANSFER_COMPLETE) {
+        if (adc->info->ch_mix) // mixed L/R channels
+            adc->info->status.bit.busy &= ~CH_BMP_STEREO;
+        else if (APC_CH_LR_IDX(apc_ch)) // right channel
+            adc->info->status.bit.busy &= ~CH_BMP_RIGHT;
+        else // left channel
+            adc->info->status.bit.busy &= ~CH_BMP_LEFT;
+        adc_event_info |= CSK_ADCPDM_EVENT_RECEIVE_COMPLETE;
+    }
+
+    if (event_type & APC_EVENT_RX_FIFO_OVERRUN) {
         //adc->info->status.bit.busy = 0;
         adc->info->status.bit.rx_ovf = 1;
         adc_event_info |= CSK_ADCPDM_EVENT_RX_FIFO_OVERRUN;
-        break;
+    }
 
-    case APC_EVENT_RX_FIFO_FULL:
+    if (event_type & APC_EVENT_RX_FIFO_FULL) {
         adc->info->status.bit.rx_full = 1;
         adc_event_info |= CSK_ADCPDM_EVENT_RX_FIFO_FULL;
-        break;
+    }
 
-    case APC_EVENT_DMA_ERROR:
+    if (event_type & APC_EVENT_DMA_ERROR) {
         //adc->info->status.bit.busy = 0;
         adc_event_info |= CSK_ADCPDM_EVENT_OTHER_ERROR;
-        break;
-
-    default:
-        LOGD("%s: unknown APC event (0x%x)!", __func__, event_type);
-        notify = 0;
-        break;
     }
 
     // notify ADC/PDM caller
@@ -1420,3 +1544,156 @@ adc_pdm_apc_event(uint32_t event_info, uint32_t usr_param)
         adc->info->cb_event(adc_event_info, adc->info->usr_param);
     }
 }
+
+
+#if USE_DIGTAL_ECHO
+#include "dac_venus.h"
+
+/**
+ \fn          int32_t ADC_PDM_Quad_Receive2(void *adc_pdm_grp, void *dac01_grp, ...)
+ \brief       Receive data from 2 channels of ADC/PDM01 or ADC/PDM23 and 2 channels of DAC01 ECHO.
+ \param[in]   adc_pdm_grp  Pointer to ADC/PDM01 or ADC/PDM23 device group instance
+ \param[in]   dac01_grp  Pointer to DAC01 device group instance
+ \param[out]  data  Pointer to buffer to receive data from ADC/PDM and DAC01 ECHO interfaces
+              data are arranged repeatedly in the order ADC0/2, ADC1/3, DAC0 and DAC1.
+ \param[in]   num   Number of data items to receive
+ \param[in]   rx_flag   bit flags of receive operation
+ \return      \ref execution_status
+*/
+int32_t
+ADC_PDM_Quad_Receive2(void *adc_pdm_grp, void *dac01_grp, uint32_t *data, uint32_t num, uint8_t rx_flag)
+{
+    int32_t ret;
+    ADC_PDM_GRP *adc = safe_adc_pdm_grp(adc_pdm_grp);
+    DAC_GRP *dac01 = safe_dac_grp(dac01_grp);
+
+    if (adc == NULL || dac01 == NULL) {
+        CLOGW("%s: invalid parameter, ADC/PDM & DAC devices: 0x%08x, 0x%08x",
+                __func__, adc_pdm_grp, dac01_grp);
+        return CSK_DRIVER_ERROR_PARAMETER;
+    }
+
+    if (!(adc->info->flags & ADC_PDM_FLAG_CONFIGURED) ||
+        !(dac01->info->flags & DAC_FLAG_CONFIGURED)) {
+        CLOGW("%s: ADC/PDM or DAC01 has NOT been configured!!", __func__);
+        return CSK_DRIVER_ERROR;
+    }
+
+    if (adc->info->status.bit.busy)
+        return CSK_DRIVER_ERROR_BUSY;
+
+    uint8_t start_now = rx_flag & ADC_PDM_RX_FLAG_START_NOW;
+    if (!start_now) {
+        ret = adc_disable_rx_channels(adc, CH_BMP_STEREO);
+        if (ret != CSK_DRIVER_OK)
+            return ret;
+        ret = dac_disable_echo_channels(dac01, CH_BMP_STEREO);
+        if (ret != CSK_DRIVER_OK)
+            return ret;
+    }
+
+    ret = apc_read_quad_channels ((adc==&adc01_grp ? QCH_ADC01_ECHO : QCH_ADC23_ECHO), data, num);
+    if (ret != CSK_DRIVER_OK)
+        return ret;
+
+    adc->info->status.bit.busy |= CH_BMP_STEREO;
+    adc->info->status.bit.rx_full = 0;
+    adc->info->status.bit.rx_ovf = 0;
+
+    if (start_now) {
+        ret = dac_enable_echo_channels(dac01, CH_BMP_STEREO);
+        if(ret == CSK_DRIVER_OK) {
+            //FIXME: SHOULD enable APC TX channels simultaneously if ECHO is required
+            ret = dac_enable_tx_channels(dac01, CH_BMP_STEREO);
+            assert(ret == CSK_DRIVER_OK);
+        }
+
+        ret = adc_enable_rx_channels(adc, CH_BMP_STEREO);
+        assert(ret == CSK_DRIVER_OK);
+    }
+
+    return ret;
+}
+
+
+/**
+ \fn          int32_t ADC_PDM_Six_Receive(void *adc01_grp, void *adc23_grp, void *dac01_grp, ...)
+ \brief       Receive data from all 4 channels of ADC/PDM01 and ADC/PDM23 and 2 channels of DAC01 ECHO.
+ \param[in]   adc01_grp  Pointer to ADC/PDM01 device group instance
+ \param[in]   adc23_grp  Pointer to ADC/PDM23 device group instance
+ \param[in]   dac01_grp  Pointer to DAC01 device group instance
+ \param[out]  data  Pointer to buffer to receive data from ADC/PDM interfaces & DAC interfaces (for echo)
+              data are arranged repeatedly in the order ADC0, ADC1, ADC2, ADC3, DAC0 and DAC1.
+ \param[in]   num   Number of data items to receive
+ \param[in]   rx_flag   bit flags of receive operation
+ \return      \ref execution_status
+*/
+int32_t
+ADC_PDM_Six_Receive(void *adc01_grp, void *adc23_grp, void *dac01_grp, uint32_t *data, uint32_t num, uint8_t rx_flag)
+{
+    int32_t ret;
+    ADC_PDM_GRP *adc01 = safe_adc_pdm_grp(adc01_grp);
+    ADC_PDM_GRP *adc23 = safe_adc_pdm_grp(adc23_grp);
+    DAC_GRP *dac01 = safe_dac_grp(dac01_grp);
+
+    if (adc01 == NULL || adc23 == NULL || dac01 == NULL) {
+        CLOGW("%s: invalid parameter, ADC/PDM & DAC devices: 0x%08x, 0x%08x, 0x%08x",
+                __func__, adc01_grp, adc23_grp, dac01_grp);
+        return CSK_DRIVER_ERROR_PARAMETER;
+    }
+
+    if (!(adc01->info->flags & ADC_PDM_FLAG_CONFIGURED) ||
+        !(adc23->info->flags & ADC_PDM_FLAG_CONFIGURED) ||
+        !(dac01->info->flags & DAC_FLAG_CONFIGURED)) {
+        CLOGW("%s: ADC/PDM01, ADC/PDM23 or DAC01 has NOT been configured!!", __func__);
+        return CSK_DRIVER_ERROR;
+    }
+
+    if (adc01->info->status.bit.busy || adc23->info->status.bit.busy)
+        return CSK_DRIVER_ERROR_BUSY;
+
+    uint8_t start_now = rx_flag & ADC_PDM_RX_FLAG_START_NOW;
+    if (!start_now) {
+        ret = adc_disable_rx_channels(adc01, CH_BMP_STEREO);
+        if (ret != CSK_DRIVER_OK)
+            return ret;
+        ret = adc_disable_rx_channels(adc23, CH_BMP_STEREO);
+        if (ret != CSK_DRIVER_OK)
+            return ret;
+        ret = dac_disable_echo_channels(dac01, CH_BMP_STEREO);
+        if (ret != CSK_DRIVER_OK)
+            return ret;
+    }
+
+    ret = apc_read_six_channels (data, num);
+    if (ret != CSK_DRIVER_OK)
+        return ret;
+
+    adc01->info->status.bit.busy |= CH_BMP_STEREO;
+    adc01->info->status.bit.rx_full = 0;
+    adc01->info->status.bit.rx_ovf = 0;
+
+    adc23->info->status.bit.busy |= CH_BMP_STEREO;
+    adc23->info->status.bit.rx_full = 0;
+    adc23->info->status.bit.rx_ovf = 0;
+
+    if (start_now) {
+        ret = dac_enable_echo_channels(dac01, CH_BMP_STEREO);
+        if(ret == CSK_DRIVER_OK) {
+            //FIXME: SHOULD enable APC TX channels simultaneously if ECHO is required
+            ret = dac_enable_tx_channels(dac01, CH_BMP_STEREO);
+            assert(ret == CSK_DRIVER_OK);
+        }
+
+        ret = adc_enable_rx_channels(adc01, CH_BMP_STEREO);
+        assert(ret == CSK_DRIVER_OK);
+
+        ret = adc_enable_rx_channels(adc23, CH_BMP_STEREO);
+        assert(ret == CSK_DRIVER_OK);
+    }
+
+    return ret;
+}
+
+#endif
+

@@ -7,10 +7,11 @@
 #include <stdint.h>
 
 #define OFFSET_CODEC_AUD_R0_RSVD_REG0               0x000
-#define BITSET_0X000_AUD_REG_RSVD                   0xffff
+#define BITSET_0X000_AUD_REG_RSVD                   0xfffc
+#define BITSET_0X000_AUD_ADC_DESKEW_CLK_INV         0x2
+#define BITSET_0X000_AUD_REG_RSVD_0                 0x1
 
 #define OFFSET_CODEC_AUD_R1_GLOBAL0                 0x004
-#define BITSET_0X004_AUD_DESKEW_CLK_INV             0x10000
 #define BITSET_0X004_ADC_ANACLK_INV                 0x8000
 #define BITSET_0X004_TEST_OUT_SELA                  0x7c00
 #define BITSET_0X004_TEST_OUT_SELB                  0x3c0
@@ -205,7 +206,9 @@
 
 struct CODEC_REG_AUD_R0_RSVD_REG0_BITS
 {
-    volatile uint32_t AUD_REG_RSVD                  : 16; // bit 0~15
+    volatile uint32_t AUD_REG_RSVD_0                : 1; // bit 0~0
+    volatile uint32_t AUD_ADC_DESKEW_CLK_INV        : 1; // bit 1~1
+    volatile uint32_t AUD_REG_RSVD                  : 14; // bit 2~15
     volatile uint32_t RESV_16_31                    : 16; // bit 16~31
 };
 
@@ -221,8 +224,7 @@ struct CODEC_REG_AUD_R1_GLOBAL0_BITS
     volatile uint32_t TEST_OUT_SELB                 : 4; // bit 6~9
     volatile uint32_t TEST_OUT_SELA                 : 5; // bit 10~14
     volatile uint32_t ADC_ANACLK_INV                : 1; // bit 15~15
-    volatile uint32_t AUD_DESKEW_CLK_INV            : 1; // bit 16~16
-    volatile uint32_t RESV_17_31                    : 15; // bit 17~31
+    volatile uint32_t RESV_16_31                    : 16; // bit 16~31
 };
 
 union CODEC_REG_AUD_R1_GLOBAL0 {

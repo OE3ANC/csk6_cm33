@@ -9,9 +9,9 @@
 #define __APC_VENUS_H
 
 #include "venus_cp.h"
-#include "hal/reg/dma_venus.h"
-#include "hal/reg/cmn_sysctrl_reg_venus.h" // for sysctrl regigers (clock etc.)
-#include "hal/reg/audpll_ctrl_reg_venus.h" // for audpll registers
+#include "dma_venus.h"
+#include "cmn_sysctrl_reg_venus.h" // for sysctrl regigers (clock etc.)
+#include "audpll_ctrl_reg_venus.h" // for audpll registers
 
 // APC data interface: ADC, DAC, I2S(IN & OUT), and Echo
 typedef enum {
@@ -344,7 +344,14 @@ int32_t apc_dual_channel_write_LLP (APC_DCH dch,
 
 // read mixed data of APC channels 0 ~ 3 (4 IN channels)
 // sample_cnt is the count of uint16 or uint32, and SHOULD be EVEN when 16-bit sample!
-int32_t apc_read_quad_channels (uint32_t* sample_data, uint32_t  sample_cnt);
+typedef enum {
+     QCH_ADC01_ADC23 = 0,
+     QCH_ADC01_ECHO,
+     QCH_ADC23_ECHO,
+     QCH_TYPE_COUNT
+} QCH_TYPE;
+
+int32_t apc_read_quad_channels (QCH_TYPE qch_type, uint32_t* sample_data, uint32_t  sample_cnt);
 
 // read mixed data of APC channels 0 ~ 5 (4 IN + 2 ECHO)
 // sample_cnt is the count of uint16 or uint32, and SHOULD be EVEN when 16-bit sample!
@@ -378,7 +385,7 @@ int32_t apc_eq_clear(APC_DCH dch, uint8_t wait_done);
 //------------------------------------------------------------
 
 #define SYSCTRL_CFG     ((SYSCFG_RegDef*) CMN_SYSCTRL_BASE)
-#define AUDPLL_CFG      ((AUDPLL_RegDef*) CMN_AUDPLL_CTRL_BASE)
+#define AUDPLL_CFG      ((AUDPLL_CTRL_RegDef*) CMN_AUDPLL_CTRL_BASE)
 
 typedef enum {
     AUDIO_CLK_SRC_XTAL = 0, // from XTAL 24MHz [default]
@@ -395,10 +402,6 @@ static inline void adc_clk_disable() {
 
 static inline void dac_clk_enable() {
     SYSCTRL_CFG->REG_MISC_CLK_CFG2.bit.ENA_CODEC_CLK_DAC = 1;
-}
-
-static inline void apc_pclk_enable() {
-    SYSCTRL_CFG->REG_MISC_CLK_CFG2.bit.ENA_APC_PCLK = 1;
 }
 
 static inline void dac_clk_disable() {

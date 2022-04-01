@@ -1,9 +1,9 @@
 #ifndef __I2C_AE210P_H
 #define __I2C_AE210P_H
 
-#include "reg/cmn_sysctrl_reg_venus.h"
+#include "cmn_sysctrl_reg_venus.h"
 #include "dma.h"
-#include "reg/i2c_reg_venus.h"
+#include "i2c_reg_venus.h"
 
 #include "venus_ap.h"
 #include "Driver_I2C.h"

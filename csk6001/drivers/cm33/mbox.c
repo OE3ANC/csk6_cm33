@@ -4,8 +4,8 @@
  *
  */
 #include <assert.h>
-#include "hal/reg/cmn_mailbox_reg_venus.h"
-#include "hal/Driver_MBX.h"
+#include "cmn_mailbox_reg_venus.h"
+#include "Driver_MBX.h"
 
 #define MBX_AP_WORK
 //#define MBX_CP_WORK
@@ -103,21 +103,22 @@ static void task_server(void *param)
 						default:             i = 15; break;
 					}
 					if(i < 15) {
+						mbx_sim->IRQ &= ~CSK_MBX_CH(i);  //clear irq bits
 						if(mbx_res_server.rx_buf) {
 							mbx_res_server.rx_buf[0] = mbx_sim->REG_0;
 							mbx_res_server.rx_buf[1] = mbx_sim->REG_1;
 							mbx_res_server.rx_buf[2] = mbx_sim->REG_2;
 							mbx_res_server.rx_buf[3] = mbx_sim->REG_3;
-						}
-						mbx_res_server.rx_buf = NULL;  //avoid data overwrite
-						mbx_sim->IRQ &= ~CSK_MBX_CH(i);  //clear irq bits
 
-						mbx_sim->IRQ |= 0x1U << 15;
-						xQueueSend(client_queue, (uint8_t *)(&val), 0);  //notify
-						mbx_res_server.cb_event(CSK_MBX_EVENT_RECEIVE_COMPLETE, i);
+							mbx_res_server.rx_buf = NULL;  //avoid data overwrite
+
+							if(!mbx_res_server.cb_event(CSK_MBX_EVENT_RECEIVE_COMPLETE, i)) {
+								mbx_sim->IRQ |= 0x1U << 15;
+								xQueueSend(client_queue, (uint8_t *)(&val), 0);  //notify
+							}
+						}
 					}
 				}
-
 				break;
 			default:
 				break;
@@ -162,21 +163,22 @@ static void task_client(void *param)
 						default:             i = 15; break;
 					}
 					if(i < 15) {
+						mbx_sim->IRQ &= ~CSK_MBX_CH(i);  //clear irq bits
 						if(mbx_res_client.rx_buf) {
 							mbx_res_client.rx_buf[0] = mbx_sim->REG_0;
 							mbx_res_client.rx_buf[1] = mbx_sim->REG_1;
 							mbx_res_client.rx_buf[2] = mbx_sim->REG_2;
 							mbx_res_client.rx_buf[3] = mbx_sim->REG_3;
-						}
-						mbx_res_client.rx_buf = NULL;  //avoid data overwrite
-						mbx_sim->IRQ &= ~CSK_MBX_CH(i);  //clear irq bits
 
-						mbx_sim->IRQ |= 0x1U << 15;
-						xQueueSend(server_queue, (uint8_t *)(&val), 0);  //notify
-						mbx_res_client.cb_event(CSK_MBX_EVENT_RECEIVE_COMPLETE, i);
+							mbx_res_client.rx_buf = NULL;  //avoid data overwrite
+
+							if(!mbx_res_client.cb_event(CSK_MBX_EVENT_RECEIVE_COMPLETE, i)) {
+								mbx_sim->IRQ |= 0x1U << 15;
+								xQueueSend(server_queue, (uint8_t *)(&val), 0);  //notify
+							}
+						}
 					}
 				}
-
 				break;
 			default:
 				break;
@@ -289,12 +291,43 @@ int32_t MBX_Receive(void *mbx_dev, void *data, uint32_t ch)
 // export MBX API function: MBX_Control
 int32_t MBX_Control(void *mbx_dev, uint32_t control, void *arg)
 {
-    return CSK_DRIVER_OK;
+	MBX_SIM *mbx_sim;
+	uint32_t val;
+
+	switch(control) {
+	case CSK_MBX_AP_CTRL_NOTIFY:
+		val = (uint32_t)&server_box;
+		mbx_sim = &server_box;
+		if((mbx_sim->IRQ & CSK_MBX_CH(15)) == 0) {
+			mbx_sim->IRQ |= 0x1U << 15;
+			xQueueSend(server_queue, (uint8_t *)(&val), 0);  //notify
+		}
+		break;
+	case CSK_MBX_AP_CTRL_GET_RX:
+		*((uint32_t *)arg) = (uint32_t)mbx_res_client.rx_buf;
+		break;
+	case CSK_MBX_CP_CTRL_NOTIFY:
+		val = (uint32_t)&client_box;
+		mbx_sim = &client_box;
+		if((mbx_sim->IRQ & CSK_MBX_CH(15)) == 0) {
+			mbx_sim->IRQ |= 0x1U << 15;
+			xQueueSend(client_queue, (uint8_t *)(&val), 0);  //notify
+		}
+		break;
+	case CSK_MBX_CP_CTRL_GET_RX:
+		*((uint32_t *)arg) = (uint32_t)mbx_res_server.rx_buf;
+		break;
+	default:
+		break;
+	}
+
+	return CSK_DRIVER_OK;
 }
 #endif
 
 #ifdef MBX_AP_WORK
-#include "hal/venus_ap.h"
+#include "venus_ap.h"
+
 
 static MBX_DEV mbx_res = {
 	((MAILBOX_RegDef *)CMN_MAILBOX_BASE),
@@ -305,13 +338,13 @@ static MBX_DEV mbx_res = {
 
 static void mbx_irq_handler(void)
 {
-	uint32_t status, i = 0;
+	uint32_t status, i= 0;
 
 	status = mbx_res.mbx_cb->REG_CP_MAILBOX_IRQ.all;
 
 	if(status & CSK_MBX_CH(15)) {  // send completely, notified interrupt
 		mbx_res.mbx_cb->REG_CP_MAILBOX_IRQ.all = CSK_MBX_CH(15);  //clear irq bits
-		__COMPILER_BARRIER();
+//		__COMPILER_BARRIER();
 		mbx_res.cb_event(CSK_MBX_EVENT_SEND_COMPLETE, 15);
 		status &= ~CSK_MBX_CH(15);
 	}
@@ -335,19 +368,22 @@ static void mbx_irq_handler(void)
 			default:             i = 15; break;
 		}
 		if(i < 15) {
+//			__COMPILER_BARRIER();
+			mbx_res.mbx_cb->REG_CP_MAILBOX_IRQ.all = 0x1U << i;  //clear irq bits
+//			__COMPILER_BARRIER();
+
 			if(mbx_res.rx_buf) {
 				mbx_res.rx_buf[0] = mbx_res.mbx_cb->REG_0X030.all;
 				mbx_res.rx_buf[1] = mbx_res.mbx_cb->REG_0X034.all;
 				mbx_res.rx_buf[2] = mbx_res.mbx_cb->REG_0X038.all;
 				mbx_res.rx_buf[3] = mbx_res.mbx_cb->REG_0X03C.all;
-			}
-			mbx_res.rx_buf = NULL;  //avoid data overwrite
-			__COMPILER_BARRIER();
-			mbx_res.mbx_cb->REG_CP_MAILBOX_IRQ.all = 0x1U << i;  //clear irq bits
-			__COMPILER_BARRIER();
 
-			mbx_res.mbx_cb->REG_AP_MAILBOX_CTRL.all |= 0x1U << (15 + 16);  //notify
-			mbx_res.cb_event(CSK_MBX_EVENT_RECEIVE_COMPLETE, i);
+				mbx_res.rx_buf = NULL;  //avoid data overwrite
+				if(!mbx_res.cb_event(CSK_MBX_EVENT_RECEIVE_COMPLETE, i)) {
+					// call back successful, notify CP to send next package
+					mbx_res.mbx_cb->REG_AP_MAILBOX_CTRL.all |= 0x1U << (15 + 16);  //notify
+				}
+			}
 		}
 	}
 }
@@ -355,8 +391,6 @@ static void mbx_irq_handler(void)
 // export MBX API function: MBX_Initialize
 int32_t MBX_Initialize(void *mbx_dev, CSK_MBX_SignalEvent_t cb_event)
 {
-    uint32_t prio;
-
 	if((mbx_res.flags & MBX_FLAG_INITIALIZED) == 0U) {
 		uint32_t val = 0xffff;
 		MBX_Control(NULL, CSK_MBX_AP_CTRL_SET_CHS, &val);
@@ -364,11 +398,6 @@ int32_t MBX_Initialize(void *mbx_dev, CSK_MBX_SignalEvent_t cb_event)
 //		mbx_res.usr_param = usr_param;
 		mbx_res.flags |= MBX_FLAG_INITIALIZED;
 		register_ISR(IRQ_CMN_MAILBOX_VECTOR, mbx_irq_handler, NULL);
-
-		// logical priority = 6
-		NVIC_SetPriority(IRQ_CMN_MAILBOX_VECTOR, 6UL); //
-		prio = NVIC_GetPriority(IRQ_CMN_MAILBOX_VECTOR);
-
 		//clear interrupt bits, and enable
 		mbx_res.mbx_cb->REG_CP_MAILBOX_IRQ.all = val;
 		enable_IRQ(IRQ_CMN_MAILBOX_VECTOR);
@@ -402,6 +431,7 @@ int32_t MBX_Send(void *mbx_dev, const void *data, uint32_t ch)
 	mbx_res.mbx_cb->REG_0X018.all = ((uint32_t *)data)[2];
 	mbx_res.mbx_cb->REG_0X01C.all = ((uint32_t *)data)[3];
 
+	__DSB();
 	mbx_res.mbx_cb->REG_AP_MAILBOX_CTRL.all |= 0x1 << (ch + 16);
     return CSK_DRIVER_OK;
 }
@@ -438,6 +468,14 @@ int32_t MBX_Control(void *mbx_dev, uint32_t control, void *arg)
 		break;
 	case CSK_MBX_AP_CTRL_GET_LK:
 		*((uint32_t *)arg) = mbx_res.mbx_cb->REG_AP_MAILBOX_LOCK.all & 0x1;
+		break;
+	case CSK_MBX_AP_CTRL_NOTIFY:
+		if((mbx_res.mbx_cb->REG_AP_MAILBOX_IRQ.all & CSK_MBX_CH(15)) == 0) {
+			mbx_res.mbx_cb->REG_AP_MAILBOX_CTRL.all |= 0x1U << (15 + 16);  //notify
+		}
+		break;
+	case CSK_MBX_AP_CTRL_GET_RX:
+		*((uint32_t *)arg) = (uint32_t)mbx_res.rx_buf;
 		break;
 	default:
 		return CSK_DRIVER_ERROR_PARAMETER;
@@ -490,19 +528,21 @@ static void mbx_irq_handler(void)
 			default:             i = 15; break;
 		}
 		if(i < 15) {
+//			__COMPILER_BARRIER();
+			mbx_res.mbx_cb->REG_AP_MAILBOX_IRQ.all = 0x1U << i;  //clear irq bits
+//			__COMPILER_BARRIER();
 			if(mbx_res.rx_buf) {
 				mbx_res.rx_buf[0] = mbx_res.mbx_cb->REG_0X010.all;
 				mbx_res.rx_buf[1] = mbx_res.mbx_cb->REG_0X014.all;
 				mbx_res.rx_buf[2] = mbx_res.mbx_cb->REG_0X018.all;
 				mbx_res.rx_buf[3] = mbx_res.mbx_cb->REG_0X01C.all;
-			}
-			mbx_res.rx_buf = NULL;  //avoid data overwrite
-//			__COMPILER_BARRIER();
-			mbx_res.mbx_cb->REG_AP_MAILBOX_IRQ.all = 0x1U << i;  //clear irq bits
-//			__COMPILER_BARRIER();
 
-			mbx_res.mbx_cb->REG_CP_MAILBOX_CTRL.all |= 0x1U << (15 + 16);  //notify
-			mbx_res.cb_event(CSK_MBX_EVENT_RECEIVE_COMPLETE, i);
+				mbx_res.rx_buf = NULL;  //avoid data overwrite
+				if(!mbx_res.cb_event(CSK_MBX_EVENT_RECEIVE_COMPLETE, i)) {
+					// call back successful, notify CP to send next package
+					mbx_res.mbx_cb->REG_CP_MAILBOX_CTRL.all |= 0x1U << (15 + 16);  //notify
+				}
+			}
 		}
 	}
 }
@@ -516,9 +556,13 @@ int32_t MBX_Initialize(void *mbx_dev, CSK_MBX_SignalEvent_t cb_event)
 		mbx_res.cb_event = cb_event;
 //		mbx_res.usr_param = usr_param;
 		mbx_res.flags |= MBX_FLAG_INITIALIZED;
-		xthal_disable_interrupts(); // ALL INTERRUPTS OFF during initialization
-		xtos_set_interrupt_handler(IRQ_MAILBOX_VECTOR, (xtos_handler) mbx_irq_handler, NULL, NULL);
-		xthal_enable_interrupts();
+
+//		xthal_disable_interrupts(); // ALL INTERRUPTS OFF during initialization
+		disable_GINT();
+//		xtos_set_interrupt_handler(IRQ_MAILBOX_VECTOR, (xtos_handler) mbx_irq_handler, NULL, NULL);
+		register_ISR(IRQ_MAILBOX_VECTOR, (ISR) mbx_irq_handler, NULL);
+//		xthal_enable_interrupts();
+		enable_GINT();
 		//clear interrupt bits, and enable
 		mbx_res.mbx_cb->REG_AP_MAILBOX_IRQ.all = val;
 		enable_IRQ(IRQ_MAILBOX_VECTOR);
@@ -588,6 +632,14 @@ int32_t MBX_Control(void *mbx_dev, uint32_t control, void *arg)
 		break;
 	case CSK_MBX_CP_CTRL_GET_LK:
 		*((uint32_t *)arg) = mbx_res.mbx_cb->REG_CP_MAILBOX_LOCK.all & 0x1;
+		break;
+	case CSK_MBX_CP_CTRL_NOTIFY:
+		if((mbx_res.mbx_cb->REG_CP_MAILBOX_IRQ.all & CSK_MBX_CH(15)) == 0) {
+			mbx_res.mbx_cb->REG_CP_MAILBOX_CTRL.all |= 0x1U << (15 + 16);  //notify
+		}
+		break;
+	case CSK_MBX_CP_CTRL_GET_RX:
+		*((uint32_t *)arg) = (uint32_t)mbx_res.rx_buf;
 		break;
 	default:
 		return CSK_DRIVER_ERROR_PARAMETER;

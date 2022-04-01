@@ -17,6 +17,9 @@
  * 此文件的主要作用是在于如何配置工程的板级时钟
  * */
 
+#define IC_BOARD_FPGA_FIX_FREQ               (48000000)  /// FPGA fix frequence
+#define IC_BOARD_FPGA_PHR_FREQ               (60000000)  /// FPGA peripheral frequence
+
 // 芯片板级启动晶振
 #define BOARD_H_XTAL_SRC_FREQ                24000000UL
 #define BOARD_L_XTAL_SRC_FREQ                32768UL
@@ -37,7 +40,7 @@
 #error "System PLL domain usb source frequence trigger error"
 #endif
 
-#define BOARD_BOOTCLOCKRUN_SYSCORE_CLK       300000000UL
+#define BOARD_BOOTCLOCKRUN_SYSCORE_CLK       200000000UL
 #if BOARD_BOOTCLOCKRUN_SYSPLL_CLK % BOARD_BOOTCLOCKRUN_SYSCORE_CLK != 0
 #error "System PLL domain core source frequence trigger error"
 #endif
@@ -84,89 +87,5 @@
 #if BOARD_BOOTCLOCKRUN_AUDPLL_CLK % BOARD_BOOTCLOCKRUN_AUD_CLK != 0
 #error "Audio PLL domain audio source frequence trigger error"
 #endif
-
-
-// 该时钟初始化配置包括了 UART0 UART1 UART2 SDIO SPI0 SPI1 这些设备的上电时钟配置
-#define BOARD_BOOTCLOCKRUN_COMMUNICATE_UART0_CLK_SRC    CRM_IpSrcSysPllUsb
-#define BOARD_BOOTCLOCKRUN_COMMUNICATE_UART0_CLK        BOARD_H_XTAL_SRC_FREQ  // Divider = bypass
-
-#define BOARD_BOOTCLOCKRUN_COMMUNICATE_UART1_CLK_SRC    CRM_IpSrcXtal
-#define BOARD_BOOTCLOCKRUN_COMMUNICATE_UART1_CLK        BOARD_H_XTAL_SRC_FREQ  // Divider = bypass
-
-#define BOARD_BOOTCLOCKRUN_COMMUNICATE_UART2_CLK_SRC    CRM_IpSrcXtal
-#define BOARD_BOOTCLOCKRUN_COMMUNICATE_UART2_CLK        BOARD_H_XTAL_SRC_FREQ  // Divider = bypass
-
-#define BOARD_BOOTCLOCKRUN_COMMUNICATE_UART3_CLK_SRC    CRM_IpSrcXtal
-#define BOARD_BOOTCLOCKRUN_COMMUNICATE_UART3_CLK        BOARD_H_XTAL_SRC_FREQ  // Divider = bypass
-
-#define BOARD_BOOTCLOCKRUN_COMMUNICATE_SDIO_CLK_SRC     CRM_IpSrcXtal
-#define BOARD_BOOTCLOCKRUN_COMMUNICATE_SDIO_CLK         BOARD_H_XTAL_SRC_FREQ  // Divider = bypass
-
-#define BOARD_BOOTCLOCKRUN_COMMUNICATE_SPI0_CLK_SRC     CRM_IpSrcXtal
-#define BOARD_BOOTCLOCKRUN_COMMUNICATE_SPI0_CLK         BOARD_H_XTAL_SRC_FREQ  // Divider = bypass
-
-#define BOARD_BOOTCLOCKRUN_COMMUNICATE_SPI1_CLK_SRC     CRM_IpSrcXtal
-#define BOARD_BOOTCLOCKRUN_COMMUNICATE_SPI1_CLK         BOARD_H_XTAL_SRC_FREQ  // Divider = bypass
-
-
-// 该时钟初始化配置包括了 GPIOA GPIOB GPTS GPTT0 这些设备的上电时钟配置
-#define BOARD_BOOTCLOCKRUN_IO_GPT_GPIOA_CLK_SRC    CRM_IpSrcXtal
-#define BOARD_BOOTCLOCKRUN_IO_GPT_GPIOA_CLK        BOARD_H_XTAL_SRC_FREQ            // Divider = bypass
-
-#define BOARD_BOOTCLOCKRUN_IO_GPT_GPIOB_CLK_SRC    CRM_IpSrcXtal
-#define BOARD_BOOTCLOCKRUN_IO_GPT_GPIOB_CLK        BOARD_H_XTAL_SRC_FREQ            // Divider = bypass
-
-#define BOARD_BOOTCLOCKRUN_IO_GPT_GPTS_CLK_SRC     CRM_IpSrcXtal
-#define BOARD_BOOTCLOCKRUN_IO_GPT_GPTS_CLK         BOARD_H_XTAL_SRC_FREQ            // Divider = bypass
-
-#define BOARD_BOOTCLOCKRUN_IO_GPT_GPTT0_CLK_SRC    CRM_IpSrcXtal
-#define BOARD_BOOTCLOCKRUN_IO_GPT_GPTT0_CLK        BOARD_H_XTAL_SRC_FREQ            // Divider = bypass
-
-
-// 该时钟初始化配置包括了 PSRAM 设备的上电时钟配置
-#define BOARD_BOOTCLOCKRUN_PSRAM_CLK_SRC           CRM_IpSrcSysPllPsram
-#define BOARD_BOOTCLOCKRUN_PSRAM_CLK               200000000UL  // Divider = bypass
-
-
-// 该时钟初始化配置包括了 FLASH 设备的上电时钟配置
-#define BOARD_BOOTCLOCKRUN_FLASH_CLK_SRC           CRM_IpSrcSysPllFlash
-#define BOARD_BOOTCLOCKRUN_FLASH_CLK               BOARD_BOOTCLOCKRUN_SYSFLASH_CLK  // Divider = bypass
-
-
-// 该时钟初始化配置包括了 SYS ROOT 设备的上电时钟配置
-#define BOARD_BOOTCLOCKRUN_ROOT_CLK_SRC            CRM_IpSrcSysPllCore  // Core clock source
-#define BOARD_BOOTCLOCKRUN_ROOT_CLK                300000000UL   // CP Core clock
-
-#define BOARD_BOOTCLOCKRUN_CP_PCLK_CLK             100000000UL   // CP PCLK
-#if BOARD_BOOTCLOCKRUN_CP_PCLK_CLK > 100000000UL || BOARD_BOOTCLOCKRUN_CP_PCLK_CLK > BOARD_BOOTCLOCKRUN_ROOT_CLK
-#error "CP Pclk beyond the frequency boundary or greater than the CP core clock"
-#endif
-
-#define BOARD_BOOTCLOCKRUN_AP_ROOT_CLK             300000000UL   // AP Core clock
-#if BOARD_BOOTCLOCKRUN_AP_ROOT_CLK > BOARD_BOOTCLOCKRUN_ROOT_CLK
-#error "AP core clock greater than the CP core clock"
-#endif
-
-#define BOARD_BOOTCLOCKRUN_AP_PCLK_CLK             100000000UL   // AP PCLK
-#if BOARD_BOOTCLOCKRUN_AP_PCLK_CLK > 100000000UL || BOARD_BOOTCLOCKRUN_AP_PCLK_CLK > BOARD_BOOTCLOCKRUN_AP_ROOT_CLK
-#error "AP Pclk beyond the frequency boundary or greater than the AP core clock"
-#endif
-
-#define BOARD_BOOTCLOCKRUN_AP_CMN_CFG_PCLK_CLK     100000000UL   // AP CMN PCLK
-#if BOARD_BOOTCLOCKRUN_AP_CMN_CFG_PCLK_CLK > 100000000UL || BOARD_BOOTCLOCKRUN_AP_CMN_CFG_PCLK_CLK > BOARD_BOOTCLOCKRUN_AP_PCLK_CLK
-#error "AP CMN Pclk beyond the frequency boundary or greater than the AP pclk"
-#endif
-
-
-#define BOARD_BOOTCLOCKRUN_IR_CLK_SRC              CRM_IpSrcCmn32K
-
-
-#define BOARD_BOOTCLOCKRUN_WDT_CLK_SRC             CRM_IpSrcCmn32K
-
-
-#define BOARD_BOOTCLOCKRUN_ADC_CLK_SRC             CRM_IpSrcXtal
-
-
-#define BOARD_BOOTCLOCKRUN_DAC_CLK_SRC             CRM_IpSrcXtal
 
 #endif /* INCLUDE_BSP_CLOCK_CONFIG_H_ */

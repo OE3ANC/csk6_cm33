@@ -5,7 +5,7 @@
  */
 
 //#include "venus_log.h"
-#include "hal/dma_venus.h"
+#include "hal/reg/dma_venus.h"
 #include "hal/cache.h"
 #include <string.h> // for memset
 #include <assert.h>
@@ -130,7 +130,10 @@ typedef struct {
 #define FIT_BLK_TS      4092 // make it multiple of 4
 
 static uint32_t init_cnt       = 0U;
+// channel active flag, set when channel is selected and cleared when DMA is completed or disabled
 _DMA static uint32_t channel_active = 0U;
+// channel reserved flag (if set, channel active flag is always kept until unreserved).
+_DMA static uint32_t channel_reserved = 0U;
 _DMA static DMA_Channel_Info channel_info[DMA_NUMBER_OF_CHANNELS];
 
 #define DMA_CHANNEL(n)  ((DMA_CHANNEL_REG *)&(CSK_DMA->CHANNEL[n]))
@@ -146,17 +149,19 @@ void dma_irq_handler (void);
    - \b  0: function succeeded
    - \b -1: function failed
 */
-__inline static int32_t set_channel_active_flag (uint8_t ch)
+_FAST_FUNC_RO static int32_t set_channel_active_flag (uint8_t ch)
 {
   uint8_t gie = GINT_enabled();
 
   if (gie) { disable_GINT(); }
+
   if (channel_active & (1U << ch)) {
     if (gie) { enable_GINT(); }
     return -1;
   }
 
   channel_active |= (1U << ch);
+
   if (gie) { enable_GINT(); }
   return 0;
 }
@@ -166,15 +171,71 @@ __inline static int32_t set_channel_active_flag (uint8_t ch)
   \brief       Protected clear of channel active flag
   \param[in]   ch        Channel number (0..7 or 4)
 */
-__inline static void clear_channel_active_flag (uint8_t ch)
+_FAST_FUNC_RO static void clear_channel_active_flag (uint8_t ch)
 {
   uint8_t gie = GINT_enabled();
+  uint32_t ch_bit = 1U << ch;
 
   if (gie) { disable_GINT(); }
-  channel_active &= ~(1U << ch);
+
+  //channel_active &= ~(1U << ch);
+  //BSD: only NOT reserved channel can be clear active flay...
+  if ((channel_reserved & ch_bit) == 0)
+      channel_active &= ~ch_bit;
+
   if (gie) { enable_GINT(); }
 }
 
+/**
+  \fn          int32_t set_channel_reserved_flag (uint8_t ch)
+  \brief       Protected set of channel reserved & active flag
+  \param[in]   ch        Channel number (0..7 or 4)
+  \returns
+   - \b  0: function succeeded
+   - \b -1: function failed
+*/
+static int32_t set_channel_reserved_flag (uint8_t ch)
+{
+  uint8_t gie = GINT_enabled();
+  uint32_t ch_bit = 1U << ch;
+
+  if (gie) { disable_GINT(); }
+
+  // return failure if already reserved or active
+  if ((channel_reserved & ch_bit) || (channel_active & ch_bit)) {
+    if (gie) { enable_GINT(); }
+    return -1;
+  }
+
+  // set reserved flag and active flag
+  channel_reserved |= ch_bit;
+  channel_active |= ch_bit;
+
+  if (gie) { enable_GINT(); }
+
+  return 0;
+}
+
+/**
+  \fn          void clear_channel_reserved_flag (uint8_t ch)
+  \brief       Protected clear of channel reserved & active flag
+  \param[in]   ch        Channel number (0..7 or 4)
+*/
+static void clear_channel_reserved_flag (uint8_t ch)
+{
+  uint8_t gie = GINT_enabled();
+  uint32_t ch_bit = 1U << ch;
+
+  if (gie) { disable_GINT(); }
+
+  // clear reserved flag and active flag
+  if (channel_reserved & ch_bit) {
+      channel_reserved &= ~ch_bit;
+      channel_active &= ~ch_bit;
+  }
+
+  if (gie) { enable_GINT(); }
+}
 
 /**
   \fn          int32_t dma_initialize (void)
@@ -208,7 +269,7 @@ int32_t dma_initialize (void)
   CSK_DMA->CLEAR.ERROR = 0xFFFF;
 
   // Register DMA ISR
-//   register_ISR(IRQ_DMAC_VECTOR, (ISR)dma_irq_handler, NULL); TODO: add support
+  register_ISR(IRQ_DMAC_VECTOR, (ISR)dma_irq_handler, NULL);
 
   // Enable DMA IRQ
   enable_IRQ(IRQ_DMAC_VECTOR);
@@ -240,10 +301,10 @@ int32_t dma_uninitialize (void) {
   while (CSK_DMA->CFG & 0x1) { }
 
   // Disable DMA IRQ
-//   disable_IRQ(IRQ_DMAC_VECTOR);
+  disable_IRQ(IRQ_DMAC_VECTOR);
 
   // Unregister DMA ISR
-//   register_ISR(IRQ_DMAC_VECTOR, NULL, NULL);
+  register_ISR(IRQ_DMAC_VECTOR, NULL, NULL);
 
   return 0;
 }
@@ -281,6 +342,7 @@ _FAST_FUNC_RO static int32_t dma_get_free_channel(uint8_t *pch)
                                         DMA_CACHE_SYNC     cache_sync)
   \brief        Select specified channel or dynamically allocate a free channel
                 before calling dma_channel_configure or dma_channel_configure_LLP.
+                The channel will be released when DMA operation is completed or channel is disabled.
   \param[in, out]   pch     pointer to Channel number
                             the preferred dma channel as input parameter,
                             the actual dma channel as output parameter.
@@ -345,7 +407,80 @@ _FAST_FUNC_RO uint8_t dma_channel_select(uint8_t *pch,
 }
 
 
-static void cache_sync_src(uint32_t control, uint32_t src_addr, uint32_t bytes, DMA_Channel_Info *ch_info)
+/**
+   \fn          int32_t dma_channel_reserve (uint8_t      ch,
+                                        DMA_SignalEvent_t  cb_event,
+                                        uint32_t           usr_param,
+                                        DMA_CACHE_SYNC     cache_sync)
+  \brief        Reserve specified channel for exclusive use
+                before calling dma_channel_configure or dma_channel_configure_LLP.
+                The channel will NOT be released when DMA operation is completed or channel is disabled.
+                So this API function is NOT RECOMMENDED to use if NOT necessary!!
+  \param[in]   ch          specified Channel number
+  \param[in]   cb_event     Channel callback pointer
+  \param[in]   usr_param    user-defined value, acts as last parameter of cb_event
+  \param[in]   cache_sync   cache coherence or sync policy for source/destination RAM buffer
+                            before DMA operation. see the definition of DMA_CACHE_SYNC.
+  \returns
+   - \b  the reserved DMA channel number if successful, or DMA_CHANNEL_ANY (0xFF) if failed.
+ */
+uint8_t dma_channel_reserve(uint8_t ch,
+                            DMA_SignalEvent_t  cb_event,
+                            uint32_t           usr_param,
+                            DMA_CACHE_SYNC     cache_sync)
+{
+    DMA_Channel_Info *ch_info;
+
+    // set channel reserved flag
+    if (ch >= DMA_NUMBER_OF_CHANNELS ||
+        set_channel_reserved_flag(ch) != 0)
+        return DMA_CHANNEL_ANY;
+
+    if (cache_sync >= DMA_CACHE_SYNC_COUNT)
+        cache_sync = DMA_CACHE_SYNC_AUTO;
+
+    // Initialize channel_info partially
+    ch_info = &channel_info[ch];
+    memset(ch_info, 0, sizeof(DMA_Channel_Info));
+    ch_info->cb_event = cb_event;
+    ch_info->usr_param = usr_param;
+    ch_info->cache_sync = cache_sync;
+
+    return ch;
+}
+
+/**
+   \fn          int32_t dma_channel_unreserve (uint8_t      ch)
+  \brief        Unreserve (or Release) specified channel exclusively used by some device.
+  \param[in]   ch          specified dedicated Channel number
+  \returns
+   - \b  no return value.
+ */
+void dma_channel_unreserve(uint8_t ch)
+{
+    // clear channel reserved flag if any
+    if (ch < DMA_NUMBER_OF_CHANNELS)
+        clear_channel_reserved_flag(ch);
+}
+
+/**
+   \fn          int32_t dma_channel_is_reserved (uint8_t      ch)
+  \brief        Check whether specified channel is reserved (exclusively used by some device) or not.
+  \param[in]   ch          specified dedicated Channel number
+  \returns
+   - \b  true indicates reserved, false indicates NOT reserved yet.
+ */
+bool dma_channel_is_reserved(uint8_t ch)
+{
+    if (ch >= DMA_NUMBER_OF_CHANNELS)
+        return false;
+    if (channel_reserved & (0x1 << ch))
+        return true;
+    return false;
+}
+
+
+_FAST_FUNC_RO static void cache_sync_src(uint32_t control, uint32_t src_addr, uint32_t bytes, DMA_Channel_Info *ch_info)
 {
     uint32_t start, end;
     uint32_t addr_ctrl = control & DMA_CH_CTLL_SRCADDRCTL_MASK;
@@ -376,7 +511,7 @@ static void cache_sync_src(uint32_t control, uint32_t src_addr, uint32_t bytes, 
     dcache_clean_range(start, end);
 }
 
-static void cache_sync_dst(uint32_t control, uint32_t dst_addr, uint32_t bytes, DMA_Channel_Info *ch_info)
+_FAST_FUNC_RO static void cache_sync_dst(uint32_t control, uint32_t dst_addr, uint32_t bytes, DMA_Channel_Info *ch_info)
 {
     uint32_t start, end;
     uint32_t addr_ctrl = control & DMA_CH_CTLL_DSTADDRCTL_MASK;
@@ -421,7 +556,7 @@ static void cache_sync_dst(uint32_t control, uint32_t dst_addr, uint32_t bytes, 
 
 
 // Calculate how many bytes equal to "size" of data items on Source
-static uint32_t calc_src_bytes(DMA_Channel_Info *ch_info, uint32_t control, uint32_t size)
+_FAST_FUNC_RO static uint32_t calc_src_bytes(DMA_Channel_Info *ch_info, uint32_t control, uint32_t size)
 {
     uint32_t bytes, sg_cnt, sg_int;
 
@@ -438,7 +573,7 @@ static uint32_t calc_src_bytes(DMA_Channel_Info *ch_info, uint32_t control, uint
 
 
 // Calculate how many bytes equal to "size" of data items on Destination
-static uint32_t calc_dst_bytes(DMA_Channel_Info *ch_info, uint32_t control, uint32_t size)
+_FAST_FUNC_RO static uint32_t calc_dst_bytes(DMA_Channel_Info *ch_info, uint32_t control, uint32_t size)
 {
     uint32_t bytes, dst_size, sg_cnt, sg_int;
 
@@ -456,7 +591,7 @@ static uint32_t calc_dst_bytes(DMA_Channel_Info *ch_info, uint32_t control, uint
 
 
 // do cache sync operation on src/dst
-static void do_cache_sync(DMA_Channel_Info *ch_info, uint32_t control, uint32_t src_addr, uint32_t dst_addr, uint32_t size)
+_FAST_FUNC_RO static void do_cache_sync(DMA_Channel_Info *ch_info, uint32_t control, uint32_t src_addr, uint32_t dst_addr, uint32_t size)
 {
     uint32_t src_bytes, dst_bytes;
     assert(ch_info != NULL && size != 0);
@@ -504,7 +639,7 @@ static void do_cache_sync(DMA_Channel_Info *ch_info, uint32_t control, uint32_t 
     }
 }
 
-static void update_next_xfer_addr(DMA_Channel_Info *ch_info, uint32_t control,
+_FAST_FUNC_RO static void update_next_xfer_addr(DMA_Channel_Info *ch_info, uint32_t control,
                                 uint32_t src_addr, uint32_t dst_addr, uint32_t size)
 {
     assert(ch_info != NULL && size != 0);
@@ -1363,7 +1498,7 @@ _FAST_FUNC_RO void dma_irq_handler (void) {
 // count = channel_fifo_depth (bytes) / width_bytes
 uint32_t calc_max_burst_size(uint32_t items)
 {
-    uint32_t i, val;
+    uint32_t i;
     if (items < 4)
         return DMA_BSIZE_1;
     if (items > 256)
@@ -1390,7 +1525,7 @@ uint32_t calc_max_burst_size(uint32_t items)
 
 //#define DMA_CHANNEL_FIFO_DEPTH_MAX       64 // bytes
 
-_FAST_FUNC_RO int32_t dma_memcpy (uint8_t        ch,
+int32_t dma_memcpy (uint8_t        ch,
                               uint32_t           src_addr,
                               uint32_t           dst_addr,
                               uint32_t           total_bytes)
@@ -1479,12 +1614,21 @@ _FAST_FUNC_RO int32_t dma_memcpy (uint8_t        ch,
         }
         dst_bsize = calc_max_burst_size(DMA_CHANNELS_FIFO_DEPTH[ch] / ch_info->dst_wid_bytes);
 
+#if defined(PLATFORM_CP) && !defined(CSK6001_MPW)
+        control = DMA_CH_CTLL_INT_EN | DMA_CH_CTLL_DST_WIDTH(dst_width) | DMA_CH_CTLL_SRC_WIDTH(src_width) |
+                DMA_CH_CTLL_DST_INC | DMA_CH_CTLL_SRC_INC | DMA_CH_CTLL_DST_BSIZE(dst_bsize) | DMA_CH_CTLL_SRC_BSIZE(src_bsize) |
+                DMA_CH_CTLL_TTFC_M2M | DMA_CH_CTLL_DMS(2) | DMA_CH_CTLL_SMS(3); // DMA_CH_CTLL_DMS(0) | DMA_CH_CTLL_SMS(0)
+
+        config_low = DMA_CH_CFGL_CH_PRIOR(0);
+        config_high = 0; // DMA_CH_CFGH_FIFO_MODE; // DMA_CH_CFGH_SRC_PER(x) | DMA_CH_CFGH_DST_PER
+#else
         control = DMA_CH_CTLL_INT_EN | DMA_CH_CTLL_DST_WIDTH(dst_width) | DMA_CH_CTLL_SRC_WIDTH(src_width) |
                 DMA_CH_CTLL_DST_INC | DMA_CH_CTLL_SRC_INC | DMA_CH_CTLL_DST_BSIZE(dst_bsize) | DMA_CH_CTLL_SRC_BSIZE(src_bsize) |
                 DMA_CH_CTLL_TTFC_M2M | DMA_CH_CTLL_DMS(0) | DMA_CH_CTLL_SMS(0);
 
         config_low = DMA_CH_CFGL_CH_PRIOR(0);
         config_high = DMA_CH_CFGH_FIFO_MODE; // DMA_CH_CFGH_SRC_PER(x) | DMA_CH_CFGH_DST_PER
+#endif // PLATFORM_CP
 
         size = ch_info->SizeToXfer > MAX_BLK_TS ? FIT_BLK_TS : ch_info->SizeToXfer;
         update_next_xfer_addr(ch_info, control, src_addr, dst_addr, size);
@@ -1525,7 +1669,7 @@ _FAST_FUNC_RO int32_t dma_memcpy (uint8_t        ch,
   \param[in]   src_width    n in DMA_CH_CTLL_SRC_WIDTH(n), see DMA_WIDTH_XXX
   \param[in]   dst_width    n in DMA_CH_CTLL_DST_WIDTH(n), see DMA_WIDTH_XXX
 */
-_FAST_FUNC_RO int32_t dma_memcpy_SG (uint8_t        ch,
+int32_t dma_memcpy_SG (uint8_t        ch,
                                   uint32_t          src_addr,
                                   uint32_t          dst_addr,
                                   uint32_t          total_bytes,
@@ -1567,6 +1711,18 @@ _FAST_FUNC_RO int32_t dma_memcpy_SG (uint8_t        ch,
     src_bsize = calc_max_burst_size(DMA_CHANNELS_FIFO_DEPTH[ch] / sw_bytes);
     dst_bsize = calc_max_burst_size(DMA_CHANNELS_FIFO_DEPTH[ch] / dw_bytes);
 
+#if defined(PLATFORM_CP) && !defined(CSK6001_MPW)
+    control = DMA_CH_CTLL_INT_EN | DMA_CH_CTLL_DST_WIDTH(dst_width) | DMA_CH_CTLL_SRC_WIDTH(src_width) |
+            DMA_CH_CTLL_DST_INC | DMA_CH_CTLL_SRC_INC | DMA_CH_CTLL_DST_BSIZE(dst_bsize) | DMA_CH_CTLL_SRC_BSIZE(src_bsize) |
+            DMA_CH_CTLL_TTFC_M2M | DMA_CH_CTLL_DMS(2) | DMA_CH_CTLL_SMS(3); // DMA_CH_CTLL_DMS(0) | DMA_CH_CTLL_SMS(0)
+    if (src_gath != 0)
+        control |= DMA_CH_CTLL_S_GATH_EN;
+    if (dst_scat != 0)
+        control |= DMA_CH_CTLL_D_SCAT_EN;
+
+    config_low = DMA_CH_CFGL_CH_PRIOR(0);
+    config_high = 0; // DMA_CH_CFGH_FIFO_MODE; // DMA_CH_CFGH_SRC_PER(x) | DMA_CH_CFGH_DST_PER
+#else
     control = DMA_CH_CTLL_INT_EN | DMA_CH_CTLL_DST_WIDTH(dst_width) | DMA_CH_CTLL_SRC_WIDTH(src_width) |
             DMA_CH_CTLL_DST_INC | DMA_CH_CTLL_SRC_INC | DMA_CH_CTLL_DST_BSIZE(dst_bsize) | DMA_CH_CTLL_SRC_BSIZE(src_bsize) |
             DMA_CH_CTLL_TTFC_M2M | DMA_CH_CTLL_DMS(0) | DMA_CH_CTLL_SMS(0);
@@ -1577,6 +1733,7 @@ _FAST_FUNC_RO int32_t dma_memcpy_SG (uint8_t        ch,
 
     config_low = DMA_CH_CFGL_CH_PRIOR(0);
     config_high = DMA_CH_CFGH_FIFO_MODE; // DMA_CH_CFGH_SRC_PER(x) | DMA_CH_CFGH_DST_PER
+#endif // PLATFORM_CP
 
     size = ch_info->SizeToXfer > MAX_BLK_TS ? FIT_BLK_TS : ch_info->SizeToXfer;
     update_next_xfer_addr(ch_info, control, src_addr, dst_addr, size);

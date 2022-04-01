@@ -5,9 +5,11 @@
  *
  */
 #include <assert.h>
-#include "hal/ARMCM33_DSP_FP.h"
-#include "hal/venus_ap.h"
+#include "toolchain/gcc.h"
+#include "ARMCM33_DSP_FP.h"
+#include "venus_ap.h"
 #include "cachel1_armv7.h"
+#include "hal/cache.h"
 
 #define NO_CACHE_DEBUG   0
 
@@ -15,7 +17,41 @@
 // NOTE: end = start + size, and the 'end' address is excluding from the range
 int range_is_cacheable(unsigned long start, unsigned long size)
 {
-    //TODO:
+    //FIXME: Now we just simply check cacheable attribute by the memory arrange
+    // on specific platform, and it's a rough implementation...
+    // Actually we SHOULD check it based MPU registers. Please refer to mpu.c...
+
+    // FLASH address space 1, size 8M BYTES
+    #define flash_start_addr1    0x18000000
+    #define flash_end_addr1      0x187fffff
+
+    // FLASH address space 2, size 8M BYTES
+    #define flash_start_addr2    0x38000000
+    #define flash_end_addr2      0x387fffff
+
+    // PSRAM address space, size 8M BYTES
+    #define psram_start_addr    0x30000000
+    #define psram_end_addr      0x307fffff
+
+    #define addr_range_count    3
+
+    static const uint32_t addr_ranges[] = {
+            flash_start_addr1, (flash_end_addr1 + 1),
+            flash_start_addr2, (flash_end_addr2 + 1),
+            psram_start_addr, (psram_end_addr + 1)
+    };
+
+    uint32_t i, j, end;
+
+    assert(size > 0);
+    end = start + size - 1;
+    for (i = 0; i < addr_range_count; i++) {
+        j = i << 1;
+        if (start >= addr_ranges[j] && start < addr_ranges[j+1])
+            return 1;
+        if (end >= addr_ranges[j] && end < addr_ranges[j+1])
+            return 1;
+    }
     return 1;
 }
 
@@ -39,7 +75,7 @@ void dcache_invalidate_range(unsigned long start, unsigned long end)
 	uint32_t line_mask = __SCB_DCACHE_LINE_SIZE - 1;
 	assert((start & line_mask) == 0);
 	assert((end & line_mask) == 0);
-	(void)line_mask; /* Prevent gcc unused warning */
+	ARG_UNUSED(line_mask);
 	SCB_InvalidateDCache_by_Addr((uint32_t *)start, (end - start));
 #endif
 }

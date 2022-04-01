@@ -7,12 +7,11 @@
 #ifndef __GPIO_AE210P_H
 #define __GPIO_AE210P_H
 
-#include "hal/reg/cmn_sysctrl_reg_venus.h"
-#include "hal/reg/gpio_reg_venus.h"
+#include "cmn_sysctrl_reg_venus.h"
+#include "gpio_reg_venus.h"
 
 #include "Driver_GPIO.h"
 
-#define PLATFORM_CP
 #ifdef PLATFORM_CP
 #include "venus_cp.h"
 #else

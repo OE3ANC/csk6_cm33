@@ -130,8 +130,8 @@ struct ANA_REG_0X000_BITS
     volatile uint32_t PD_VDVIO2                     : 1; // bit 3~3
     volatile uint32_t LDOVCORE_SLEEP                : 1; // bit 4~4
     volatile uint32_t LDOVCORE_ENABLE               : 1; // bit 5~5
-    volatile uint32_t TEST_CODE                     : 2; // bit 6~7
-    volatile uint32_t TEST_MODE                     : 1; // bit 8~8
+    volatile uint32_t TEST_CODE0                     : 2; // bit 6~7
+    volatile uint32_t TEST_MODE1                     : 1; // bit 8~8
     volatile uint32_t SLEEP_BUCK                    : 1; // bit 9~9
     volatile uint32_t BUCK_OUT_TUNE                 : 2; // bit 10~11
     volatile uint32_t BUCK_TRIM                     : 10; // bit 12~21

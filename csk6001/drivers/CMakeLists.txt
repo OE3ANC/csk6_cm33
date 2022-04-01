@@ -1,8 +1,14 @@
 
 if(${CONFIG_SOC_LS_ADSP_CSK6})
-    zephyr_include_directories(hifi4/xos hifi4/include)
+    # add_definitions(-DIC_BOARD=1)
+    zephyr_compile_options(-DPLATFORM_CP -DCSK6001 -DIC_BOARD=1)
+
+    # add files
+    zephyr_include_directories(hifi4/xos 
+                                hifi4/include
+                                hifi4/include/hal
+                                hifi4/include/hal/reg)
     zephyr_library_sources(hifi4/venus_cp.c
-                            hifi4/clock_config.c 
                             hifi4/dma_venus.c
                             hifi4/cache_cp.c
                             hifi4/gpio_venus.c
@@ -15,6 +21,8 @@ if(${CONFIG_SOC_LS_ADSP_CSK6})
                             hifi4/adc_pdm_venus.c)
 elseif(${CONFIG_SOC_CSK6001})
     zephyr_include_directories(cm33/include)
+    zephyr_include_directories(cm33/include/hal)
+    zephyr_include_directories(cm33/include/hal/reg)
     zephyr_include_directories(cm33/include/hal/sdmmc)
     zephyr_include_directories(cm33/include/hal/reg)
     zephyr_library_sources(cm33/venus_ap.c
@@ -33,12 +41,14 @@ elseif(${CONFIG_SOC_CSK6001})
                             cm33/PSRAMManger.c
                             cm33/i2c.c
                             cm33/spi.c
+                            cm33/rtc.c
                             cm33/wdt.c
-                            cm33/sdmmc/drv_sdc.c
-                            cm33/sdmmc/ftsdc021_cis.c
-                            cm33/sdmmc/ftsdc021_ops.c
-                            cm33/sdmmc/ftsdc021_sdio.c
-                            cm33/sdmmc/ftsdc021.c
+                            cm33/power_control.c
+                            #cm33/sdmmc/drv_sdc.c
+                            #cm33/sdmmc/ftsdc021_cis.c
+                            #cm33/sdmmc/ftsdc021_ops.c
+                            #cm33/sdmmc/ftsdc021_sdio.c
+                            #cm33/sdmmc/ftsdc021.c
                             )
 else()
     message(FATAL_ERROR 'listenai hal driver does not support this platform')

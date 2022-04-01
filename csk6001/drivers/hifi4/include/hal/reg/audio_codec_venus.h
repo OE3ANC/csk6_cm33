@@ -9,7 +9,7 @@
 #ifndef __AUDIO_CODEC_VENUS_H
 #define __AUDIO_CODEC_VENUS_H
 
-#include "hal/venus_cp.h"
+#include "venus_cp.h"
 #include "aon_codec_reg_venus.h" // for AON CODEC registers (AON_CODEC_RegDef)
 #include "ana_aon_regfile_reg_venus.h" // for 2.5v ldo control (needed by CODEC)
 
@@ -124,6 +124,8 @@ struct AUD_R6_ADC_CTRL1_BITS
     volatile uint32_t RESV_31_31                    : 1; // bit 31~31
 };
 
+#define R6_ADCR_VOL_MASK        (0x7F << 0)
+#define R6_ADCL_VOL_MASK        (0x7F << 7)
 #define R6_ADCR_VOL(n)          (((n) & 0x7F) << 0) // bit[6:0]
 #define R6_ADCL_VOL(n)          (((n) & 0x7F) << 7) // bit[13:7]
 #define R6_ADC_VOL_MIN          0x0     // -83dB
@@ -131,6 +133,8 @@ struct AUD_R6_ADC_CTRL1_BITS
 
 #define R6_HPF2_EN              (1 << 14)   // bit[14]
 #define R6_HPF1_EN              (1 << 15)   // bit[15]
+#define R6_ADCR_PGA_MASK        (0x1F << 16)
+#define R6_ADCL_PGA_MASK        (0x1F << 21)
 #define R6_ADCR_PGA_VOL(n)      (((n) & 0x1F) << 16)    // bit[20:16]
 #define R6_ADCL_PGA_VOL(n)      (((n) & 0x1F) << 21)    // bit[25:21]
 #define R6_ADC_PGA_VOL_MIN      0x0     // -12dB
@@ -279,8 +283,10 @@ struct AUD_R11_ADC_CTRL6_BITS
 #define R11_ADCR_EN             (1 << 0)
 #define R11_ADCLR_EN            (R11_ADCL_EN | R11_ADCR_EN)
 
+#define R11_ADC_IB_CTRL_MASK    (0xF << 3) // bit[6:3]
 #define R11_ADC_IB_CTRL(n)      (((n) & 0xF) << 3) // bit[6:3]
 
+#define R11_ADC_IDAC_CTRL_MASK  (0x3 << 7) // bit[8:7]
 #define R11_ADC_IDAC_CTRL(n)    (((n) & 0x3) << 7) // bit[8:7]
 #define R11_ADC_IDAC_7P5UA_5PERM    (0x0 << 7)
 #define R11_ADC_IDAC_7P5UA          (0x1 << 7)
@@ -292,6 +298,7 @@ struct AUD_R11_ADC_CTRL6_BITS
 #define R11_ADC_RCCTRL_12MHZ    (1 << 10) // bit[10]: 1 = 12MHZ, 0 = 4MHZ
 #define R11_ADC_RCCTRL_4MHZ     (0 << 10)
 
+#define R11_ADC_QUAR_COV_MASK   (0x3F << 16) //bit[21:16]
 #define R11_ADC_QUAR_COV(n)     (((n) & 0x3F) << 16) //bit[21:16]
 #define R11_ADC_RSET_RC_CALI    (1 << 22)
 
@@ -433,7 +440,9 @@ struct AUD_R16_DAC_CTRL1_BITS
     volatile uint32_t RESV_16_31                    : 16; // bit 16~31
 };
 
-// 0x70:-113dB, ?: 0dB, 0xFF:+30dB, 1dB each step
+// 0x70:-113dB, 0xe1: 0dB, 0xFF:+30dB, 1dB each step
+#define R16_GAIN_R_MASK      (0xFF << 0) // bit[7:0] for digital gain of right channel
+#define R16_GAIN_L_MASK      (0xFF << 8) // bit[15:8] for digital gain of left channel
 #define R16_GAIN_R(n)      (((n) & 0xFF) << 0)
 #define R16_GAIN_L(n)      (((n) & 0xFF) << 8)
 #define R16_GAIN_MIN       0x70
@@ -581,6 +590,8 @@ struct AUD_R22_DAC_CTRL7_BITS
 #define R22_LOLP_MUTE       (1 << 7)
 
 // 0x0:-24dB, 0xC: 0dB, 0xF:+6dB, 2dB each step
+#define R22_LOR_VOL_MASK    (0xF << 8)  // bit[11:8] for analog gain of right channel
+#define R22_LOL_VOL_MASK    (0xF << 12) // bit[15:12] for analog gain of left channel
 #define R22_LOR_VOL(n)      (((n) & 0xF) << 8)
 #define R22_LOL_VOL(n)      (((n) & 0xF) << 12)
 #define R22_LO_VOL_MIN      0x0

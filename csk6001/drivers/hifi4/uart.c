@@ -16,9 +16,8 @@
  * limitations under the License.
  */
 
-#include "hal/uart.h"
-#include "hal/reg/cmn_sysctrl_reg_venus.h"
-#include "hal/ClockManager.h"
+#include "uart.h"
+#include "ClockManager.h"
 
  #define CSK_UART_DRV_VERSION    CSK_DRIVER_VERSION_MAJOR_MINOR(1, 0)  /* driver version */
 
@@ -43,22 +42,26 @@ static void UART0_DMA_RX_Handler(uint32_t event, uint32_t xfer_bytes, uint32_t u
 static void UART0_IRQ_Handler(void);
 
 static UART_DMA uart0_tx_dma_info = {
+        CSK_UART_TX_DMA_BSIZE_PARA,
         0,
-        0,
+        CSK_UART0_TX_DMA_CH,
+        CSK_UART0_TX_DMA_REQSEL,
         UART0_DMA_TX_Handler,
 };
 
 static UART_DMA uart0_rx_dma_info = {
-        1,
-        1,
+        CSK_UART_RX_DMA_BSIZE_PARA,
+        0,
+        CSK_UART0_RX_DMA_CH,
+        CSK_UART0_RX_DMA_REQSEL,
         UART0_DMA_RX_Handler,
 };
 
 static UART_INFO uart0_info = { 0 };
 
 static UART_RESOURCES uart0_resources = {
-    VENUS_UART0,// REG
-    3,// IRQ NUM
+    IP_UART0,// REG
+    IRQ_UART0_VECTOR,// IRQ NUM
     UART0_IRQ_Handler,// IRQ HANDLER
     CSK_UART0_FIFO,
     &uart0_tx_dma_info,// TX DMA INFO
@@ -76,22 +79,26 @@ static void UART1_DMA_RX_Handler(uint32_t event, uint32_t xfer_bytes, uint32_t u
 static void UART1_IRQ_Handler(void);
 
 static UART_DMA uart1_tx_dma_info = {
-        2,
-        2,
+        CSK_UART_TX_DMA_BSIZE_PARA,
+        0,
+        CSK_UART1_TX_DMA_CH,
+        CSK_UART1_TX_DMA_REQSEL,
         UART1_DMA_TX_Handler,
 };
 
 static UART_DMA uart1_rx_dma_info = {
-        3,
-        3,
+        CSK_UART_RX_DMA_BSIZE_PARA,
+        0,
+        CSK_UART1_RX_DMA_CH,
+        CSK_UART1_RX_DMA_REQSEL,
         UART1_DMA_RX_Handler,
 };
 
 static UART_INFO uart1_info = { 0 };
 
 static UART_RESOURCES uart1_resources = {
-    VENUS_UART1,// REG
-    3,// IRQ NUM
+    IP_UART1,// REG
+    IRQ_UART1_VECTOR,// IRQ NUM
     UART1_IRQ_Handler,// IRQ HANDLER
     CSK_UART1_FIFO,
     &uart1_tx_dma_info,// TX DMA INFO
@@ -109,22 +116,26 @@ static void UART2_DMA_RX_Handler(uint32_t event, uint32_t xfer_bytes, uint32_t u
 static void UART2_IRQ_Handler(void);
 
 static UART_DMA uart2_tx_dma_info = {
+        CSK_UART_TX_DMA_BSIZE_PARA,
+        0,
         CSK_UART2_TX_DMA_CH,
-        4,
+        CSK_UART2_TX_DMA_REQSEL,
         UART2_DMA_TX_Handler,
 };
 
 static UART_DMA uart2_rx_dma_info = {
+        CSK_UART_RX_DMA_BSIZE_PARA,
+        0,
         CSK_UART2_RX_DMA_CH,
-        5,
+        CSK_UART2_RX_DMA_REQSEL,
         UART2_DMA_RX_Handler,
 };
 
 static UART_INFO uart2_info = { 0 };
 
 static UART_RESOURCES uart2_resources = {
-    VENUS_UART2,// REG
-    2,// IRQ NUM
+    IP_UART2,// REG
+    IRQ_UART2_VECTOR,// IRQ NUM
     UART2_IRQ_Handler,// IRQ HANDLER
     CSK_UART2_FIFO,
     &uart2_tx_dma_info,// TX DMA INFO
@@ -152,7 +163,7 @@ void* UART2(void){
 //
 //   Internal Functions
 //
-
+#if defined(CSK6001_MPW)
 static inline uint32_t
 uart_compute_div(uint32_t baudrate, uint32_t clk){
     uint32_t tmp = 16 * baudrate;
@@ -166,7 +177,28 @@ uart_compute_div(uint32_t baudrate, uint32_t clk){
 
     return err > err2 ? div2 : div;
 }
+#endif
 
+#if defined(CSK6001)
+static inline float
+uart_compute_div(uint32_t baudrate, uint32_t clk){
+    uint32_t tmp = 16 * baudrate;
+    // 获得整数部分
+    uint32_t div_i = clk / tmp;
+    // 获得小数部分
+    float div_f = ((float)clk / (float)tmp) - div_i;
+    float div1 = div_i + (float)((uint32_t)(div_f * 16)) / 16.0;
+    float div2 = div_i + (float)((uint32_t)(div_f * 16) + 1) / 16.0;
+
+    int32_t err = clk - div1 * tmp;
+    int32_t err2 = div2 * tmp - clk;
+    if (err2 < 0) {
+        err2 = err2 * (-1);
+    }
+
+    return err > err2 ? div2 : div1;
+}
+#endif
 //
 //   Functions
 //
@@ -271,7 +303,6 @@ int32_t UART_Uninitialize(void *res)
 
 int32_t UART_PowerControl(void *res, CSK_POWER_STATE state)
 {
-#define SYSTEM_CLK    ((SYSCFG_RegDef* ) CMN_SYSCTRL_BASE)
     CHECK_RESOURCES(res);
 
     UART_RESOURCES* uart = (UART_RESOURCES*)res;
@@ -287,21 +318,21 @@ int32_t UART_PowerControl(void *res, CSK_POWER_STATE state)
         //所以这里存在的问题在于，如果当前只是发送，而接收缓存中又存在数据，则会导致
         //wait busy无法通过，程序会卡死在这里
 
-//        // send busy & receive not busy
-//        if ((uart->info->xfer.send_active == 0) && (uart->info->rx_status.rx_busy == 0)){
-//          uart->reg->REG_FCR.all |= 0x06;
-//        }
-//        // just send busy
-//        // clear receive buffer
-//        else if((uart->info->xfer.send_active == 1) && (uart->info->rx_status.rx_busy == 0)){
-//          uart->reg->REG_FCR.all |= 0x02;
-//        }
-//
-//        // just receive busy
-//        // clear send buffer
-//        else if((uart->info->xfer.send_active == 0) && (uart->info->rx_status.rx_busy == 1)){
-//          uart->reg->REG_FCR.all |= 0x04;
-//        }
+        {
+            uint32_t i = 0;
+
+            if(uart->info->baudrate){
+                i = ((uart->fifo_d * 10) / uart->info->baudrate) * CRM_GetApFreq();
+            } else{
+                i = 0;
+            }
+
+            do{
+                if (uart->reg->REG_USR.bit.BUSY == 0){
+                    break;
+                }
+            }while(i--);
+        }
 
         uart->reg->REG_FCR.all |= 0x06;
 
@@ -319,14 +350,14 @@ int32_t UART_PowerControl(void *res, CSK_POWER_STATE state)
         }
 
         if (uart == &uart0_resources){
-            SYSTEM_CLK->REG_SW_RESET2.bit.UART0_RESET = 0x1;
-            SYSTEM_CLK->REG_UART_SDIO_CLK.bit.ENA_UART0_CLK = 0x0;
+            IP_SYSCTRL->REG_SW_RESET2.bit.UART0_RESET = 0x1;
+            __HAL_CRM_UART0_CLK_DISABLE();
         }else if (uart == &uart1_resources){
-            SYSTEM_CLK->REG_SW_RESET2.bit.UART1_RESET = 0x1;
-            SYSTEM_CLK->REG_UART_CLK_CFG.bit.ENA_UART1_CLK = 0x0;
+            IP_SYSCTRL->REG_SW_RESET2.bit.UART1_RESET = 0x1;
+            __HAL_CRM_UART1_CLK_DISABLE();
         }else if (uart == &uart2_resources){
-            SYSTEM_CLK->REG_SW_RESET2.bit.UART2_RESET = 0x1;
-            SYSTEM_CLK->REG_UART_CLK_CFG.bit.ENA_UART2_CLK = 0x0;
+            IP_SYSCTRL->REG_SW_RESET2.bit.UART2_RESET = 0x1;
+            __HAL_CRM_UART2_CLK_DISABLE();
         }else {
             return CSK_DRIVER_ERROR_PARAMETER;
         }
@@ -342,9 +373,7 @@ int32_t UART_PowerControl(void *res, CSK_POWER_STATE state)
         uart->info->flags &= ~UART_FLAG_POWERED;
 
         // Uninstall IRQ Handler
-    #if !defined(PLATFORM_CP)
         register_ISR(uart->irq_num, NULL, NULL);
-    #endif // !defined(PLATFORM_CP)
 
         break;
 
@@ -363,17 +392,17 @@ int32_t UART_PowerControl(void *res, CSK_POWER_STATE state)
         // Power and clock manager
         // Reset current peripheral
         if (uart == &uart0_resources){
-            SYSTEM_CLK->REG_UART_SDIO_CLK.bit.ENA_UART0_CLK = 0x1;
+            __HAL_CRM_UART0_CLK_ENABLE();
 
-            SYSTEM_CLK->REG_SW_RESET2.bit.UART0_RESET = 0x1;
+            IP_SYSCTRL->REG_SW_RESET2.bit.UART0_RESET = 0x1;
         }else if (uart == &uart1_resources){
-            SYSTEM_CLK->REG_UART_CLK_CFG.bit.ENA_UART1_CLK = 0x1;
+            __HAL_CRM_UART1_CLK_ENABLE();
 
-            SYSTEM_CLK->REG_SW_RESET2.bit.UART1_RESET = 0x1;
+            IP_SYSCTRL->REG_SW_RESET2.bit.UART1_RESET = 0x1;
         }else if (uart == &uart2_resources){
-            SYSTEM_CLK->REG_UART_CLK_CFG.bit.ENA_UART2_CLK = 0x1;
+            __HAL_CRM_UART2_CLK_ENABLE();
 
-            SYSTEM_CLK->REG_SW_RESET2.bit.UART2_RESET = 0x1;
+            IP_SYSCTRL->REG_SW_RESET2.bit.UART2_RESET = 0x1;
         }else {
             return CSK_DRIVER_ERROR_PARAMETER;
         }
@@ -389,10 +418,8 @@ int32_t UART_PowerControl(void *res, CSK_POWER_STATE state)
         uart->info->flags = UART_FLAG_POWERED | UART_FLAG_INITIALIZED;
 
         // Configure interrupt handle
-#if !defined(PLATFORM_CP)
         register_ISR(uart->irq_num, uart->irq_handler, NULL);
         enable_IRQ(uart->irq_num);
-#endif // !defined(PLATFORM_CP)
 
         break;
     }
@@ -446,12 +473,14 @@ int32_t UART_Send(void *res, const void *data, uint32_t num)
                     (uint32_t) (&(uart->reg->REG_THR.all)),
                     uart->info->xfer.tx_num,
                     DMA_CH_CTLL_DST_WIDTH(CSK_UART_TX_DMA_WIDTH_PARA) | DMA_CH_CTLL_SRC_WIDTH(CSK_UART_TX_DMA_WIDTH_PARA) |\
-                  DMA_CH_CTLL_DST_BSIZE(CSK_UART_TX_DMA_BSIZE_PARA) | DMA_CH_CTLL_SRC_BSIZE(CSK_UART_TX_DMA_BSIZE_PARA) |\
+                  DMA_CH_CTLL_DST_BSIZE(uart->dma_tx->bsize_para) | DMA_CH_CTLL_SRC_BSIZE(uart->dma_tx->bsize_para) |\
                   DMA_CH_CTLL_DST_FIX | DMA_CH_CTLL_SRC_INC | DMA_CH_CTLL_TTFC_M2P |\
                   DMA_CH_CTLL_DMS(0) | DMA_CH_CTLL_SMS(0) | DMA_CH_CTLL_INT_EN, // control
                   DMA_CH_CFGL_CH_PRIOR(1), // config_low
                   DMA_CH_CFGH_FIFO_MODE | DMA_CH_CFGH_DST_PER(uart->dma_tx->reqsel), // config_high
                   0, 0);
+
+        uart->dma_tx->en = 1;
 
         if(stat == -1){
             return CSK_DRIVER_ERROR;
@@ -532,16 +561,18 @@ int32_t UART_Receive(void *res, void *data, uint32_t num)
                     (uint32_t) uart->info->xfer.rx_buf,
                     uart->info->xfer.rx_num,
                     DMA_CH_CTLL_DST_WIDTH(CSK_UART_RX_DMA_WIDTH_PARA) | DMA_CH_CTLL_SRC_WIDTH(CSK_UART_RX_DMA_WIDTH_PARA) |\
-                  DMA_CH_CTLL_DST_BSIZE(CSK_UART_RX_DMA_BSIZE_PARA) | DMA_CH_CTLL_SRC_BSIZE(CSK_UART_RX_DMA_BSIZE_PARA) |\
+                  DMA_CH_CTLL_DST_BSIZE(uart->dma_rx->bsize_para) | DMA_CH_CTLL_SRC_BSIZE(uart->dma_rx->bsize_para) |\
                   DMA_CH_CTLL_DST_INC | DMA_CH_CTLL_SRC_FIX | DMA_CH_CTLL_TTFC_P2M |\
                   DMA_CH_CTLL_DMS(0) | DMA_CH_CTLL_SMS(0) | DMA_CH_CTLL_INT_EN, // control
                   DMA_CH_CFGL_CH_PRIOR(1), // config_low
                   DMA_CH_CFGH_FIFO_MODE | DMA_CH_CFGH_SRC_PER(uart->dma_rx->reqsel), // config_high
                   0, 0);
 
-        /*if(uart->info->timeout){
-            uart->reg->REG_IER.all |= UARTC_IER_RDR;
-        }*/
+        uart->dma_rx->en = 1;
+
+        if (uart->info->timeout){
+            uart->reg->REG_IER.bit.ECHT = 0x1;
+        }
 
         if(stat == -1){
             return CSK_DRIVER_ERROR;
@@ -549,6 +580,10 @@ int32_t UART_Receive(void *res, void *data, uint32_t num)
     } else{
         // Enable receive data available interrupt
         uart->reg->REG_IER.all |= UARTC_IER_RDR;
+#if defined(CSK6001)
+        // avoid a small amount of data that does not reach the threshold
+        uart->reg->REG_IER.bit.ECHT = 0x1;
+#endif
     }
 
     return CSK_DRIVER_OK;
@@ -560,7 +595,7 @@ uint32_t UART_GetTxCount(void *res)
 
     UART_RESOURCES* uart = (UART_RESOURCES*)res;
 
-    if ((!uart->info->inter_en) && uart->dma_tx && uart->info->xfer.send_active) {
+    if ((!uart->info->inter_en) && uart->dma_tx && uart->info->xfer.send_active && uart->dma_tx->en) {
         uart->info->xfer.tx_cnt = dma_channel_get_count(uart->dma_tx->channel);
     }
 
@@ -573,7 +608,7 @@ uint32_t UART_GetRxCount(void *res)
 
     UART_RESOURCES* uart = (UART_RESOURCES*)res;
 
-    if ((!uart->info->inter_en) && uart->dma_rx && uart->info->rx_status.rx_busy) {
+    if ((!uart->info->inter_en) && uart->dma_rx && uart->info->rx_status.rx_busy && uart->dma_rx->en) {
         uart->info->xfer.rx_cnt = dma_channel_get_count(uart->dma_rx->channel);
     }
 
@@ -623,40 +658,24 @@ int32_t UART_Control(void *res, uint32_t control, uint32_t arg)
 
         return CSK_DRIVER_OK;
 
-    //     // Control break
-    // case CSK_UART_CONTROL_BREAK:
-    //     // arg more than 1 that to active break line
-    //     if (arg) {
-    //         if (uart->info->xfer.send_active != 0U) {
-    //             return CSK_DRIVER_ERROR_BUSY;
-    //         }
-
-    //         uart->reg->LCR |= UARTC_LCR_SETBREAK;
-
-    //         // Set Send active flag
-    //         uart->info->xfer.send_active = 1U;
-    //     }
-    //     else {
-    //         uart->reg->LCR &= ~UARTC_LCR_SETBREAK;
-
-    //         // Clear Send active flag
-    //         uart->info->xfer.send_active = 0U;
-    //     }
-    //     return CSK_DRIVER_OK;
-
         // Abort Send
     case CSK_UART_ABORT_SEND:
         // Disable transmit holding register empty interrupt
         uart->reg->REG_IER.all &= ~UARTC_IER_THRE;
 
-        // Transmit FIFO reset
-        uart->reg->REG_FCR.all |= 0x04;
-
         // If DMA mode - disable DMA channel
-        if ((!uart->info->inter_en) && (uart->info->xfer.send_active != 0U)) {
+        if ((!uart->info->inter_en) && (uart->info->xfer.send_active != 0U) && uart->dma_tx->en) {
+            uart->info->xfer.tx_cnt = dma_channel_get_count(uart->dma_tx->channel);
+
             //dma_channel_disable(uart->dma_tx->channel);
             dma_channel_disable(uart->dma_tx->channel, 1);
+            uart->dma_tx->en = 0;
         }
+
+        uart->info->xfer.tx_cnt = uart->info->xfer.tx_cnt > uart->reg->REG_TFL.all ?\
+                uart->info->xfer.tx_cnt - uart->reg->REG_TFL.all : 0;
+        // Transmit FIFO reset
+        uart->reg->REG_FCR.all |= 0x04;
 
         // Clear Send active flag
         uart->info->xfer.send_active = 0U;
@@ -667,14 +686,18 @@ int32_t UART_Control(void *res, uint32_t control, uint32_t arg)
     case CSK_UART_ABORT_RECEIVE:
         // Disable receive data available interrupt
         uart->reg->REG_IER.all &= ~UARTC_IER_RDR;
+        uart->reg->REG_IER.bit.ECHT = 0x0;
 
         // Receive FIFO reset
         uart->reg->REG_FCR.all |= 0x02;
 
         // If DMA mode - disable DMA channel
-        if ((!uart->info->inter_en) && (uart->info->rx_status.rx_busy)) {
+        if ((!uart->info->inter_en) && (uart->info->rx_status.rx_busy) && uart->dma_rx->en) {
+            uart->info->xfer.rx_cnt = dma_channel_get_count(uart->dma_rx->channel);
+
             //dma_channel_disable(uart->dma_rx->channel);
             dma_channel_disable(uart->dma_rx->channel, 1);
+            uart->dma_rx->en = 0;
         }
 
         // Clear RX busy status
@@ -686,7 +709,7 @@ int32_t UART_Control(void *res, uint32_t control, uint32_t arg)
         break;
     }
 
-    //**********    
+    //**********
     // Set FCR
     // (optional) reset FIFO
     // Receive trigger level
@@ -696,8 +719,8 @@ int32_t UART_Control(void *res, uint32_t control, uint32_t arg)
     {
         uint32_t val = 0;
 
-        val = CSK_UART_RX_TRIG_LVL_PARA | CSK_UART_TX_TRIG_LVL_PARA |\
-              UARTC_FCR_RFIFO_RESET | UARTC_FCR_TFIFO_RESET | UARTC_FCR_FIFO_EN;
+        val = CSK_UART_TX_TRIG_LVL_PARA | UARTC_FCR_RFIFO_RESET |\
+                UARTC_FCR_TFIFO_RESET | UARTC_FCR_FIFO_EN;
 
         switch (control & CSK_UART_Function_CONTROL_Msk) {
             case CSK_UART_Function_CONTROL_Dma:
@@ -709,27 +732,30 @@ int32_t UART_Control(void *res, uint32_t control, uint32_t arg)
             case CSK_UART_Function_CONTROL_Int:
                 uart->info->inter_en = 1;
                 break;
-        }                
+        }
 
-        // FIFO configure
-        // Default enable FIFO mode and set tx/rx trigger level,
-        // the DMA mode depend if support it
-        uart->reg->REG_FCR.all = val;
-
-    }
-
-    // Set uart mode
-    {
         uint32_t mode = 0;
         switch (control & CSK_UART_CONTROL_Msk) {
         case CSK_UART_MODE_ASYNCHRONOUS:
             mode = CSK_UART_MODE_ASYNCHRONOUS;
             uart->info->timeout = 0;
+            // Enable DMA
+            if (!uart->info->inter_en){
+                // DMA transmit must set threshold to 1 character
+                uart->info->rx_trig_lvl = CSK_UART_RX_TRIG_LVL_0;
+                val |= UARTC_FCR_RFIFO_TRGL0;
+                uart->dma_rx->bsize_para = DMA_BSIZE_1;
+            } else {
+                val |= CSK_UART_RX_TRIG_LVL_PARA;
+            }
             break;
 
         case CSK_UART_MODE_ASYNCHRONOUS_TIMEOUT:
             mode = CSK_UART_MODE_ASYNCHRONOUS_TIMEOUT;
             uart->info->timeout = 1;
+            uart->info->rx_trig_lvl = CSK_UART_RX_TRIG_LVL;
+            val |= CSK_UART_RX_TRIG_LVL_PARA;
+            uart->dma_rx->bsize_para = CSK_UART_RX_DMA_BSIZE_PARA;
             break;
 
             // Default TX value
@@ -741,9 +767,13 @@ int32_t UART_Control(void *res, uint32_t control, uint32_t arg)
         default:
             return CSK_DRIVER_ERROR_UNSUPPORTED;
         }
-                
-    }
 
+        // FIFO configure
+        // Default enable FIFO mode and set tx/rx trigger level,
+        // the DMA mode depend if support it
+        uart->reg->REG_FCR.all = val;
+
+    }
 
     // **************************************************
     // Below configure in LCR[6:0]
@@ -792,16 +822,16 @@ int32_t UART_Control(void *res, uint32_t control, uint32_t arg)
     switch (control & CSK_UART_STOP_BITS_Msk) {
     // default
     case CSK_UART_STOP_BITS_1:
-        uart->reg->REG_LCR.bit.stop = 0x0;
+        uart->reg->REG_LCR.bit.STOP = 0x0;
         break;
     case CSK_UART_STOP_BITS_2:
         // TODO 1.5 and 2
-        uart->reg->REG_LCR.bit.stop = 0x1;
+        uart->reg->REG_LCR.bit.STOP = 0x1;
         break;
     case CSK_UART_STOP_BITS_1_5:
         // 1.5 stop bit transmit when only data bit = 5
         if(control & CSK_UART_DATA_BITS_5){
-            uart->reg->REG_LCR.bit.stop = 0x1;
+            uart->reg->REG_LCR.bit.STOP = 0x1;
         }else{
             return CSK_UART_ERROR_STOP_BITS;
         }
@@ -818,19 +848,24 @@ int32_t UART_Control(void *res, uint32_t control, uint32_t arg)
     // set DLL & DLH
     // LCR[7] = 0
     {        
+#if defined(CSK6001_MPW)
         uint32_t div;
+#else
+        float div, div_f;
+        uint32_t div_i;
+#endif
         // compute the baudrate div
         // optional can compute the fractional part
         if (uart == &uart0_resources){
-            div = uart_compute_div(arg, CRM_GetIpFreq(CRM_Uart0));
+            div = uart_compute_div(arg, CRM_GetUart0Freq());
         }else if (uart == &uart1_resources){
-            div = uart_compute_div(arg, CRM_GetIpFreq(CRM_Uart1));
+            div = uart_compute_div(arg, CRM_GetUart1Freq());
         }else if (uart == &uart2_resources){
-            div = uart_compute_div(arg, CRM_GetIpFreq(CRM_Uart2));
+            div = uart_compute_div(arg, CRM_GetUart2Freq());
         }else {
             return CSK_DRIVER_ERROR_PARAMETER;
         }
-
+#if defined(CSK6001_MPW)
         uart->reg->REG_LCR.all |= UARTC_LCR_DLAB;
 
         uart->reg->REG_DLL.all = (div >> 0) & 0xff;
@@ -839,6 +874,20 @@ int32_t UART_Control(void *res, uint32_t control, uint32_t arg)
         uart->reg->REG_LCR.all &= (~UARTC_LCR_DLAB);
 
         uart->info->baudrate = arg;
+#else
+        div_i = (uint32_t)div;
+        div_f = (div - div_i) * 16;
+
+        uart->reg->REG_LCR.all |= UARTC_LCR_DLAB;
+
+        uart->reg->REG_DLL.all = (div_i >> 0) & 0xff;
+        uart->reg->REG_DLH.all = (div_i >> 8) & 0xff;
+        uart->reg->REG_DLF.bit.DLF = div_f;
+        // Reset DLAB bit
+        uart->reg->REG_LCR.all &= (~UARTC_LCR_DLAB);
+
+        uart->info->baudrate = arg;
+#endif
     }
 
     {
@@ -967,6 +1016,7 @@ static void UART_IRQ_Handler(UART_RESOURCES *uart)
 
             // TODO This is very importance
             // Get the residue FIFO data
+            // Fill data in FIFO until full
             val = uart->fifo_d - uart->reg->REG_TFL.all;
 
             // 传输FIFO residue 个字符，并确保是否传输完成
@@ -1003,8 +1053,20 @@ static void UART_IRQ_Handler(UART_RESOURCES *uart)
         if (((iir & UARTC_IIR_INT_MASK) == UARTC_IIR_RDA) ||
                 ((iir & UARTC_IIR_INT_MASK) == UARTC_IIR_RTO)) {
 
+#if defined(CSK6001)
+            // for dma mode
+            if (uart->info->inter_en == 0){
+                uart->info->xfer.rx_cnt = dma_channel_get_count(uart->dma_rx->channel);
+
+                // abort dma receive
+                dma_channel_disable(uart->dma_rx->channel, 1);
+                uart->dma_rx->en = 0;
+            }
+#endif
+
             // Read RX FIFO residue
-            i = uart->info->rx_trig_lvl;
+            // This step is very importance, because it can promise to trigger uart time-out interrupt
+            i = uart->info->rx_trig_lvl == 1 ? uart->info->rx_trig_lvl : (uart->info->rx_trig_lvl - 1);
 
             // Get available data from RX FIFO
             while ((uart->reg->REG_LSR.all & UARTC_LSR_RDR) && (i--)) {
@@ -1021,6 +1083,9 @@ static void UART_IRQ_Handler(UART_RESOURCES *uart)
                 if (uart->info->xfer.rx_cnt == uart->info->xfer.rx_num) {
                     // Disable RDA interrupt
                     uart->reg->REG_IER.all &= ~UARTC_IER_RDR;
+#if defined(CSK6001)
+                    uart->reg->REG_IER.bit.ECHT = 0x0;
+#endif
 
                     // Clear RX busy flag and set receive transfer complete event
                     uart->info->rx_status.rx_busy = 0U;
@@ -1067,6 +1132,7 @@ UART_DMA_TX_Handler(uint32_t event, UART_RESOURCES *uart)
         uart->info->xfer.tx_cnt = uart->info->xfer.tx_num;
         // Clear TX busy flag
         uart->info->xfer.send_active = 0U;
+        uart->dma_tx->en = 0;
 
         // Set Send Complete event for asynchronous transfers
         if (uart->info->cb_event) {
@@ -1086,7 +1152,7 @@ UART_DMA_RX_Handler(uint32_t event, UART_RESOURCES *uart)
     case DMA_EVENT_TRANSFER_COMPLETE:
         uart->info->xfer.rx_cnt = uart->info->xfer.rx_num;
         uart->info->rx_status.rx_busy = 0U;
-
+        uart->dma_rx->en = 0;
         if (uart->info->cb_event) {
             uart->info->cb_event(CSK_UART_EVENT_RECEIVE_COMPLETE, uart->info->workspace);
         }

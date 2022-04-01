@@ -4,30 +4,31 @@
  *
  */
 
-#include "hal/spi.h"
-#include "hal/ClockManager.h" // for CRM_GetSrcFreq() etc.
-// #include "venus_log.h"
+#include "spi.h"
+#include "ClockManager.h" // for CRM_GetSrcFreq() etc.
 #include <assert.h>
-#include <stdio.h>
-#include "hal/reg/cmn_sysctrl_reg_venus.h"
 
 #ifdef CSK6001_MPW
-#define VENUS6001_V1_MPW    1
-#define VENUS6001_V2_MP     0
+#define VENUS_V1_MPW    1
+#define VENUS_V2_MP     0
 #else
-#define VENUS6001_V1_MPW    0
-#define VENUS6001_V2_MP     1
+#define VENUS_V1_MPW    0
+#define VENUS_V2_MP     1
 #endif
 
 #define DEBUG_LOG   1 // 1
 #if DEBUG_LOG
-#define LOGD(format, ...)   {}
-#define CLOGW   printf
+#define LOGD(format, ...)   ((void)0)
 #else
 #define LOGD(format, ...)   ((void)0)
 #endif // DEBUG_LOG
 
-#define IP_SYSCTRL               	((SYSCFG_RegDef *) CMN_SYSCTRL_BASE)
+#define SPICLK_OWNER_SYS        0
+#define SPICLK_OWNER_SELF       1
+#define SPICLK_OWNER_OTHER      2
+
+#define SPICLK_OWNER        SPICLK_OWNER_SELF // SPICLK_OWNER_SYS
+#define SPICLK_CNST_FREQ    24000 //FIXME: other constant frequency?
 
 #define CSK_SPI_DRV_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,0)
 
@@ -37,88 +38,8 @@ CSK_DRIVER_VERSION spi_driver_version = { CSK_SPI_API_VERSION, CSK_SPI_DRV_VERSI
 
 static void spi_dma_tx_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param);
 static void spi_dma_rx_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param);
-void spi_irq_handler(SPI_DEV *spi);
+static void spi_irq_handler(SPI_DEV *spi);
 static void spi_abort_transfer(SPI_DEV *spi, bool keep_state);
-
-inline static uint8_t HAL_CRM_Spi0ClkIsEnabled(){
-    return IP_SYSCTRL->REG_SPI_CLK_CFG.bit.ENA_SPI0_CLK;
-}
-
-inline static uint8_t HAL_CRM_Spi1ClkIsEnabled(){
-    return IP_SYSCTRL->REG_SPI_CLK_CFG.bit.ENA_SPI1_CLK;
-}
-
-inline static void HAL_CRM_GetSpi0ClkConfig(clock_src_name_t* src, uint8_t* div_n, uint8_t* div_m){
-    uint8_t src_t;
-    src_t = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.SEL_SPI0_CLK;
-    if (src_t == 0){
-        *src = CRM_IpSrcXtal;
-    }
-
-    if (src_t == 1){
-        *src = CRM_IpSrcSysPllUsb;
-    }
-
-    *div_n = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.DIV_SPI0_CLK_N;
-#if defined(CSK6001_MPW)
-    *div_m = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.DIV_SPI0_CLK_M;
-#elif defined(CSK6001)
-    *div_m = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.DIV_SPI0_CLK_M + 1;
-#endif
-
-}
-
-inline static void HAL_CRM_GetSpi1ClkConfig(clock_src_name_t* src, uint8_t* div_n, uint8_t* div_m){
-    uint8_t src_t;
-    src_t = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.SEL_SPI1_CLK;
-    if (src_t == 0){
-        *src = CRM_IpSrcXtal;
-    }
-
-    if (src_t == 1){
-        *src = CRM_IpSrcSysPllUsb;
-    }
-
-    *div_n = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.DIV_SPI1_CLK_N;
-#if defined(CSK6001_MPW)
-    *div_m = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.DIV_SPI1_CLK_M;
-#elif defined(CSK6001)
-    *div_m = IP_SYSCTRL->REG_SPI_CLK_CFG.bit.DIV_SPI1_CLK_M + 1;
-#endif
-
-}
-
-uint32_t CRM_GetSpi0Freq(){
-#if (IC_BOARD == 0)
-    return IC_BOARD_FPGA_PHR_FREQ/2;
-#else
-    if (!HAL_CRM_Spi0ClkIsEnabled()){
-        return 0;
-    }
-    clock_src_name_t src;;
-    uint8_t div_n;
-    uint8_t div_m;
-    HAL_CRM_GetSpi0ClkConfig(&src, &div_n, &div_m);
-    return CRM_GetSrcFreq(src) * div_n / div_m;
-
-#endif
-}
-
-uint32_t CRM_GetSpi1Freq(){
-#if (IC_BOARD == 0)
-    return IC_BOARD_FPGA_PHR_FREQ/2;
-#else
-    if (!HAL_CRM_Spi1ClkIsEnabled()){
-        return 0;
-    }
-    clock_src_name_t src;;
-    uint8_t div_n;
-    uint8_t div_m;
-    HAL_CRM_GetSpi1ClkConfig(&src, &div_n, &div_m);
-    return CRM_GetSrcFreq(src) * div_n / div_m;
-
-#endif
-}
 
 //------------------------------------------------------------------------------------
 // SPI0
@@ -240,6 +161,7 @@ SPI_GetVersion()
 
 static uint32_t SPI_CLK(SPI_DEV *spi)
 {
+#if (SPICLK_OWNER == SPICLK_OWNER_SYS) // system clock manager
     if (spi->reg == CSK_SPI0) {
         return CRM_GetSpi0Freq();
     } else if (spi->reg == CSK_SPI1) {
@@ -249,20 +171,28 @@ static uint32_t SPI_CLK(SPI_DEV *spi)
         return 0;
     }
 
-/*
+#elif (SPICLK_OWNER == SPICLK_OWNER_SELF) // SPI driver itself
     uint32_t N, M;
     assert(spi != NULL);
     N = spi->ext_clk->bit.DIV_SPI_CLK_N;
     M = spi->ext_clk->bit.DIV_SPI_CLK_M;
+#if !VENUS_V1_MPW
+    M += 1;
+#endif
     assert(N != 0 && M != 0);
 
 #if (IC_BOARD == 0)
     return (CPUFREQ() * N / M); //48MHz
-#else
+#elif VENUS_V1_MPW
     // it seems that max SPI clock is 60MHz (limited by SYSPLL_USB output)
     return CRM_GetSrcFreq(CRM_IpSrcSysPllUsb) * N / M;
+#else
+    return CRM_GetSrcFreq(CRM_IpSrcSysPllPeri) * N / M;
 #endif
-*/
+
+#elif (SPICLK_OWNER == SPICLK_OWNER_OTHER) // constant value
+    return SPICLK_CNST_FREQ;
+#endif
 }
 
 // export SPI API function: SPI_Initialize
@@ -338,6 +268,7 @@ SPI_PowerControl(void *spi_dev, CSK_POWER_STATE state)
         return CSK_DRIVER_ERROR_PARAMETER;
     }
 
+    //uint32_t val;
     switch (state) {
     case CSK_POWER_OFF:
         // disable SPI IRQ
@@ -355,7 +286,19 @@ SPI_PowerControl(void *spi_dev, CSK_POWER_STATE state)
         spi->reg->CTRL |= SPIRST;
 
         // disable SPI clock here
+    #if (SPICLK_OWNER == SPICLK_OWNER_SYS) // system clock manager
+        if (spi->reg == CSK_SPI0) {
+            __HAL_CRM_SPI0_CLK_DISABLE();
+        } else if (spi->reg == CSK_SPI1) {
+            __HAL_CRM_SPI1_CLK_DISABLE();
+        } else {
+            //TODO: error prompt?
+        }
+    #elif (SPICLK_OWNER == SPICLK_OWNER_SELF) // SPI driver itself
         spi->ext_clk->all &= ~SPI_CLK_ENABLE;
+    #elif (SPICLK_OWNER == SPICLK_OWNER_OTHER) // constant value
+        //TODO: do something...
+    #endif
 
         //spi->info->txrx_mode = 0U;
         spi->info->flags &= ~(SPI_FLAG_POWERED | SPI_FLAG_CONFIGURED);
@@ -373,24 +316,17 @@ SPI_PowerControl(void *spi_dev, CSK_POWER_STATE state)
             return CSK_DRIVER_OK;
 
         // enable SPI clock here
-        /*
-        {
-    #if (IC_BOARD == 0)
-        // FIXME: SPI CLK M = 1 CANNOT work!!
-        spi->ext_clk->all = SPI_CLK_ENABLE | SPI_CLK_M(1) | SPI_CLK_N(1) | SPI_CLK_LD;
-        //spi->ext_clk->all = SPI_CLK_ENABLE | SPI_CLK_M(2) | SPI_CLK_N(1) | SPI_CLK_LD;
-        //spi->ext_clk->all = SPI_CLK_ENABLE | SPI_CLK_M(4) | SPI_CLK_N(1) | SPI_CLK_LD;
-    #else
-        uint32_t divNM, clk_out;
-        clk_out = 60000; //KHz, FIXME: 60,000KHz? 100,000KHz?
-        divNM = eval_freq_divNM(SPI_CLK_N_MAX, SPI_CLK_M_MAX, CRM_GetSrcFreq(CRM_IpSrcSysPllUsb)/1000, clk_out, NULL);
-        assert(divNM != 0);
-        spi->ext_clk->all = SPI_CLK_ENABLE | SPI_CLK_M(divNM & 0xFFFF) | SPI_CLK_N((divNM >> 16) & 0xFFFF) | SPI_CLK_LD;
-    #endif
+    #if (SPICLK_OWNER == SPICLK_OWNER_SYS) // system clock manager
+        if (spi->reg == CSK_SPI0) {
+            __HAL_CRM_SPI0_CLK_ENABLE();
+        } else if (spi->reg == CSK_SPI1) {
+            __HAL_CRM_SPI1_CLK_ENABLE();
+        } else {
+            //TODO: error prompt?
         }
-        */
-
+    #elif (SPICLK_OWNER == SPICLK_OWNER_SELF) // SPI driver itself
         uint16_t divM, divN;
+
     #if (IC_BOARD == 0)
         {
             divM = divN = 1;
@@ -398,24 +334,24 @@ SPI_PowerControl(void *spi_dev, CSK_POWER_STATE state)
     #else // IC_BOARD == 1
         {
             uint32_t divNM, clk_out;
-        #if VENUS6001_V1_MPW
+        #if VENUS_V1_MPW
             clk_out = 60000; //KHz, 60MHz
+            divNM = eval_freq_divNM(SPI_CLK_N_MAX, SPI_CLK_M_MAX, CRM_GetSrcFreq(CRM_IpSrcSysPllUsb)/1000, clk_out, NULL);
         #else
             clk_out = 100000; //KHz, FIXME: 100MHz?
+            divNM = eval_freq_divNM(SPI_CLK_N_MAX, SPI_CLK_M_MAX, CRM_GetSrcFreq(CRM_IpSrcSysPllPeri)/1000, clk_out, NULL);
         #endif
-            divNM = eval_freq_divNM(SPI_CLK_N_MAX, SPI_CLK_M_MAX, CRM_GetSrcFreq(CRM_IpSrcSysPllUsb)/1000, clk_out, NULL);
             assert(divNM != 0);
             divM = divNM & 0xFFFF;
             divN = (divNM >> 16) & 0xFFFF;
         }
     #endif
 
-    #if (VENUS6001_V1_MPW == 0)
+    #if (VENUS_V1_MPW == 0)
         divM -= 1;
     #endif
 
-        spi->ext_clk->all = SPI_CLK_SEL_USBPLL | SPI_CLK_ENABLE | SPI_CLK_M(divM) | SPI_CLK_N(divN) | SPI_CLK_LD;
-
+       spi->ext_clk->all = SPI_CLK_SEL_USBPLL | SPI_CLK_ENABLE | SPI_CLK_M(divM) | SPI_CLK_N(divN) | SPI_CLK_LD;
         //// SPI0:
         //HAL_CRM_SetSpi0ClkSrc(CRM_IpSrcSysPllUsb);
         //HAL_CRM_SetSpi0ClkDiv(SPI_CLK_N(divM), SPI_CLK_M(divN));
@@ -423,7 +359,11 @@ SPI_PowerControl(void *spi_dev, CSK_POWER_STATE state)
         //HAL_CRM_SetSpi1ClkSrc(CRM_IpSrcSysPllUsb);
         //HAL_CRM_SetSpi1ClkDiv(SPI_CLK_N(divM), SPI_CLK_M(divN));
 
-        #if (VENUS6001_V1_MPW == 0)
+#elif (SPICLK_OWNER == SPICLK_OWNER_OTHER) // constant value
+       //TODO: do something...
+#endif
+
+        #if (SPICLK_OWNER != SPICLK_OWNER_OTHER && !VENUS_V1_MPW)
         //SPI1 handshaking signals are connected to AP or CP DMAC?
         if (spi->reg == CSK_SPI1) {
             #define DMA_HS_CP_SPI1_TX   (1 << 2) // 1 = CP DMAC, 0 = AP DMAC
@@ -438,7 +378,7 @@ SPI_PowerControl(void *spi_dev, CSK_POWER_STATE state)
         //NOTE: As of now (just before MP version), FAST_MODE doesn't work, so remove it!
         //spi->reg->TRANSFMT |= CPHA0_FAST_MODE;
         spi->reg->TRANSFMT &= ~CPHA0_FAST_MODE;
-        #endif // !VENUS6001_V1_MPW
+        #endif // !VENUS_V1_MPW
 
         // DMA initialize
         dma_initialize();
@@ -473,6 +413,37 @@ SPI_PowerControl(void *spi_dev, CSK_POWER_STATE state)
         return CSK_DRIVER_ERROR_UNSUPPORTED;
     }
     return CSK_DRIVER_OK;
+}
+
+
+static uint32_t
+spi_fill_tx_fifo(SPI_DEV *spi, uint32_t xn)
+{
+    uint32_t i, count, data;
+    i = SPI_TXFIFO_ENTRIES(spi);
+    count = 0;
+
+    while (i < spi->txfifo_depth && spi->info->xfer.tx_cnt < spi->info->xfer.req_tx_cnt) {
+        data = 0;
+
+        // handle the data frame format
+        if (spi->info->data_bits <= 8) { // data bits = 1....8
+            uint8_t *tx_buf8 = (uint8_t *)spi->info->xfer.tx_buf;
+            data = tx_buf8[spi->info->xfer.tx_cnt++];
+        } else if (spi->info->data_bits <= 16) { // data bits = 9....16
+            uint16_t *tx_buf16 = (uint16_t *)spi->info->xfer.tx_buf;
+            data = tx_buf16[spi->info->xfer.tx_cnt++];
+        } else { // data bits = 17....32
+            uint32_t *tx_buf32 = (uint32_t *)spi->info->xfer.tx_buf;
+            data = tx_buf32[spi->info->xfer.tx_cnt++];
+        }
+        spi->reg->DATA = data;
+        i++;
+        if (++count >= xn)
+            break;
+    }
+
+    return count;
 }
 
 
@@ -532,7 +503,7 @@ SPI_Send(void *spi_dev, const void *data, uint32_t num)
                                         &spi->info->tx_dyn_dma_ch,
                                         spi->dma_tx.cb_event,
                                         spi->dma_tx.usr_param,
-                                        DMA_CACHE_SYNC_SRC);
+                                        DMA_CACHE_SYNC_SRC); //DMA_CACHE_SYNC_SRC
         if (spi->info->tx_dyn_dma_ch == DMA_CHANNEL_ANY) {
             LOGD("%s: NO free DMA channel!!\r\n", __func__);
             if (dma_only)   return CSK_DRIVER_ERROR;
@@ -545,7 +516,7 @@ SPI_Send(void *spi_dev, const void *data, uint32_t num)
                 DMA_CH_CTLL_DST_FIX | DMA_CH_CTLL_SRC_INC | DMA_CH_CTLL_TTFC_M2P |
                 DMA_CH_CTLL_DMS(0) | DMA_CH_CTLL_SMS(0) | DMA_CH_CTLL_INT_EN;
         config_low = DMA_CH_CFGL_CH_PRIOR(1); // channel priority is higher than 0
-        config_high = DMA_CH_CFGH_FIFO_MODE | DMA_CH_CFGH_DST_PER(spi->dma_tx.reqsel);
+        config_high = DMA_CH_CFGH_DST_PER(spi->dma_tx.reqsel); // DMA_CH_CFGH_FIFO_MODE |
         //config_high = DMA_CH_CFGH_DST_PER(spi->dma_tx.reqsel);
 
         // configure DMA channel
@@ -594,7 +565,9 @@ SPI_Send(void *spi_dev, const void *data, uint32_t num)
         spi->reg->SLVST |= SLVST_READY;
     }
 
-    //while(SPI_TXFIFO_EMPTY(spi)); //TEST ONLY!
+    // fill the TX FIFO if PIO mode
+    if (TX_PIO(spi->info->txrx_mode))
+        spi_fill_tx_fifo(spi, spi->txfifo_depth/4);
 
     // trigger transfer when SPI master mode
     if ((spi->info->txrx_mode & CSK_SPI_MODE_Msk) == CSK_SPI_MODE_MASTER) {
@@ -676,7 +649,7 @@ SPI_Receive(void *spi_dev, void *data, uint32_t num)
                 DMA_CH_CTLL_DST_INC | DMA_CH_CTLL_SRC_FIX | DMA_CH_CTLL_TTFC_P2M |
                 DMA_CH_CTLL_DMS(0) | DMA_CH_CTLL_SMS(0) | DMA_CH_CTLL_INT_EN;
         config_low = DMA_CH_CFGL_CH_PRIOR(1); // channel priority is higher than 0
-        config_high = DMA_CH_CFGH_FIFO_MODE | DMA_CH_CFGH_SRC_PER(spi->dma_rx.reqsel);
+        config_high = DMA_CH_CFGH_SRC_PER(spi->dma_rx.reqsel); // DMA_CH_CFGH_FIFO_MODE |
 
         // configure DMA channel
         stat = dma_channel_configure (spi->info->rx_dyn_dma_ch,
@@ -809,7 +782,7 @@ SPI_Transfer(void *spi_dev, const void *data_out, void *data_in, uint32_t num)
                 DMA_CH_CTLL_DST_FIX | DMA_CH_CTLL_SRC_INC | DMA_CH_CTLL_TTFC_M2P |
                 DMA_CH_CTLL_DMS(0) | DMA_CH_CTLL_SMS(0) | DMA_CH_CTLL_INT_EN;
         config_low = DMA_CH_CFGL_CH_PRIOR(1); // channel priority is higher than 0
-        config_high = DMA_CH_CFGH_FIFO_MODE | DMA_CH_CFGH_DST_PER(spi->dma_tx.reqsel);
+        config_high = DMA_CH_CFGH_DST_PER(spi->dma_tx.reqsel); // DMA_CH_CFGH_FIFO_MODE |
 
         // configure DMA channel
         stat = dma_channel_configure (spi->info->tx_dyn_dma_ch,
@@ -882,7 +855,7 @@ SPI_Transfer(void *spi_dev, const void *data_out, void *data_in, uint32_t num)
                 DMA_CH_CTLL_DST_INC | DMA_CH_CTLL_SRC_FIX | DMA_CH_CTLL_TTFC_P2M |
                 DMA_CH_CTLL_DMS(0) | DMA_CH_CTLL_SMS(0) | DMA_CH_CTLL_INT_EN;
         config_low = DMA_CH_CFGL_CH_PRIOR(1); // channel priority is higher than 0
-        config_high = DMA_CH_CFGH_FIFO_MODE | DMA_CH_CFGH_SRC_PER(spi->dma_rx.reqsel);
+        config_high = DMA_CH_CFGH_SRC_PER(spi->dma_rx.reqsel); // DMA_CH_CFGH_FIFO_MODE |
 
         // configure DMA channel
         stat = dma_channel_configure (spi->info->rx_dyn_dma_ch,
@@ -931,7 +904,9 @@ SPI_Transfer(void *spi_dev, const void *data_out, void *data_in, uint32_t num)
         spi->reg->SLVST |= SLVST_READY;
     }
 
-    //while(SPI_TXFIFO_EMPTY(spi)); //TEST ONLY!
+    // fill the TX FIFO if TX PIO mode
+    if (TX_PIO(spi->info->txrx_mode))
+        spi_fill_tx_fifo(spi, spi->txfifo_depth/4);
 
     // trigger transfer when SPI master mode
     if ((spi->info->txrx_mode & CSK_SPI_MODE_Msk) == CSK_SPI_MODE_MASTER) {
@@ -1030,15 +1005,16 @@ static bool spi_set_bus_speed(SPI_DEV *spi, uint32_t arg)
 {
     assert(spi != NULL && arg != 0);
 
-    uint32_t clk, sclk_div, cs2sclk;
+    uint32_t clk, cs2sclk;
+    int32_t sclk_div;
     clk = SPI_CLK(spi);
 
     if (clk == arg) { // output = input
         sclk_div = 0xFF;
     } else {
         sclk_div = (clk / (2 * arg)) - 1;
-        if (sclk_div >= 0xFF) {
-            CLOGW("%s: CANNOT support SCLK = %d (TOO LOW)! ", __func__, arg);
+        if (sclk_div >= 0xFF || sclk_div < 0) {
+            //CLOGW("%s: CANNOT support SCLK = %d (SPI_CLK = %d)! ", __func__, arg, clk);
             return false;
         }
         clk /= (sclk_div + 1) * 2;
@@ -1063,9 +1039,11 @@ static bool spi_set_bus_speed(SPI_DEV *spi, uint32_t arg)
 static inline int32_t spi_get_bus_speed(SPI_DEV *spi)
 {
     assert(spi != NULL);
-    uint32_t sclk_div;
+    uint32_t sclk_div, spi_clk;
+    spi_clk = SPI_CLK(spi);
     sclk_div = spi->reg->TIMING & 0xff;
-    return (SPI_CLK(spi) / ((sclk_div + 1) * 2));
+    // NO divider when sclk_div is 0xFF
+    return ( sclk_div == 0xFF ? spi_clk : spi_clk / ((sclk_div + 1) * 2));
 }
 
 // export SPI API function: SPI_Control
@@ -1318,7 +1296,7 @@ spi_dma_rx_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param)
 }
 
 
-void
+static void
 spi_irq_handler(SPI_DEV *spi)
 {
     uint32_t i, status; // j
@@ -1395,34 +1373,38 @@ spi_irq_handler(SPI_DEV *spi)
     }
 
     if (status & SPI_TXFIFOINT) {
-        i = SPI_TXFIFO_ENTRIES(spi);
-        while ( i < spi->txfifo_depth) {
-
+//        i = SPI_TXFIFO_ENTRIES(spi);
+//        while ( i < spi->txfifo_depth) {
+//
 //            // auto increase i, re-evaluate i if up to TXFIFO depth
-//            if (++i == spi->txfifo_depth)
-//                i = SPI_TXFIFO_ENTRIES(spi);
+//            //if (++i == spi->txfifo_depth)
+//            //    i = SPI_TXFIFO_ENTRIES(spi);
+//
+//            data = 0;
+//            if (spi->info->xfer.tx_cnt < spi->info->xfer.req_tx_cnt) {
+//                // handle the data frame format
+//                if (spi->info->data_bits <= 8) { // data bits = 1....8
+//                    uint8_t *tx_buf8 = (uint8_t *)spi->info->xfer.tx_buf;
+//                    data = tx_buf8[spi->info->xfer.tx_cnt++];
+//                } else if (spi->info->data_bits <= 16) { // data bits = 9....16
+//                    uint16_t *tx_buf16 = (uint16_t *)spi->info->xfer.tx_buf;
+//                    data = tx_buf16[spi->info->xfer.tx_cnt++];
+//                } else { // data bits = 17....32
+//                    uint32_t *tx_buf32 = (uint32_t *)spi->info->xfer.tx_buf;
+//                    data = tx_buf32[spi->info->xfer.tx_cnt++];
+//                }
+//                spi->reg->DATA = data;
+//                i++; //BSD:
+//
+//            } else {
+//                spi->reg->INTREN &= ~SPI_TXFIFOINT;
+//                break;
+//            }
+//        }
 
-            data = 0;
-            if (spi->info->xfer.tx_cnt < spi->info->xfer.req_tx_cnt) {
-                // handle the data frame format
-                if (spi->info->data_bits <= 8) { // data bits = 1....8
-                    uint8_t *tx_buf8 = (uint8_t *)spi->info->xfer.tx_buf;
-                    data = tx_buf8[spi->info->xfer.tx_cnt++];
-                } else if (spi->info->data_bits <= 16) { // data bits = 9....16
-                    uint16_t *tx_buf16 = (uint16_t *)spi->info->xfer.tx_buf;
-                    data = tx_buf16[spi->info->xfer.tx_cnt++];
-                } else { // data bits = 17....32
-                    uint32_t *tx_buf32 = (uint32_t *)spi->info->xfer.tx_buf;
-                    data = tx_buf32[spi->info->xfer.tx_cnt++];
-                }
-                spi->reg->DATA = data;
-                i++; //BSD:
-
-            } else {
-                spi->reg->INTREN &= ~SPI_TXFIFOINT;
-                break;
-            }
-        }
+        spi_fill_tx_fifo(spi, spi->txfifo_depth);
+        if (spi->info->xfer.tx_cnt == spi->info->xfer.req_tx_cnt)
+            spi->reg->INTREN &= ~SPI_TXFIFOINT;
     }
 
 

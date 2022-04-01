@@ -10,14 +10,36 @@
 
 #include <stddef.h> // for NULL etc.
 #include <stdint.h>
-#include "hal/ARMCM33_DSP_FP.h" // for IRQn_Type definition
+//#include <core_cm33.h> // for IRQ operations
+#include <ARMCM33_DSP_FP.h> // for IRQn_Type definition
 
-#define TAG         CSK6001_MPW
-#define IC_BOARD    1
-
-#if TAG == CSK6001_MPW
-#define CSK6001_MPW
-#endif
+/*****************************************************************************
+ * Header for All peripherals
+ ****************************************************************************/
+#include <ana_aon_regfile_reg_venus.h>
+#include <ana_core_regfile_reg_venus.h>
+// #include <aon_efuse_ctrl_reg_venus.h>
+#include <aon_iomux_reg_venus.h>
+// #include <aon_pmuctrl_reg_venus.h>
+#include <audpll_ctrl_reg_venus.h>
+// #include <cbutton_reg_venus.h>
+#include <cmn_iomux_reg_venus.h>
+#include <cmn_mailbox_reg_venus.h>
+#include <cmn_sysctrl_reg_venus.h>
+// #include <crypto_reg_venus.h>
+// #include <dual_timer_reg_venus.h>
+//#include <ftsdc021.h>
+#include <gpio_reg_venus.h>
+#include <gpt_reg_venus.h>
+#include <i2c_reg_venus.h>
+// #include <ir_reg_venus.h>
+// #include <keysense_reg_venus.h>
+#include <psram_mc_reg_venus.h>
+#include <syspll_ctrl_reg_venus.h>
+// #include <trng_reg_venus.h>
+#include <dw_uart_reg_venus.h>
+// #include <wdt_reg_venus.h>
+//#include <usb/usb_venus.h>
 
 /*****************************************************************************
  * Macros for Register Access
@@ -39,9 +61,9 @@
 //fast function
 #define _FAST_FUNC_RO           __attribute__ ((section (".itcm")))
 //fast data value initialize
-#define _FAST_DATA_VI
+#define _FAST_DATA_VI           __attribute__ ((section (".data2")))
 //fast data zero initialize
-#define _FAST_DATA_ZI
+#define _FAST_DATA_ZI           __attribute__ ((section (".bss2")))
 
 #define _DMA                    _FAST_DATA_ZI
 #define _DMA_PRAM               __attribute__((aligned(32)))
@@ -133,6 +155,58 @@ static inline unsigned long CACHE_LINE_SIZE(enum cache_t cache)
 #define CMN_PSRAMC_BASE         0x4A030000 // size=1MB
 
 
+
+/** @addtogroup Peripheral_declaration
+  * @{
+  */
+//#define IP_DMAC               	((XXX_TypeDef *) DMAC_BASE)
+#define IP_USBC               		((CSK_USB_RegDef *) USBC_BASE)
+//#define IP_SDIO                	((ftsdc021_reg *) SDIO_BASE)
+//#define IP_EFUSE               	((XXX_TypeDef *) EFUSE_CTRL_BASE)
+#define IP_TIMER               		((DUAL_TIMER_RegDef *) TIMER_BASE)
+#define IP_WDT               		((WDT_RegDef *) WDT_BASE)
+#define IP_CRYPTO               	((CRYPTO_RegDef *) CRYPTO_BASE)
+#define IP_UART0               		((DW_UART_RegDef *) UART0_BASE)
+#define IP_UART1             		((DW_UART_RegDef *) UART1_BASE)
+#define IP_UART2                 	((DW_UART_RegDef *) UART2_BASE)
+#define IP_IR               		((IR_RegDef *) IR_BASE)
+#define IP_SPI0               		((CSK_SPI_RegDef *) SPI0_BASE)
+#define IP_SPI1                		((CSK_SPI_RegDef *) SPI1_BASE)
+#define IP_I2C0                		((I2C_RegDef *) I2C0_BASE)
+#define IP_I2C1                		((I2C_RegDef *) I2C1_BASE)
+#define IP_GPT                		((GPT_RegDef *) GPT_BASE)
+#define IP_GPIOA                	((GPIO_RegDef *) GPIO0_BASE)
+#define IP_GPIOB              		((GPIO_RegDef *) GPIO1_BASE)
+//#define IP_GPADC              	((XXX_TypeDef *) GPADC_BASE)
+#define IP_TRNG             		((TRNG_RegDef*)  TRNG_BASE)
+
+//#define IP_ABB               		((XXX_TypeDef *) ABB_BASE)
+
+#define IP_SYSCTRL               	((SYSCFG_RegDef *) CMN_SYSCTRL_BASE)
+#define IP_ANACORE                 	((ANA_CORE_RegDef *) CMN_ANACORE_BASE)
+#define IP_SYSPLL               	((SYSPLL_RegDef *) CMN_SYSPLL_CTRL_BASE)
+#define IP_AUDPLL               	((AUDPLL_CTRL_RegDef *) CMN_AUDPLL_CTRL_BASE)
+#define IP_MAILBOX                	((MAILBOX_RegDef *) CMN_MAILBOX_BASE)
+#define IP_CMN_IOMUX               	((CMN_IOMUX_RegDef *) CMN_IOMUX_BASE)
+//#define CMN_UART              	((XXX_TypeDef *) CMN_UART_BASE)
+//#define FLASHC                	((XXX_TypeDef *) CMN_FLASHC_BASE)
+
+#define IP_PMUCTRL                	((AON_RegDef *) AON_PMUCTRL_BASE)
+#define IP_ANA                		((ANA_RegDef *) AON_AON_BASE)
+#define IP_KEYSENSE                	((KEYSENSE_RegDef *) AON_KEYSENSE_BASE)
+#define IP_CBUTTON                	((CBUTTON_RegDef *) AON_CBUTTON_BASE)
+#define IP_IWDT                		((WDT_RegDef *) AON_IWDT_BASE)
+#define IP_RTC                		((VENUS_RTC_RegDef *) AON_RTC_BASE)
+#define IP_EFUSECTRL               	((EFUSE_RegDef *) AON_EFUSECTRL_BASE)
+//#define VAD                		((XXX_TypeDef *) AON_VAD_BASE)
+#define IP_AON_IOMUX              	((AON_IOMUX_RegDef *) AON_IOMUX_BASE)
+#define IP_PSRAMC                	((PSRAM_MC_RegDef *) CMN_PSRAMC_BASE)
+
+/**
+  * @}
+  */
+
+
 /************************************************************************************
  * IRQ Vector
  ************************************************************************************/
@@ -184,18 +258,18 @@ static inline unsigned long CACHE_LINE_SIZE(enum cache_t cache)
 //#define DEF_MAIN_FREQUENCE    (24000000) // 24 MHz
 
 static inline uint32_t CPUFREQ() {
-    extern uint32_t CRM_GetApCoreSysClkFreq(void);
-    return CRM_GetApCoreSysClkFreq();
+    extern uint32_t CRM_GetApFreq();
+    return CRM_GetApFreq();
 }
 
 static inline uint32_t HCLKFREQ() {
-    extern uint32_t CRM_GetApHclkClkFreq(void);
-    return CRM_GetApHclkClkFreq();
+    extern uint32_t CRM_GetApahbFreq();
+    return CRM_GetApahbFreq();
 }
 
 static inline uint32_t PCLKFREQ() {
-    extern uint32_t CRM_GetApPclkPeriClkFreq(void);
-    return CRM_GetApPclkPeriClkFreq();
+    extern uint32_t CRM_GetApperiapbFreq();
+    return CRM_GetApperiapbFreq();
 }
 
 #else // FPGA
@@ -327,8 +401,14 @@ static inline void clear_IRQ(uint32_t irq_no)
 #define DMA_HSID_I2C0        12
 #define DMA_HSID_I2C1        13
 
-// Number of DMA channels
+// Number of DMA channels & FIFO depth of each channel
+#ifdef CSK6001_MPW
 #define DMA_NUMBER_OF_CHANNELS           ((uint8_t) 6)
+static const uint8_t DMA_CHANNELS_FIFO_DEPTH[DMA_NUMBER_OF_CHANNELS] = { 64, 64, 16, 16, 16, 16}; //in bytes
+#else
+#define DMA_NUMBER_OF_CHANNELS           ((uint8_t) 8)
+static const uint8_t DMA_CHANNELS_FIFO_DEPTH[DMA_NUMBER_OF_CHANNELS] = { 64, 64, 16, 16, 16, 16, 16, 16}; //in bytes
+#endif
 
 //default or preferred DMA channel definition
 #define DMA_CH_UART_TX_DEF          ((uint8_t) 5)   // UART
@@ -339,9 +419,42 @@ static inline void clear_IRQ(uint32_t irq_no)
 // AHB master interface of memory that stores LLI (Linked List Item) for channel
 #define DMAH_CH_LMS     0
 
-static const uint8_t DMA_CHANNELS_FIFO_DEPTH[DMA_NUMBER_OF_CHANNELS] = { 64, 64, 16, 16, 16, 16}; //in bytes
-
 extern void mpu_init( void );
+
+#if defined(CSK6001_MPW)
+#define IRQ_CP_MAILBOX_VECTOR          0 // AP-to-CP mailbox
+#define IRQ_CP_WDT_VECTOR              1 // CP WatchDog
+#define IRQ_CP_DUAL_TIMER_VECTOR       2 // CP Dual-Timer
+#define IRQ_CP_DMAC_VECTOR             3 // CP Generic DMA
+#define IRQ_CP_APC_VECTOR              4 // APC
+#define IRQ_CP_NPU_VECTOR              5 // aka MVA, LUNA, or Accelerator
+#define IRQ_CP_INNER_TIMER0_VECTOR     6 // Timer0 inside CP
+#define IRQ_CP_SWI_VECTOR              7 // Software
+#define IRQ_CP_UART3_VECTOR            8 // UART3 in common sub wrapper (level=2)
+#define IRQ_CP_INNER_TIMER1_VECTOR     10 // Timer1 inside CP (level=3)
+#define IRQ_CP_SWI2_VECTOR             11 // Software 2 (level=3)
+#define IRQ_CP_INNER_TIMER2_VECTOR     13 // Timer2 inside CP (level=5)
+#define IRQ_CP_NMI_VECTOR              14 // NMI
+#elif defined(CSK6001)
+#define IRQ_CP_MAILBOX_VECTOR          0  // AP-to-CP mailbox
+#define IRQ_CP_WDT_VECTOR              1  // CP WatchDog
+#define IRQ_CP_DUAL_TIMER_VECTOR       2  // CP Dual-Timer
+#define IRQ_CP_DMAC_VECTOR             3  // CP Generic DMA
+#define IRQ_CP_APC_VECTOR              4  // APC
+#define IRQ_CP_NPU_VECTOR              5  // LUNA
+#define IRQ_CP_CMN_UART3_VECTOR        6  // CMN Uart
+#define IRQ_CP_AON_VAD_VECTOR          7  // VAD
+#define IRQ_CP_CP_UART_VECTOR          8  // CP Uart
+#define IRQ_CP_VIC_VECTOR              10 // VIC
+#define IRQ_CP_PSRAM_VECTOR            11 // PSRAM
+#define IRQ_CP_AP2CP_VECTOR            12 // AP to CP
+#endif
+
+void HAL_CP_Interrupt_Init();
+void HAL_CP_Interrupt_Deinit();
+void HAL_CP_Interrupt_Enable(uint32_t irq_no);
+void HAL_CP_Interrupt_Disable(uint32_t irq_no);
+void HAL_CP_Interrupt_RegisterISR(uint32_t irq_no, ISR isr, ISR* isr_old);
 
 #endif /* INCLUDE_VENUS_AP_H_ */
 

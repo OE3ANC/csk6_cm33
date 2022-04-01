@@ -70,7 +70,7 @@
 // [default] each mono channel data is sent to DAC device group (DAC0 & DAC1) respectively
 #define CSK_DAC_TXCFG_MONO_SRC_MONO              (0x1UL << CSK_DAC_TXCFG_Pos)
 // mono channel data, duplicated and sent to both DACs (DAC0 & DAC1)
-#define CSK_DAC_TXCFG_STEREO_SRC_MONO            (0x2UL << CSK_DAC_TXCFG_Pos) // NOT SUPPORTED YET!!
+#define CSK_DAC_TXCFG_STEREO_SRC_MONO            (0x2UL << CSK_DAC_TXCFG_Pos) // NOT SUPPORTED in MPW version!!
 // stereo channel data, sent to DAC device group (DAC0 & DAC1) respectively
 #define CSK_DAC_TXCFG_STEREO_SRC_STEREO          (0x3UL << CSK_DAC_TXCFG_Pos)
 
@@ -109,13 +109,13 @@
 // DAC status bit definitions
 typedef struct _CSK_DAC_STATUS_BIT
 {
-    uint32_t busy :1;       // Send busy flag
+    uint32_t busy :2;       // Send busy flag, bit[0] for left channel, bit[1] for right channel
     uint32_t tx_emp :1;     // Send TX FIFO empty (cleared on start of transfer operation)
     uint32_t tx_undf :1;    // Send TX FIFO underflow (cleared on start of transfer operation)
     uint32_t l_mute :1;     // DAC0 (left channel) is mute or not, 1 means mute
     uint32_t r_mute :1;     // DAC1 (right channel) is mute or not, 1 means mute
 
-    uint32_t reserved :27;
+    uint32_t reserved :26;
 } CSK_DAC_STATUS_BIT;
 
 // DAC status
@@ -273,10 +273,13 @@ DAC_Echo_Receive_LLP(void *dac_grp, AUDIO_BUFFER_USER *bufs, uint32_t buf_cnt, u
  \param[in]   dev_bmp  specify which DAC devices in the device group,
               DAC0 (Left Channel, @bit[0]) and DAC1 (Right Channel, @bit[1]),
               and dev_bmp = 0x3 indicates both DAC0 & DAC1
+ \param[in]   echo_bmp  receive data from which echo channels of DAC device group,
+              Left Echo Channel @bit[0] and Right Echo Channel @bit[1],
+              and echo_bmp = 0x3 indicates both echo channels of DAC device group
  \return      \ref execution_status
 */
 int32_t
-DAC_Enable(void *dac_grp, uint8_t dev_bmp);
+DAC_Enable(void *dac_grp, uint8_t dev_bmp, uint8_t echo_bmp);
 
 /**
  \fn          int32_t DAC_Disable(void *dac_grp, ...)
@@ -285,10 +288,13 @@ DAC_Enable(void *dac_grp, uint8_t dev_bmp);
  \param[in]   dev_bmp  specify which DAC devices in the device group,
               DAC0 (Left Channel, @bit[0]) and DAC1 (Right Channel, @bit[1]),
               and dev_bmp = 0x3 indicates both DAC0 & DAC1
+ \param[in]   echo_bmp  receive data from which echo channels of DAC device group,
+              Left Echo Channel @bit[0] and Right Echo Channel @bit[1],
+              and echo_bmp = 0x3 indicates both echo channels of DAC device group
  \return      \ref execution_status
 */
 int32_t
-DAC_Disable(void *dac_grp, uint8_t dev_bmp);
+DAC_Disable(void *dac_grp, uint8_t dev_bmp, uint8_t echo_bmp);
 
 /**
  \fn          int32_t DAC_Abort(void *dac_grp, ...)
