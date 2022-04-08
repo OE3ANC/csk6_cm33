@@ -14,6 +14,7 @@
 
 static CMN_IOMUX_RegDef* iomux_reg = (CMN_IOMUX_RegDef*)CMN_IOMUX_BASE;
 static AON_IOMUX_RegDef* aon_iomux_reg = (AON_IOMUX_RegDef*)AON_IOMUX_BASE;
+static SYSCFG_RegDef *cmn_sys_ctrl = (SYSCFG_RegDef* )CMN_SYSCTRL_BASE;
 
 int32_t IOMuxManager_PinConfigure (uint8_t pad, uint8_t pin_num, uint32_t pin_cfg){
     volatile uint32_t * volatile pin_base = NULL;
@@ -49,6 +50,9 @@ int32_t IOMuxManager_PinConfigure (uint8_t pad, uint8_t pin_num, uint32_t pin_cf
 
             (*(volatile uint32_t* volatile)(aon_pin_base)) &= (~0x1f);
             (*(volatile uint32_t* volatile)(aon_pin_base)) |= 0x5;
+        }else if((10 == pin_num) || (11 == pin_num)){
+            cmn_sys_ctrl->REG_AP_CTRL3.bit.USBPHY_GPIO_EN = 0x1;
+            cmn_sys_ctrl->REG_AP_CTRL3.bit.USBPHY_GPIO_IE = 0x1;
         }
 
         /*clear function select field and set value*/
