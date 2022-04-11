@@ -20,7 +20,7 @@
 #include <ana_core_regfile_reg_venus.h>
 // #include <aon_efuse_ctrl_reg_venus.h>
 #include <aon_iomux_reg_venus.h>
-// #include <aon_pmuctrl_reg_venus.h>
+#include <aon_pmuctrl_reg_venus.h>
 #include <audpll_ctrl_reg_venus.h>
 // #include <cbutton_reg_venus.h>
 #include <cmn_iomux_reg_venus.h>
@@ -33,7 +33,7 @@
 #include <gpt_reg_venus.h>
 #include <i2c_reg_venus.h>
 // #include <ir_reg_venus.h>
-// #include <keysense_reg_venus.h>
+#include <keysense_reg_venus.h>
 #include <psram_mc_reg_venus.h>
 #include <syspll_ctrl_reg_venus.h>
 // #include <trng_reg_venus.h>
