@@ -24,7 +24,6 @@ elseif(${CONFIG_SOC_CSK6001})
     zephyr_include_directories(cm33/include/hal)
     zephyr_include_directories(cm33/include/hal/reg)
     zephyr_include_directories(cm33/include/hal/sdmmc)
-    zephyr_include_directories(cm33/include/hal/reg)
     zephyr_library_sources(cm33/venus_ap.c
                             cm33/clock_config.c 
                             cm33/dma.c
@@ -44,6 +43,9 @@ elseif(${CONFIG_SOC_CSK6001})
                             cm33/rtc.c
                             cm33/wdt.c
                             cm33/power_control.c
+                            cm33/gpadc_venus.c
+                            cm33/AON_IOMuxManager.c
+                            cm33/keysense.c
                             #cm33/sdmmc/drv_sdc.c
                             #cm33/sdmmc/ftsdc021_cis.c
                             #cm33/sdmmc/ftsdc021_ops.c
