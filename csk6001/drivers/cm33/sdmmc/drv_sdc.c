@@ -351,9 +351,11 @@ lib_sdc_scan_card(u8 ip_idx, u8 speed)
     }
 
     ftsdc021_set_bus_width(ip_idx, 1);
-    ftsdc021_SetSDClock(ip_idx, 360000);    //SDHost[ip_idx].min_clk);
+    ftsdc021_SetSDClock(ip_idx, 800000);    //SDHost[ip_idx].min_clk);
     ftsdc021_SetPower(ip_idx, 21);      //3.3v
     ftsdc021_intr_en(ip_idx, 0);
+    ftsdc021_sdio_CMD52(ip_idx, 0, 0, SDIO_CCCR_ABORT, 0, NULL);
+    ftsdc021_sdio_CMD52(ip_idx, 1, 0, SDIO_CCCR_ABORT, (1<<3), NULL);
 
     if (ftsdc021_ops_go_idle_state(ip_idx, 0) != 0)
         sdc_dbg_print("idle state fail\n");

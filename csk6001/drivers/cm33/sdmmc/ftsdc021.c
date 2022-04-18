@@ -1834,7 +1834,7 @@ ftsdc021_0_IntrHandler()
         //} else
         {
             ftsdc021_SetSDClock(ip_idx, SDHost[ip_idx].min_clk);
-            ftsdc021_SetPower(ip_idx, 17);
+            ftsdc021_SetPower(ip_idx, 21);
         }
         //send_control(EVENT_SD,SD_VALUE_INSERT,FROM_INTRQ);
     }
@@ -2483,9 +2483,9 @@ ftsdc021_intr_en(u8 ip_idx, u8 is_init)
 #define SDIO_CLK_M     1     /* clk*n/m */
 #define SDIO_CLK_SEL   1     /* 1:usb_clk, 0:xtal */
 #if SDIO_CLK_SEL
-#define SDIO_CLK_SRC   (60 * 1024 * 1024)
+#define SDIO_CLK_SRC   (100 * 1000 * 1000)
 #else
-#define SDIO_CLK_SRC   (24 * 1024 * 1024)
+#define SDIO_CLK_SRC   (24 * 1000 * 1000)
 #endif
 
 u32
