@@ -81,20 +81,17 @@ ftsdc021_sdio_CMD53(u8 ip_idx, u32 write, u8 fn, u32 addr, u32 incr_addr,
     arg |= fn << 28;
     arg |= incr_addr ? 0x04000000 : 0x00000000;
     arg |= addr << 9;
-    //if (blocks == 1 && blksz < 64)
-    if (blocks == 1 && blksz <= 512) {
-        arg |= (blksz == 512) ? 0 : blksz; /* byte mode */
-        sdc_dbg_print_level(2, "%s [%d / %d] byte mode\n", __func__, blocks,
-                blksz);
+
+    if (blocks == 0 ) {
+        arg |= (blksz == 512) ? 0 : blksz;          /* byte mode */
         multi_blk = 0;
         blk_cnt_en = 0;
     } else {
-        arg |= (0x08000000 | blocks); /* block mode */
-        sdc_dbg_print_level(2, "%s [%d / %d] block mode\n", __func__, blocks,
-                blksz);
+        arg |= 0x08000000| blocks;                  /* block mode */
         blk_cnt_en = 1;
         multi_blk = 1;
     }
+    blocks = blocks ? blocks : 1;
 
     ftsdc021_set_transfer_mode(ip_idx, blk_cnt_en, 0,
             write ? SDHCI_TXMODE_WRITE_DIRECTION : SDHCI_TXMODE_READ_DIRECTION,

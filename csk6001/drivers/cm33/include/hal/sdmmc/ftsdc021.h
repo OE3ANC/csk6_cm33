@@ -408,11 +408,11 @@ typedef struct
     SDIO_CCCR cccr;
     SDIO_CIS cis;
     SDIO_FUNC func[7];
-    #ifdef FTSDC021_READ_CIS
+#ifdef FTSDC021_READ_CIS
     struct sdio_func_tuple* tuples;
 #endif
 
-} SDCardInfo;
+} __packed SDCardInfo;
 
 typedef struct
 {
@@ -769,7 +769,7 @@ typedef struct
     u16 attr;
     u16 lgth;
     u32 addr;
-} Adma2DescTable;
+} __packed Adma2DescTable;
 
 typedef void
 (*sdio_irq_handler_t)(void*);
