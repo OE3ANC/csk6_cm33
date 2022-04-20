@@ -1,5 +1,5 @@
 #include "platform.h"
-//#include "types.h"
+// #include "types.h"
 #include "spiflash.h"
 #include "venus_ap.h"
 
@@ -113,38 +113,6 @@
 #define SPIB_FIFOST_SPIBSY_OFFSET 0
 #define SPIB_FIFOST_SPIBSYnRXFEM (SPIB_FIFOST_RXFEM_MASK | SPIB_FIFOST_SPIBSY_MASK)
 
-unsigned int memmapping_spib_base[MEMMAP_MAX] = {
-    CPE_SPIB_BASE_16, // AE100
-    CPE_SPIB_BASE_16, // AE210_16MB
-    CPE_SPIB_BASE,    // AE210_4GB
-    CPE_SPIB_BASE,    // AE300
-};
-
-unsigned int memmapping_smu_base[MEMMAP_MAX] = {
-    REG_SMU_BASE_16, // AE100
-    REG_SMU_BASE_16, // AE210_16MB
-    REG_SMU_BASE,    // AE210_4GB
-    REG_SMU_BASE,    // AE300
-};
-
-unsigned int memmapping_system_id[MEMMAP_MAX] = {
-    SMU_SYSID_AE100,      // AE100
-    SMU_SYSID_AE210_16MB, // AE210_16MB
-    SMU_SYSID_AE210_4GB,  // AE210_4GB
-    SMU_SYSID_AE300_4GB,  // AE300
-};
-
-const char* memmapping_target_name[MEMMAP_MAX] = {
-    "AE100", "AE210 with 16MB", "Castor with 4GB", "AE300",
-};
-
-/* Fast memory access with a constant address, EDM_CFG >= 0x1011 only */
-unsigned int guiConstFastMode = 0;
-
-//unsigned int platform_get_version_id(void);
-unsigned int spib_ctrl = 0;
-const unsigned long spi_base[3] = {CPE_SPIB_BASE, CPE_SPI2_BASE, CPE_SPI3_BASE};
-unsigned int mem_mapping_mode = 2;
 
 #define SMU_HPCLKSEL_1_4 (0x2 << 1)
 #define SMU_HPCLKSEL_1_1 (0x0 << 1)
@@ -154,187 +122,91 @@ unsigned int mem_mapping_mode = 2;
 #define PW_REG_CTRL  (ANTOP_BASE + 0x2C)
 #define PW_REG_CTRL2 (ANTOP_BASE + 0x34)
 
-#define CPE_EFUSE_BASE      	(0xf1800000UL)
-#define CPE_EFUSE_REG_BASE  	(CPE_EFUSE_BASE + 0x80)
-#define BYTE4_FLASH_VENDOR_POS  3
-#define BYTE4_FLASH_VENDOR_MSK  (0x1UL << BYTE4_FLASH_VENDOR_POS)
+extern int mxic_enable_qd(FLASH_DEV *dev);
+extern int mxic_disable_qd(FLASH_DEV *dev);
+extern int mxic_enable_dc(FLASH_DEV *dev);
+extern int mxic_disable_dc(FLASH_DEV *dev);
+extern int mxic_get_dc(FLASH_DEV *dev, unsigned char *dc);
 
-_EXT_RAM void efuse_get_flash_vendor()
+_EXT_RAM int platform_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc1)
 {
-//	unsigned int reg;
-//	reg = inw(CPE_EFUSE_REG_BASE + 4);
-//    printf("flash vendor reg=0x%x\n", reg);
-}
+	int ret = 0;
+	unsigned long base = dev->base_addr, usr_cfg;
+	unsigned int RetData, SCLK_DIV = dev->sclk_div;  //0xff;	//SCLK is the same as the SPI clock source
+	unsigned char val;
 
-_EXT_RAM void efuse_set_flash_vendor(unsigned int v)
-{
-//	unsigned int tmp;
-//	tmp = inw(CPE_EFUSE_REG_BASE + 4);
-//    tmp &= (~BYTE4_FLASH_VENDOR_MSK);
-//    tmp |= ((v & 0x1) << BYTE4_FLASH_VENDOR_POS);
-//    outw(CPE_EFUSE_REG_BASE + 4, tmp);
-}
-
-_EXT_RAM void power_set_perp_clk_div0(int clk)
-{
-//    unsigned int tmp, tmp2;
-//    extern unsigned long g_syspll_div;
-//    if(clk > 100 || clk <= 0) {
-//    	clk = 100;
-//    }
-//    tmp = inw(PW_REG_CTRL) & (~0xff000000UL);
-//    tmp2 = CPUFREQ() / (clk * 1000000) + 1;		//set spi_clk to below 100MHz as fast as possible
-//	outw(PW_REG_CTRL, tmp | (tmp2 << 24));
-}
-
-_EXT_RAM void power_set_perp_clk_div2(int clk)
-{
-//    unsigned int tmp, tmp2;
-//    extern unsigned long g_syspll_div;
-//    if(clk > 100 || clk <= 0) {
-//    	clk = 100;
-//    }
-//    tmp = inw(PW_REG_CTRL2) & (~0x000000ffUL);
-//    tmp2 = CPUFREQ() / (clk * 1000000) + 1;		//set spi_clk to below 100MHz as fast as possible
-//	outw(PW_REG_CTRL2, tmp | tmp2);
-}
-
-
-_EXT_RAM void iomux_set(int io)
-{
-//	uint32_t tmp;
-//
-//	tmp = inw(ANALOG_BASE + 0x48);
-//	switch(io) {
-//	case FLASH_SPI_1_INN:	//inner flash
-//		efuse_set_flash_vendor(0);
-//		gpio_func_sel(12, 0);
-//		gpio_func_sel(13, 0);
-//		gpio_func_sel(14, 0);
-//		gpio_func_sel(15, 0);
-//		gpio_func_sel(16, 0);
-//		gpio_func_sel(17, 0);
-//
-//		gpio_func_sel(0, 3);
-//		gpio_func_sel(1, 3);
-//		gpio_func_sel(2, 3);
-//		gpio_func_sel(28, 3);
-//		gpio_func_sel(29, 3);
-//		gpio_func_sel(30, 3);
-//		outw(ANALOG_BASE + 0x48, (tmp | (1UL << 8)));
-//		break;
-//	case FLASH_SPI_1_EXT: //external flash 1
-//		efuse_set_flash_vendor(1);
-//		gpio_func_sel(0, 0);
-//		gpio_func_sel(1, 0);
-//		gpio_func_sel(2, 0);
-//		gpio_func_sel(28, 0);
-//		gpio_func_sel(29, 0);
-//		gpio_func_sel(30, 0);
-//
-//		gpio_func_sel(12, 1);
-//		gpio_func_sel(13, 1);
-//		gpio_func_sel(14, 1);
-//		gpio_func_sel(15, 1);
-//		gpio_func_sel(16, 1);
-//		gpio_func_sel(17, 1);
-//		//clear qpsi_psram_bond
-//		outw(ANALOG_BASE + 0x48, (tmp & (~(1UL << 8)))); // for qflash
-//		break;
-//	case FLASH_SPI_2_PA04_PA07: //external spi2 PA4~PA7
-//		gpio_func_sel(4, 2);
-//		gpio_func_sel(5, 2);
-//		gpio_func_sel(6, 2);
-//		gpio_func_sel(7, 2);
-//		break;
-//	case FLASH_SPI_2_PA08_PA11: //external spi2 PA8~PA11
-//		gpio_func_sel(8, 3);
-//		gpio_func_sel(9, 3);
-//		gpio_func_sel(10, 3);
-//		gpio_func_sel(11, 3);
-//		break;
-//	case FLASH_SPI_3_PA12_PA15: //external spi3 PA12~PA15
-//		gpio_func_sel(12, 3);
-//		gpio_func_sel(13, 3);
-//		gpio_func_sel(14, 3);
-//		gpio_func_sel(15, 3);
-//		break;
-//	case FLASH_SPI_3_PA22_PA25: //external spi3 PA22~PA25
-//		gpio_func_sel(22, 3);
-//		gpio_func_sel(23, 3);
-//		gpio_func_sel(24, 3);
-//		gpio_func_sel(25, 3);
-//		break;
-//	case FLASH_SPI_3_PA31_PB02: //external spi3 PA31~PB2
-//		gpio_func_sel(31, 3);
-//		gpio_func_sel(31 + 1, 3);
-//		gpio_func_sel(31 + 2, 3);
-//		gpio_func_sel(31 + 3, 3);
-//		break;
-//	default: // ToDo
-//		break;
-//	}
-}
-
-extern int mxic_check(unsigned long base);
-extern int mxic_enable_qd(unsigned long base);
-
-_EXT_RAM void set_io_clk(int io, int clk)
-{
-	iomux_set(io);
-	if(io <= FLASH_SPI_1_EXT) {
-		power_set_perp_clk_div0(clk);
-	} else {
-		power_set_perp_clk_div2(clk);
-	}
-}
-
-_EXT_RAM void switch_to_inn(int clk)
-{
-	set_io_clk(FLASH_SPI_1_INN, clk);
-	mxic_enable_qd(spi_base[0]);
-}
-
-_EXT_RAM void switch_to_ext(int clk)
-{
-	set_io_clk(FLASH_SPI_1_EXT, clk);
-	mxic_enable_qd(spi_base[0]);
-}
-
-/* for 24 bit platform */
-_EXT_RAM int platform_init(int spi, int clk)
-{
-	int ret;
-	if(spi < FLASH_SPI_1_INN || spi > FLASH_SPI_3_PA31_PB02) {	//default device is spi0
-		spi = FLASH_SPI_1_INN;
-	}
-	set_io_clk(spi, clk);	// defalut config. io: 0-inner, 1-external; clk: 100MHz
-    spib_set_ifset(spi_base[spi / 10], ((2 << SPIB_IF_ADDLEN_OFFSET) & SPIB_IF_ADDLEN_MASK) |
-        ((7 << SPIB_IF_DATALEN_OFFSET) & SPIB_IF_DATALEN_MASK) |
-        ((1 << SPIB_IF_DATAMERGE_OFFSET) & SPIB_IF_DATAMERGE_MASK) | ((0 << SPIB_IF_DIR_OFFSET) & SPIB_IF_DIR_MASK) |
-        ((0 << SPIB_IF_LSB_OFFSET) & SPIB_IF_LSB_MASK) | ((0 << SPIB_IF_SLV_OFFSET) & SPIB_IF_SLV_MASK) |
-        ((0 << SPIB_IF_CPOL_OFFSET) & SPIB_IF_CPOL_MASK) | ((0 << SPIB_IF_CPHA_OFFSET) & SPIB_IF_CPHA_MASK));
-
-    //check flash ID
-    ret = mxic_check(spi_base[spi / 10]);
-#ifdef	FLASH_QUAD_MODE_EN
-    if(spi <= FLASH_SPI_1_EXT ) {
-		//let flash support quad mode
-		ret = mxic_enable_qd(spi_base[0]);
-		if(ret == 0) {
-			//set spi read mode as Quad mode
-			outw(SPIB_REG_MEMACCESS(spi_base[0]), 0x5);
-		}
-    }
+#ifdef EXT_ADDR4_MODE
+	RetData = (3 << SPIB_IF_ADDLEN_OFFSET) & SPIB_IF_ADDLEN_MASK;
+#else
+	RetData = (2 << SPIB_IF_ADDLEN_OFFSET) & SPIB_IF_ADDLEN_MASK;
 #endif
+	RetData |= ((7 << SPIB_IF_DATALEN_OFFSET) & SPIB_IF_DATALEN_MASK) |
+	        ((1 << SPIB_IF_DATAMERGE_OFFSET) & SPIB_IF_DATAMERGE_MASK) | ((0 << SPIB_IF_DIR_OFFSET) & SPIB_IF_DIR_MASK) |
+	        ((0 << SPIB_IF_LSB_OFFSET) & SPIB_IF_LSB_MASK) | ((0 << SPIB_IF_SLV_OFFSET) & SPIB_IF_SLV_MASK) |
+	        ((0 << SPIB_IF_CPOL_OFFSET) & SPIB_IF_CPOL_MASK) | ((0 << SPIB_IF_CPHA_OFFSET) & SPIB_IF_CPHA_MASK);
+
+    spib_set_ifset(base, RetData);
+
+	RetData = (spib_get_regtiming(base) & (~0xFF));
+	spib_set_regtiming(base, RetData | SCLK_DIV);
+
+//	ret = spirom_cmd_send(dev, SPIROM_CMD_RDID, 0x0, 0, NULL, (unsigned int*)&RetData);
+#ifdef EXT_ADDR4_MODE
+	extern int spirom_set_addr4(FLASH_DEV *dev, int en);
+	ret = spirom_set_addr4(dev, 1);
+#endif
+	do {
+		if(dev->d_width == 4) {
+			ret = mxic_enable_qd(dev);  //let flash support quad mode
+			if(ret) break;
+#ifdef EXT_ADDR4_MODE
+			outw(SPIB_REG_MEMACCESS(base), 13);  //set spi read mode as Quad mode
+#else
+			outw(SPIB_REG_MEMACCESS(base), 5);  //set spi read mode as Quad mode
+#endif
+		} else {
+			ret = mxic_disable_qd(dev);
+			if(ret) break;
+#ifdef EXT_ADDR4_MODE
+			outw(SPIB_REG_MEMACCESS(base), 9);
+#else
+			outw(SPIB_REG_MEMACCESS(base), 1);
+#endif
+		}
+		usr_cfg = 0xf5000000;
+//		if(dev->clk_inv) {
+//			usr_cfg |= 0x4;
+//		}
+		if(udc0 || udc1) {
+			usr_cfg |= 0x30;
+		}
+		if(udc0 && udc1) {  // according to value of DC, set udc0/udc1
+			ret = mxic_get_dc(dev, &val);
+			if(ret) break;
+			outw(base + 0x80, usr_cfg);
+			if(val) {  // dc == 1
+				outw(base + 0x90, (udc1<<8 | udc1));
+			} else {   // dc == 0
+				outw(base + 0x90, (udc0<<8 | udc0));
+			}
+		} else if(udc0 && udc1 == 0) {  // set DC as 0, set udc0
+			ret = mxic_disable_dc(dev);
+			if(ret) break;
+			outw(base + 0x80, usr_cfg);
+			outw(base + 0x90, (udc0<<8 | udc0));
+		} else if(udc0 == 0 && udc1) {  // set DC as 1, set udc1
+			ret = mxic_enable_dc(dev);
+			if(ret) break;
+			outw(base + 0x80, usr_cfg);
+			outw(base + 0x90, (udc1<<8 | udc1));
+		} else {  //  disable udc0/udc1
+			ret = mxic_disable_dc(dev);
+			outw(base + 0x80, usr_cfg);
+		}
+	} while(0);
+
     return ret;
 }
-
-//extern FILE* pLogFile;
-//_EXT_RAM unsigned int platform_get_version_id(void)
-//{
-//    return 0;
-//}
 
 /*--------------------------------------------*/
 /* SPIB function                              */
@@ -519,7 +391,7 @@ _EXT_RAM unsigned int spib_get_busy(unsigned long base)
     return (reg & SPIB_FIFOST_SPIBSY_MASK);
 }
 
-_EXT_RAM unsigned int spib_wait_spi(unsigned long base)
+_EXT_RAM int spib_wait_spi(unsigned long base)
 {
     unsigned int i;
     unsigned int timeout = 1000;
@@ -528,7 +400,7 @@ _EXT_RAM unsigned int spib_wait_spi(unsigned long base)
         if(spib_get_busy(base) == 0)
             return 0;
     }
-    return 1;
+    return -1;
 }
 
 _EXT_RAM unsigned int spib_get_rx_empty(unsigned long base)
@@ -537,7 +409,7 @@ _EXT_RAM unsigned int spib_get_rx_empty(unsigned long base)
     return (reg & SPIB_FIFOST_RXFEM_MASK);
 }
 
-_EXT_RAM unsigned int spib_wait_rx_empty(unsigned long base)
+_EXT_RAM int spib_wait_rx_empty(unsigned long base)
 {
 	unsigned int i;
 	unsigned int timeout = 1000;
@@ -546,7 +418,7 @@ _EXT_RAM unsigned int spib_wait_rx_empty(unsigned long base)
 		if(spib_get_rx_empty(base) == 0)
 			return 0;
 	}
-	return 1;
+	return -1;
 }
 
 _EXT_RAM unsigned int spib_get_rx_entries(unsigned long base)
@@ -607,12 +479,12 @@ _EXT_RAM void spib_rx_data(unsigned long base, unsigned int* pRxdata, int RxByte
     }
 }
 
-_EXT_RAM void spib_tx_data(unsigned long base, unsigned int* pTxdata, int TxBytes)
+_EXT_RAM void spib_tx_data(unsigned long base, void* pTxdata, int TxBytes)
 {
     unsigned int i, j;
     unsigned int TxWords = (TxBytes + 3) / 4;
     unsigned int* p_src_buffer = (unsigned int*)pTxdata;
-    unsigned int timeout = 100;
+    unsigned int timeout = 8000;
     unsigned int spib_tx_full;
 
     if(guiWithMultiout == 0) {
@@ -624,12 +496,14 @@ _EXT_RAM void spib_tx_data(unsigned long base, unsigned int* pTxdata, int TxByte
                     break;
                 }
             }
-            if(spib_tx_full == 1) {
+            if(spib_tx_full) {
                 printf("spib_set_fifo: write fifo timeout\n");
                 return;
             }
-            spib_set_data(base, *p_src_buffer++);
+
+            spib_set_data(base, *p_src_buffer);
+
+            p_src_buffer++;
         }
     }
-
 }
