@@ -231,6 +231,8 @@ ftsdc021_sdio_cis_init(void)
 static u32
 ftsdc021_sdio_read_cis(u8 ip_idx, SDIO_FUNC* func)
 {
+    /* Fixme: This implementation will lead to memory corruption */
+    return 0;
     u32 ret;
     struct sdio_func_tuple* this, **prev;
     u32 i, ptr = 0;
