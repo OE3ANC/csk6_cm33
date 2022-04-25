@@ -47,7 +47,6 @@ elseif(${CONFIG_SOC_CSK6001})
                             cm33/AON_IOMuxManager.c
                             cm33/keysense.c
                             cm33/sdmmc/drv_sdc.c
-                            cm33/sdmmc/ftsdc021_cis.c
                             cm33/sdmmc/ftsdc021_ops.c
                             cm33/sdmmc/ftsdc021_sdio.c
                             cm33/sdmmc/ftsdc021.c
