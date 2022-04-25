@@ -247,7 +247,7 @@ HAL_GPADC_Control(void* res, uint32_t control){
 
     //ADC periodical sampling wait time (high)
     //default value: 0x4e
-    pGpadc->reg->REG_ADC_CR.bit.ADC_RWAIT_HIGH = 0x0;
+    pGpadc->reg->REG_ADC_CR.bit.ADC_RWAIT_HIGH = 0x1;
 
     //ADC periodical sampling wait time (lower)
     //default value: 0xff
