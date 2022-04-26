@@ -3,30 +3,24 @@
 #include <sys/types.h>
 #include <stddef.h>
 #include <stdbool.h>
-// #include "types.h"
+//#include "types.h"
 
-/* 4 bytes address mode */
-#define EXT_ADDR4_MODE
+#define GD25Q20C_ID 0xc84012
+#define GD25Q32C_ID 0xc84016
+#define MX25U1635E_ID 0xc22535
+#define P25Q80H_ID 0x856014
+#define P25Q32H_ID 0x856016
+#define GD25PQ32C_ID 0xd84016
+#define FT25F64B_ID 0xb4017
+#define GD25Q64EGIG_ID 0xc84017
 
-typedef enum
-{
-	RUN_WITH_INT = 0, // run with interrupt
-	RUN_WITHOUT_INT	  // run without interrupt
-} RUN_MOD;
+typedef struct FLASH_DEV {
+	unsigned long	base_addr;
+	int				spi_enum;
+	bool		    w_protect;
+}FLASH_DEV;
 
-typedef struct FLASH_DEV
-{
-	unsigned long base_addr;
-	unsigned char d_width; // 1, 2, 4
-	unsigned char sclk_div;
-	unsigned char run_mod;
-	unsigned char w_protect;
-	unsigned long timeout;
-	unsigned int ext_addr4_mode;
-} FLASH_DEV;
-
-typedef enum
-{
+typedef enum {
 	FLASH_SPI_1_INN = 0,
 	FLASH_SPI_1_EXT,
 	FLASH_SPI_2_PA04_PA07 = 10,
@@ -34,104 +28,39 @@ typedef enum
 	FLASH_SPI_3_PA12_PA15 = 20,
 	FLASH_SPI_3_PA22_PA25,
 	FLASH_SPI_3_PA31_PB02
-} FLASH_ENUM;
-
-#define INDIVIDUAL_BLK_PROTECT 0
-/*--------------------------------------------*/
-/* SPI Flash ROM definition                   */
-/*--------------------------------------------*/
-#define SPIROM_ID_VERSION 0x1420c2 /* MXIC 25L8006  */
-/* #define SPIROM_ID_VERSION   0x1520c2   MXIC 25L1606  */
-#define SPIROM_ID_MASK 0x00ffffff
-#define SPIROM_OP_READ 0x03			/*-- read --*/
-#define SPIROM_OP_QFAST_READ 0xeb	/*-- quad read in higher speed --*/
-#define SPIROM_OP_QFAST_READA4 0xec /*-- quad read in higher speed --*/
-#define SPIROM_OP_FAST_READ 0x0b	/*-- read in higher speed --*/
-#define SPIROM_OP_FAST_READA4 0x0c	/*-- read in higher speed --*/
-#define SPIROM_OP_DFAST_READ 0xbb	/*-- dual read in higher speed --*/
-#define SPIROM_OP_DFAST_READA4 0xbc /*-- dual read in higher speed --*/
-#define SPIROM_OP_RDID 0x9f			/*-- manufacturer/device ID read --*/
-#define SPIROM_OP_READ_ID 0x90		/*-- manufacturer/device ID read --*/
-#define SPIROM_OP_WREN 0x06			/*-- write enable --*/
-#define SPIROM_OP_WRDI 0x04			/*-- write disable --*/
-#define SPIROM_OP_PE 0x81			/*-- page erase --*/
-#define SPIROM_OP_SE 0x20			/*-- sector erase --*/
-#define SPIROM_OP_SEA4 0x21			/*-- sector erase --*/
-#define SPIROM_OP_BE 0x52			/*-- block erase 32K --*/
-#define SPIROM_OP_BEA4 0x5c			/*-- block erase 32K --*/
-#define SPIROM_OP_BE2 0xd8			/*-- block erase 64K --*/
-#define SPIROM_OP_BE2A4 0xdc		/*-- block erase 64K --*/
-#define SPIROM_OP_PP 0x02			/*-- page program --*/
-#define SPIROM_OP_PPA4 0x12			/*-- page program --*/
-#define SPIROM_OP_QPP 0x32			/*-- quad page program --*/
-#define SPIROM_OP_QPPA4 0x34		/*-- quad page program --*/
-#define SPIROM_OP_RDSR 0x05			/*-- read status register --*/
-#define SPIROM_OP_RDSR2 0x35		/*-- read status register2 --*/
-#define SPIROM_OP_RDSR3 0x15		/*-- read status register3 --*/
-#define SPIROM_OP_WRSR 0x01			/*-- write status register --*/
-#define SPIROM_OP_WRSR2 0x31		/*-- write status register2 --*/
-#define SPIROM_OP_WRSR3 0x11		/*-- write status register3 --*/
-#define SPIROM_OP_SBLK 0x36			/*-- single block lock --*/
-#define SPIROM_OP_SBULK 0x39		/*-- single block unlock --*/
-#define SPIROM_OP_RDBLOCK 0x3C
-#define SPIROM_OP_RDSCUR 0x2B
-#define SPIROM_OP_WPSEL 0x68
-#define SPIROM_OP_GBLK 0x7E
-#define SPIROM_OP_GBULK 0x98
-
-/*-- bit mask for status register --*/
-#define SPIROM_SR_WIP_MASK 0x01	   /*-- write in progress --*/
-#define SPIROM_SR_WEL_MASK 0x02	   /*-- write enable --*/
-#define SPIROM_SR_BP_MASK 0x3C	   /*-- BP protection mode --*/
-#define SPIROM_PAGE_SIZE 0x100	   /*-- page size in bytes --*/
-#define SPIROM_SECTOR_SIZE 0x1000  /*-- sector size in bytes --*/
-#define SPIROM_BLK32_SIZE 0x8000   /*-- block 32K in bytes --*/
-#define SPIROM_BLK64_SIZE 0x10000  /*-- block 64K in bytes --*/
-#define SPIROM_SECTOR_MASK 0xfffUL /*-- sector 4K mask --*/
-#define SPIROM_BLK32_MASK 0x7fffUL /*-- block 32K mask --*/
-#define SPIROM_BLK64_MASK 0xffffUL /*-- block 64K mask --*/
-#define SPIROM_PAGE_SIZE 0x100	   /*-- page size --*/
-#define SPIROM_PAGE_MASK 0xFF
-
-/*-- SPI ROM cmd --*/
-#define SPIROM_CMD_READ 0x0
-#define SPIROM_CMD_RDID 0x1
-#define SPIROM_CMD_RDST 0x2
-#define SPIROM_CMD_WREN 0x3
-#define SPIROM_CMD_WRDI 0x4
-#define SPIROM_CMD_ERASE 0x5
-#define SPIROM_CMD_PROGRAM 0x6
-#define SPIROM_CMD_LOCK 0x7
-#define SPIROM_CMD_UNLOCK 0x8
-#define SPIROM_CMD_RDBLOCK 0x9
-#define SPIROM_CMD_RDSCUR 0xA
-#define SPIROM_CMD_WPSEL 0xB
-#define SPIROM_CMD_CHIP_UNLOCK 0xC
-#define SPIROM_CMD_WRSR 0xD
-#define SPIROM_CMD_RDST2 0xE
-#define SPIROM_CMD_WRSR2 0xF
-#define SPIROM_CMD_ERASE_B32 0x10
-#define SPIROM_CMD_ERASE_B64 0x11
-#define SPIROM_CMD_RDST3 0x12
-#define SPIROM_CMD_WRSR3 0x13
-#define SPIROM_CMD_ERASE_PG 0x14
-
-#define FLASH_BLKSIZE SPIROM_SECTOR_SIZE * 16
-#define FLASH_RETRY_TIMES 180000
+}FLASH_ENUM;
 
 /**
  *  @brief  initial spi flash device, default spi enum is FLASH_SPI_1_INN
  *
  *  @return  0 on success, negative errno code on fail.
  */
-int sflash_init(FLASH_DEV *dev);
+int sflash_init(void);
 
 /**
  *  @brief  initial spi flash device
- *
+ *  @param  dev             : flash dev (output)
+ *  @param  spi_enum        : spi enum (input)
+ *  @param  clk             : clock of flash, unit is MHz. eg. 100
  *  @return  0 on success, negative errno code on fail.
  */
-int flash_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc1);
+int sflash_init2(void *dev, int spi_enum, int clk);
+
+/**
+ *  @brief  flash switch select inner
+ *  @param  clk             : clock of flash, unit is MHz. eg. 100
+ *
+ *  @return  none.
+ */
+void sflash_switch_inn(int clk);
+
+/**
+ *  @brief  flash switch select external
+ *  @param  clk             : clock of flash, unit is MHz. eg. 100
+ *
+ *  @return  none.
+ */
+void sflash_switch_ext(int clk);
 
 /**
  *  @brief  Read data from flash
@@ -143,12 +72,12 @@ int flash_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc1);
  *
  *  @return  0 on success, negative errno code on fail.
  */
-int sflash_read(FLASH_DEV *dev, off_t offset, void *data, size_t len);
+int sflash_read(void *dev, off_t offset, void *data, size_t len);
 
 /**
  *  @brief  Write buffer into flash memory.
  *
- *  Prior to the invocation of this API, the flash_write_protection_set needs
+ *  Prior to the invocation of this API, the sflash_write_protection_set needs
  *  to be called first to disable the write protection.
  *
  *  @param  dev             : flash device
@@ -158,7 +87,7 @@ int sflash_read(FLASH_DEV *dev, off_t offset, void *data, size_t len);
  *
  *  @return  0 on success, negative errno code on fail.
  */
-int sflash_write(FLASH_DEV *dev, off_t offset, const void *data, size_t len);
+int sflash_write(void *dev, off_t offset, const void *data, size_t len);
 
 /**
  *  @brief  Erase part or all of a flash memory
@@ -166,10 +95,10 @@ int sflash_write(FLASH_DEV *dev, off_t offset, const void *data, size_t len);
  *  Acceptable values of erase size and offset are subject to
  *  hardware-specific multiples of page size and offset. Please check
  *  the API implemented by the underlying sub driver, for example by
- *  using flash_get_page_info_by_offs() if that is supported by your
+ *  using sflash_get_page_info_by_offs() if that is supported by your
  *  flash driver.
  *
- *  Prior to the invocation of this API, the flash_write_protection_set needs
+ *  Prior to the invocation of this API, the sflash_write_protection_set needs
  *  to be called first to disable the write protection.
  *
  *  @param  dev             : flash device
@@ -178,26 +107,10 @@ int sflash_write(FLASH_DEV *dev, off_t offset, const void *data, size_t len);
  *
  *  @return  0 on success, negative errno code on fail.
  *
- *  @see flash_get_page_info_by_offs()
- *  @see flash_get_page_info_by_idx()
+ *  @see sflash_get_page_info_by_offs()
+ *  @see sflash_get_page_info_by_idx()
  */
-int sflash_erase(FLASH_DEV *dev, off_t offset, size_t size);
-
-/**
- *  @brief  Erase part or all of a flash memory
- *
- *  Acceptable values of erase size and offset are subject to
- *  hardware-specific multiples of page size and offset.
- *  Prior to the invocation of this API, the flash_write_protection_set needs
- *  to be called first to disable the write protection.
- *
- *  @param  dev             : flash device
- *  @param  offset          : erase area starting offset
- *  @param  size            : size of area to be erased
- *
- *  @return  0 on success, negative errno code on fail.
- */
-int flash_erase_page(FLASH_DEV *dev, off_t offset, size_t size);
+int sflash_erase(void *dev, off_t offset, size_t size);
 
 /**
  *  @brief  Enable or disable write protection for a flash memory
@@ -215,7 +128,7 @@ int flash_erase_page(FLASH_DEV *dev, off_t offset, size_t size);
  *
  *  @return  0 on success, negative errno code on fail.
  */
-int sflash_write_protection_set(FLASH_DEV *dev, bool enable);
+int sflash_write_protection_set(void *dev, bool enable);
 
 /**
  *  @brief  Get the minimum write block size supported by the driver
@@ -228,7 +141,7 @@ int sflash_write_protection_set(FLASH_DEV *dev, bool enable);
  *
  *  @return  write block size in bytes.
  */
-size_t sflash_get_write_block_size(FLASH_DEV *dev);
+size_t sflash_get_write_block_size(void *dev);
 
 struct sflash_pages_info
 {
@@ -246,12 +159,56 @@ struct sflash_pages_info
  *
  *  @return  0 on success, -EINVAL if page of the offset doesn't exist.
  */
-int sflash_get_page_info_by_offs(FLASH_DEV *dev, off_t offset,
+int sflash_get_page_info_by_offs(void *dev, off_t offset,
 								 struct sflash_pages_info *info);
 
-int spirom_cmd_send(FLASH_DEV *dev, unsigned int cmd, unsigned int addr,
-					unsigned int bytes, unsigned int *pdata, unsigned int *Retdata);
+#if defined(CONFIG_FLASH_PAGE_LAYOUT)
+/**
+ *  @brief  Get the size and start offset of flash page of certain index.
+ *
+ *  @param  dev flash device
+ *  @param  page_index Index of the page. Index are counted from 0.
+ *  @param  info Page Info structure to be filled
+ *
+ *  @return  0 on success, -EINVAL  if page of the index doesn't exist.
+ */
+// __syscall int sflash_get_page_info_by_idx(struct device *dev, uint32_t page_index,
+// 					 struct sflash_pages_info *info);
 
-int platform_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc1);
+/**
+ *  @brief  Get the total number of flash pages.
+ *
+ *  @param  dev flash device
+ *
+ *  @return  Number of flash pages.
+ */
+// __syscall size_t sflash_get_page_count(struct device *dev);
+
+/**
+ * @brief Callback type for iterating over flash pages present on a device.
+ *
+ * The callback should return true to continue iterating, and false to halt.
+ *
+ * @param info Information for current page
+ * @param data Private data for callback
+ * @return True to continue iteration, false to halt iteration.
+ * @see sflash_page_foreach()
+ */
+//typedef bool (*sflash_page_cb)(const struct sflash_pages_info *info, void *data);
+
+/**
+ * @brief Iterate over all flash pages on a device
+ *
+ * This routine iterates over all flash pages on the given device,
+ * ordered by increasing start offset. For each page, it invokes the
+ * given callback, passing it the page's information and a private
+ * data object.
+ *
+ * @param dev Device whose pages to iterate over
+ * @param cb Callback to invoke for each flash page
+ * @param data Private data for callback function
+ */
+//void sflash_page_foreach(struct device *dev, sflash_page_cb cb, void *data);
+#endif /* CONFIG_FLASH_PAGE_LAYOUT */
 
 #endif
