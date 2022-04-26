@@ -519,9 +519,11 @@ ftsdc021_sdio_init_func(u8 ip_idx, SDIO_FUNC* func)
         if (ret)
             goto fail;
 
+        /*  Removed since the memory corruption
         ret = ftsdc021_sdio_read_func_cis(ip_idx, func);
         if (ret)
             goto fail;
+        */
 
         func->enable = 1;
         sdc_dbg_print("init func[%d]\n", func->num);

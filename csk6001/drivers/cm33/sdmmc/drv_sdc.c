@@ -338,6 +338,8 @@ SDC_SDIO_menu(u8 ip_idx)
     sdc_dbg_print("*VendorReg3: %x    VendorReg4: %x    *\n", gpRegSDC(ip_idx)->VendorReg3,
             gpRegSDC(ip_idx)->VendorReg4);
     sdc_dbg_print("*HW attrib : %x                      *\n", gpRegSDC(ip_idx)->VendorReg7);
+    sdc_dbg_print("* Transfer speed: %s.\n", SDC_ShowTransferSpeed(SDHost[ip_idx].Card->speed));
+    sdc_dbg_print("* Transfer type: %s.\n", SDC_ShowTransferType(SDHost[ip_idx].Card->FlowSet.UseDMA));
     return 0;
 }
 
@@ -390,8 +392,10 @@ lib_sdc_scan_card(u8 ip_idx, u8 speed)
     } else if (SDHost[ip_idx].Card->CardType == SDIO_TYPE_CARD) {
         if ((SDHost[ip_idx].module_sts & SDHCI_MODULE_STS_SDIO_STD_FUNC) > 0) {
             ftsdc021_sdio_read_cccr(ip_idx, SDHost[ip_idx].Card->OCR);
+            /* Remove since the memory corruption
             ftsdc021_sdio_cis_init();
             ftsdc021_sdio_read_common_cis(ip_idx);
+            */
             ftsdc021_sdio_enable_4bit_bus(ip_idx);
             ftsdc021_sdio_enable_hs(ip_idx);
             for (i = 0; i < SDHost[ip_idx].Card->sdio_funcs; i++) {
