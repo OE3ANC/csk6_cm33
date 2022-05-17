@@ -390,10 +390,10 @@ SPI_PowerControl(void *spi_dev, CSK_POWER_STATE state)
         spi->txfifo_depth = spi_get_txfifo_size(spi);
         spi->rxfifo_depth = spi_get_rxfifo_size(spi);
 
-        // set TX FIFO threshold and RX FIFO threshold to half of TX/RX FIFO depth
-        spi->reg->CTRL |= (TXTHRES(spi->txfifo_depth / 2) | RXTHRES(spi->rxfifo_depth / 2));
-        spi->info->tx_bsize_shift = ITEMS_TO_BSIZE(spi->txfifo_depth / 2); //DMA_BSIZE_4;
-        spi->info->rx_bsize_shift = ITEMS_TO_BSIZE(spi->rxfifo_depth / 2); //DMA_BSIZE_4;
+        // set TX FIFO threshold and RX FIFO threshold to half of TX/RX FIFO dept
+        spi->reg->CTRL |= (TXTHRES(1) | RXTHRES(1));
+        spi->info->tx_bsize_shift = ITEMS_TO_BSIZE(1);
+        spi->info->rx_bsize_shift = ITEMS_TO_BSIZE(1);
 
         // clear SPI run-time resources
         spi->info->status.all = 0U;

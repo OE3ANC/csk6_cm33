@@ -401,8 +401,11 @@ int32_t HAL_GPT_SetPWMFreqDuty(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_t fr
 	else{
 		//pwmout mode0
 		tmp = ((clockfreq[freqpos] >> divider[pos])/freq);
-		high16bit = tmp*duty/100;
+		high16bit = tmp  *duty / 100;
 		low16bit = tmp - high16bit;
+
+		high16bit--;
+		low16bit--;
 
 		if((high16bit > 0xFFFF) || (low16bit > 0xFFFF))
 			return CSK_DRIVER_ERROR;

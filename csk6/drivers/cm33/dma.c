@@ -694,7 +694,7 @@ static void update_next_xfer_addr(DMA_Channel_Info *ch_info, uint32_t control,
     ch_info->DstAddr = dst_addr;
 }
 
-__inline static void clear_all_interrupts(uint32_t ch_bits)
+_FAST_FUNC_RO __inline static void clear_all_interrupts(uint32_t ch_bits)
 {
     // Clear all DMA interrupt flags of specified channels
     CSK_DMA->CLEAR.XFER = ch_bits;
@@ -704,22 +704,22 @@ __inline static void clear_all_interrupts(uint32_t ch_bits)
     CSK_DMA->CLEAR.ERROR = ch_bits;
 }
 
-__inline static void clear_xfer_interrupts(uint32_t ch_bits)
+_FAST_FUNC_RO __inline static void clear_xfer_interrupts(uint32_t ch_bits)
 {
     CSK_DMA->CLEAR.XFER = ch_bits;
 }
 
-__inline static void clear_block_interrupts(uint32_t ch_bits)
+_FAST_FUNC_RO __inline static void clear_block_interrupts(uint32_t ch_bits)
 {
     CSK_DMA->CLEAR.BLOCK = ch_bits;
 }
 
-__inline static void clear_error_interrupts(uint32_t ch_bits)
+_FAST_FUNC_RO __inline static void clear_error_interrupts(uint32_t ch_bits)
 {
     CSK_DMA->CLEAR.ERROR = ch_bits;
 }
 
-__inline static void disable_all_interrupts(uint32_t ch_bits)
+_FAST_FUNC_RO __inline static void disable_all_interrupts(uint32_t ch_bits)
 {
     // Disable/Mask all DMA interrupt flags of specified channels
     CSK_DMA->MASK.XFER = (ch_bits << 8);
@@ -739,17 +739,17 @@ __inline static void disable_all_interrupts(uint32_t ch_bits)
 //    { CSK_DMA->MASK.##name = (ch_bits << 8); }
 */
 
-__inline static void enable_xfer_interrupts(uint32_t ch_bits)
+_FAST_FUNC_RO __inline static void enable_xfer_interrupts(uint32_t ch_bits)
 {
     CSK_DMA->MASK.XFER = (ch_bits << 8) | ch_bits;
 }
 
-__inline static void enable_block_interrupts(uint32_t ch_bits)
+_FAST_FUNC_RO __inline static void enable_block_interrupts(uint32_t ch_bits)
 {
     CSK_DMA->MASK.BLOCK = (ch_bits << 8) | ch_bits;
 }
 
-__inline static void enable_error_interrupts(uint32_t ch_bits)
+_FAST_FUNC_RO __inline static void enable_error_interrupts(uint32_t ch_bits)
 {
     CSK_DMA->MASK.ERROR = (ch_bits << 8) | ch_bits;
 }
@@ -779,6 +779,42 @@ __attribute__((unused)) static int32_t check_burst_bytes(uint8_t ch, uint32_t co
     bsize = (control & DMA_CH_CTLL_DST_BSIZE_MASK) >> DMA_CH_CTLL_DST_BSIZE_POS;
     if (calc_burst_bytes(width, bsize) > fifo_depth)
         return -1;
+
+    return 0;
+}
+
+/**
+ * NOTE THAT:
+ * Do not call this interface unless you really know what you are doing.
+ */
+_FAST_FUNC_RO int32_t dma_fast_update_only_for_fix_channel(uint8_t ch, uint32_t src, uint32_t dst, uint32_t size)
+{
+    DMA_CHANNEL_REG *dma_ch = DMA_CHANNEL(ch);
+    uint32_t ch_bit = 0x1U << ch;
+
+    if (ch >= DMA_NUMBER_OF_CHANNELS || (CSK_DMA->CH_EN & ch_bit)
+        || !(channel_active & ch_bit)) {
+        return -1;
+    }
+
+    disable_all_interrupts(ch_bit);
+
+    /* Set CTLx.BLOCK_TS = size and cTLx.Done = 0 */
+    dma_ch->CTL_HI = (size & DMA_CH_CTLH_BLOCK_TS_MASK);
+
+    /* Set Source and Destination address */
+    dma_ch->SAR = src;
+    dma_ch->DAR = dst;
+
+    /* Write control & configuration etc. registers */
+    dma_ch->CTL_LO |= DMA_CH_CTLL_INT_EN;
+
+    /* Enable DMA XFER and ERROR interrupts (no BLOCK & TRANS interrupts) */
+    enable_xfer_interrupts(ch_bit);
+    enable_error_interrupts(ch_bit);
+
+    /* Enable DMA Channel to trigger data transfer */
+    CSK_DMA->CH_EN = (ch_bit << 8) | ch_bit;
 
     return 0;
 }
