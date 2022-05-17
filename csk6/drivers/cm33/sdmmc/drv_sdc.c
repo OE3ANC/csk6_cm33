@@ -2,9 +2,6 @@
 //#include "lib_pmu.h"
 //#include "lib_gpio.h"
 
-extern volatile ftsdc021_reg*
-gpRegSDC(u8 ip_idx);
-
 u8
 SDC_SD_menu(u8 ip_idx);
 u8

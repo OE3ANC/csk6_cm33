@@ -4,8 +4,6 @@
 /**
  * SDIO card related operations
  */
-extern volatile ftsdc021_reg*
-gpRegSDC(u8 ip_idx);
 extern u32
 sdc_jiffies(void);
 

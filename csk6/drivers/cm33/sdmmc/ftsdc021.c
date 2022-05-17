@@ -4,6 +4,9 @@
 #include "hal/venus_ap.h"
 //#include "nds32.h"
 
+#pragma GCC push_options
+#pragma GCC optimize("O2")
+
 #define FTSDC021_BASE_CLOCK  100
 
 volatile ftsdc021_reg* gpRegSD0 = (ftsdc021_reg*) SDC_FTSDC021_0_PA_BASE;
@@ -43,18 +46,6 @@ sdc_jiffies(void)
     return k_uptime_get();
 }
 
-volatile ftsdc021_reg*
-gpRegSDC(u8 ip_idx)
-{
-    switch (ip_idx) {
-    case 0:
-        return gpRegSD0;
-    default:
-        break;
-    }
-//  sdc_dbg_print_level(0,"no valid SD ip_idx");
-    return NULL;
-}
 s32
 sd_mutex_create(u8 ip_idx)
 {
@@ -360,7 +351,7 @@ ftsdc021_transfer_data(u8 ip_idx, Transfer_Act act, u32* buffer, u32 length)
 //sdc_dbg_print("i=%d,a=%s,d=%s,l=%04X\n", ip_idx, ((act == WRITE)?"w":"r"), ((SDHost[ip_idx].Card->FlowSet.UseDMA == SDMA)?"S":"N"), length);
 //sdc_dbg_print("i=%d,a=%s,l=%X\n", ip_idx, ((act == WRITE)?"w":"r"), length);
 //sdc_dbg_print("t=%d-", gm_timer_get_tick(0,0));
-    if (SDHost[ip_idx].Card->FlowSet.UseDMA == PIO) {
+    if (unlikely(SDHost[ip_idx].Card->FlowSet.UseDMA == PIO)) {
 //if (SDHost[ip_idx].Card->FlowSet.UseDMA == PIO || length==4) {
         u32 dsize;
         u8* u8_buf = NULL;
@@ -440,7 +431,7 @@ ftsdc021_transfer_data(u8 ip_idx, Transfer_Act act, u32* buffer, u32 length)
 
         /* Wait for last block to be completed */
 
-    } else if (SDHost[ip_idx].Card->FlowSet.UseDMA == SDMA) {
+    } else if (likely(SDHost[ip_idx].Card->FlowSet.UseDMA == SDMA)) {
         u32 next_addr;
 
         trans_sz = SDHost[ip_idx].Card->FlowSet.sdma_bound_mask + 1;
@@ -532,16 +523,16 @@ ftsdc021_transfer_data(u8 ip_idx, Transfer_Act act, u32* buffer, u32 length)
     }
 
     out:
-    if (SDHost[ip_idx].Card->ErrorSts) {
+    if (unlikely(SDHost[ip_idx].Card->ErrorSts)) {
         sdc_dbg_print("transfer_data error %x \n", SDHost[ip_idx].Card->ErrorSts);
         ftsdc021_ErrorRecovery(ip_idx);
         return 1;
     }
 //sdc_dbg_print("%d\n", gm_timer_get_tick(0,0));
     if (act == READ && SDHost[ip_idx].Card->FlowSet.UseDMA != PIO) {	//invalidate again
-//        nds32_dma_fast_inv_stage2(bf, bf + size);
+ //        nds32_dma_fast_inv_stage2(bf, bf + size);
     	cache_dma_fast_inv_stage2(bf, bf + size);
-    }
+     }
     return length;
 }
 
@@ -557,7 +548,7 @@ ftsdc021_prepare_data(u8 ip_idx, u32 blk_cnt, u16 blk_sz, u32 buff_addr, Transfe
     if (gpRegSDC(ip_idx)->TxMode & SDHCI_TXMODE_AUTOCMD23_EN)
         gpRegSDC(ip_idx)->SdmaAddr = blk_cnt;
 
-    if (buff_addr == 0) {
+    if (unlikely(buff_addr == 0)) {
         sdc_dbg_print("%s invalid buffer address[%x]\n", __func__, buff_addr);
     } else {
         if (SDHost[ip_idx].Card->FlowSet.UseDMA != PIO) {
@@ -605,7 +596,7 @@ ftsdc021_set_transfer_mode(u8 ip_idx, u8 blk_cnt_en, u8 auto_cmd, u8 dir, u8 mul
 {
     u16 mode;
 
-    if ((dir != SDHCI_TXMODE_READ_DIRECTION) && (dir != 0)) {
+    if (unlikely((dir != SDHCI_TXMODE_READ_DIRECTION) && (dir != 0))) {
         sdc_dbg_print(" ERR## ... Transder Mode, direction value not correct.\n");
         return 1;
     }
@@ -615,7 +606,7 @@ ftsdc021_set_transfer_mode(u8 ip_idx, u8 blk_cnt_en, u8 auto_cmd, u8 dir, u8 mul
         auto_cmd = 1;
 
     auto_cmd <<= 2;
-    if ((auto_cmd != SDHCI_TXMODE_AUTOCMD12_EN) && (auto_cmd != SDHCI_TXMODE_AUTOCMD23_EN) && (auto_cmd != 0)) {
+    if (unlikely((auto_cmd != SDHCI_TXMODE_AUTOCMD12_EN) && (auto_cmd != SDHCI_TXMODE_AUTOCMD23_EN) && (auto_cmd != 0))) {
         sdc_dbg_print(" ERR## ... Transder Mode, auto cmd value not correct.\n");
         return 1;
     }
@@ -726,7 +717,7 @@ ftsdc021_send_command(u8 ip_idx, u8 CmdIndex, u8 CmdType, u8 DataPresent,
         }
     }
 
-    if (gpRegSDC(ip_idx)->PresentState & SDHCI_STS_CMD_INHIBIT) {
+    if (unlikely(gpRegSDC(ip_idx)->PresentState & SDHCI_STS_CMD_INHIBIT)) {
         sdc_dbg_print(" ERR## CMD INHIBIT is one(Index = %d).\n", CmdIndex);
         return 1;
     }
@@ -787,7 +778,7 @@ ftsdc021_send_command(u8 ip_idx, u8 CmdIndex, u8 CmdType, u8 DataPresent,
     SDHost[ip_idx].Card->respLo = gpRegSDC(ip_idx)->CmdRespLo;
     SDHost[ip_idx].Card->respHi = gpRegSDC(ip_idx)->CmdRespHi;
 
-    if (SDHost[ip_idx].Card->ErrorSts) {
+    if (unlikely(SDHost[ip_idx].Card->ErrorSts)) {
         err = SDHost[ip_idx]
                 .Card->ErrorSts;
 
@@ -800,7 +791,7 @@ ftsdc021_send_command(u8 ip_idx, u8 CmdIndex, u8 CmdType, u8 DataPresent,
             //  ftsdc021_ErrorRecovery(ip_idx);
         }
     }
-    if (err != 0)
+    if (unlikely(err != 0))
         sdc_dbg_print("<ipx=%d> command error %x\n", ip_idx, err);
     return err;
 }
@@ -1801,6 +1792,7 @@ ftsdc021_card_detection_handle(u8 ip_idx)
         ftsdc021_enable_card_detect(ip_idx);
     }
 }
+_FAST_FUNC_RO
 void
 ftsdc021_0_IntrHandler()
 {
@@ -2623,3 +2615,5 @@ ftsdc021_card_writable(u8 ip_idx)
 {
     return (gpRegSDC(ip_idx)->PresentState & SDHCI_STS_CARD_WRITABLE);
 }
+
+#pragma GCC pop_options

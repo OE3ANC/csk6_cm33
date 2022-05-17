@@ -57,6 +57,7 @@ int range_is_cacheable(unsigned long start, unsigned long size)
 
 
 // write back from cache to memory
+_FAST_FUNC_RO
 void dcache_clean_range(unsigned long start, unsigned long end)
 {
 #if (NO_CACHE_DEBUG == 0)
@@ -92,8 +93,8 @@ void dcache_flush_range(unsigned long start, unsigned long end)
 #endif
 }
 
-
 // usually called before transferring data to memory (NOT cache-line-aligned) via DMA
+_FAST_FUNC_RO
 void cache_dma_fast_inv_stage1(unsigned long start, unsigned long end)
 {
 #if (NO_CACHE_DEBUG == 0)
@@ -128,6 +129,7 @@ void unaligned_cache_line_move(unsigned char* src, unsigned char* dst, unsigned 
 }
 
 // usually called after transferring data to memory  (NOT cache-line-aligned) via DMA
+_FAST_FUNC_RO
 void cache_dma_fast_inv_stage2(unsigned long start, unsigned long end)
 {
 #if (NO_CACHE_DEBUG == 0)
