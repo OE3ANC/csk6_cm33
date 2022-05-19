@@ -1769,8 +1769,8 @@ int32_t apc_channel_abort (APC_CH ch) // abort APC channel data transfer only
     }
 
     if (pdci->busy_lr[lr_idx] != 0) {
-        // abort and wait until done
-        ret = dma_channel_disable(pdci->dma_ch_lr[lr_idx], true);
+        // abort and no need to wait until done
+        ret = dma_channel_disable(pdci->dma_ch_lr[lr_idx], false);
         pdci->busy_lr[lr_idx] = 0;
 
         // disable all interrupts of APC channel
