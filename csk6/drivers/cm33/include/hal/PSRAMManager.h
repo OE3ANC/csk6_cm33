@@ -13,7 +13,8 @@
 #include <stdint.h>
 #include "clock_config.h"
 
-#define PSRAM_SEARCH_DQS_NUM                (1024 * 4)     // bytes
+#define PSRAM_INNER_SEARCH_LOOP_NUM         64
+#define PSRAM_SEARCH_DQS_NUM                64 
 #define PSRAM_SIZE                          (8*1024*1024)  // bytes
 #define PSRAM_EYE_DIAGRAM_TOP               (0xB4)
 #define PSRAM_EYE_DIAGRAM_BOTTOM            (0x0)
