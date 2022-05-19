@@ -10,6 +10,7 @@ if(${CONFIG_SOC_LS_ADSP_CSK6})
                                 hifi4/include/hal/reg)
     zephyr_library_sources(hifi4/venus_cp.c
                             hifi4/dma_venus.c
+                            hifi4/spi.c
                             hifi4/cache_cp.c
                             hifi4/gpio_venus.c
                             hifi4/uart.c
