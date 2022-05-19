@@ -30,7 +30,6 @@
 #endif
 #define PSRAM_LOGE(str, ...) 
 
-
 static uint32_t psram_src_array[PSRAM_SEARCH_DQS_NUM] __attribute__ ((aligned(32)));
 static uint32_t psram_dst_array[PSRAM_SEARCH_DQS_NUM] __attribute__ ((aligned(32)));
 
@@ -46,20 +45,26 @@ static void psram_data_init(void){
 
 static uint32_t psram_random_data_check(uint8_t writed){
     unsigned int ret = 0;
+    unsigned int loop = 0;
 
     uint32_t *ptr_psram = (uint32_t *)PSRAM_BASE;
 
-    if (writed){
-        psram_data_init();
-        __builtin_memcpy(ptr_psram, psram_src_array,       sizeof(psram_src_array));
-    }
-    // flush the data from cache, ensure the random data reside in PSRAM
-    // write back + invalidate
-    dcache_flush_range((unsigned long)ptr_psram, (unsigned long)(ptr_psram + sizeof(psram_src_array)));
-    // reload the PSRAM data to static buffer
-    __builtin_memcpy(psram_dst_array,        ptr_psram, sizeof(psram_dst_array));
+    for (loop = 0; loop < PSRAM_INNER_SEARCH_LOOP_NUM; loop++){
 
-    ret = __builtin_memcmp(psram_src_array, psram_dst_array, sizeof(psram_src_array));
+        if (writed){
+            psram_data_init();
+            __builtin_memcpy(ptr_psram, psram_src_array,       PSRAM_SEARCH_DQS_NUM * sizeof(uint32_t));
+        }
+        // flush the data from cache, ensure the random data reside in PSRAM
+        // write back + invalidate
+        dcache_flush_range((unsigned long)ptr_psram, (unsigned long)(ptr_psram + PSRAM_SEARCH_DQS_NUM));
+        // reload the PSRAM data to static buffer
+        __builtin_memcpy(psram_dst_array,        ptr_psram, PSRAM_SEARCH_DQS_NUM * sizeof(uint32_t));
+
+        ret |= __builtin_memcmp(psram_src_array, psram_dst_array, PSRAM_SEARCH_DQS_NUM * sizeof(uint32_t));
+
+        ptr_psram += PSRAM_SEARCH_DQS_NUM;
+    }
 
     // 0 means equal
     return ret;
