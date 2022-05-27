@@ -2,12 +2,12 @@
 #include "ftsdc021.h"
 #include "ftsdc021_sdio.h"
 //#include "castor.h"
-
+#pragma GCC push_options
+#pragma GCC optimize("O2")
 /**
  * SDIO card related operations
  */
-extern volatile ftsdc021_reg*
-gpRegSDC(u8 ip_idx);
+
 extern u32
 sdc_jiffies(void);
 
@@ -49,13 +49,13 @@ ftsdc021_sdio_CMD52(u8 ip_idx, u32 write, u8 fn, u32 addr, u8 in, u8* out)
     /* CMD 52 Response type R5 */
     err = ftsdc021_send_command(ip_idx, SDHCI_IO_RW_DIRECT,
             SDHCI_CMD_TYPE_NORMAL, 0, SDHCI_CMD_RTYPE_R1R5R6R7, 1, arg);
-    if (err) {
+    if (unlikely(err)) {
         sd_mutex_unlock(ip_idx);
         printk("%s send command fail\n", __func__);
         return err;
     }
 
-    if (card->respLo & (R5_ERROR | R5_FUNCTION_NUMBER | R5_OUT_OF_RANGE)) {
+    if (unlikely(card->respLo & (R5_ERROR | R5_FUNCTION_NUMBER | R5_OUT_OF_RANGE))) {
         sdc_dbg_print("SDIO: IO_RW_DIRECT response indicate error 0x%llx.\n",
                 card->respLo);
         sd_mutex_unlock(ip_idx);
@@ -113,7 +113,7 @@ ftsdc021_sdio_CMD53(u8 ip_idx, u32 write, u8 fn, u32 addr, u32 incr_addr,
         return 1;
     }
 
-    if (card->respLo & (R5_ERROR | R5_FUNCTION_NUMBER | R5_OUT_OF_RANGE)) {
+    if (unlikely(card->respLo & (R5_ERROR | R5_FUNCTION_NUMBER | R5_OUT_OF_RANGE))) {
         sdc_dbg_print("SDIO: IO_RW_EXTENDED response indicate error 0x%llx.\n",
                 card->respLo);
         sd_mutex_unlock(ip_idx);
@@ -981,3 +981,5 @@ ftsdc021_ops_Card_Info(u8 ip_idx)
     // Fetching the multiple bytes from beginning 64bytes of CCCR through CMD53.
     return 1;
 }
+
+#pragma GCC pop_options

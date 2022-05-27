@@ -28,7 +28,7 @@
 #define SDC_FTSDC021_0_PA_SIZE      0x00100000
 #define SDC_FTSDC021_0_IRQ          IRQ_SDIO_VECTOR
 
-#define sdc_dbg_print(format, arg...) printf(format, ## arg)
+#define sdc_dbg_print(format, arg...) 
 #define sdc_dbg_print_level(level, format, arg...) ((void)0);
 
 #define pvPortMalloc    k_malloc
@@ -965,4 +965,9 @@ sd_mutex_lock(u8 ip_idx);
 s32
 sd_mutex_unlock(u8 ip_idx);
 extern u32 sdc_debug_level;
+
+
+extern volatile ftsdc021_reg* gpRegSD0;
+#define gpRegSDC(ip_idx) (gpRegSD0)
+
 #endif
