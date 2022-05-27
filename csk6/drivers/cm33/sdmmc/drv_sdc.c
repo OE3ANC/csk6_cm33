@@ -608,6 +608,7 @@ lib_sdc_detect(u8 ip_idx)
             if ((SDHost[ip_idx].module_sts & SDHCI_MODULE_STS_FIXED) == 0)
                 ftsdc021_card_detection_handle(ip_idx);
             if (lib_sdc_card_exist(ip_idx) == ERR_SD_NO_ERROR) {
+                SDHost[ip_idx].sdcard_init_complete = 0;
                 if (SDHost[ip_idx].sdcard_init_complete == 0) {
                     if ((SDHost[ip_idx].reset_flag == 1) && (SDHost[ip_idx].Card->already_init == 0)) {
                         ftsdc021_HCReset(ip_idx, SD_SOFTRST_ALL);
