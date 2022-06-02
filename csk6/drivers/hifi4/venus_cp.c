@@ -6,6 +6,7 @@
  */
 
 #include "venus_cp.h"
+#include "hal/ClockManager.h"
 
 // value returned by xthal_disable_interrupts() or xthal_enable_interrupts,
 // used to restores interrupts in the call xthal_restore_interrupts().
@@ -260,4 +261,15 @@ uint32_t eval_freq_divNM2(uint16_t N_max, uint16_t M_max, uint32_t khz_in,
         *khz_out_p = (khz_in * N_sel + (M_sel >> 1)) / M_sel;
     }
     return ( (N_sel << 16) | M_sel );
+}
+
+void CSK6_NPU_Enable(void)
+{
+    // enable NPU Clock
+	__HAL_CRM_NPU_CLK_ENABLE();
+
+    // release NPU
+    if(IP_SYSCTRL->REG_SW_RESET_NPU.all){
+        IP_SYSCTRL->REG_SW_RESET_NPU.all = 0xCAFE000C;
+    }
 }

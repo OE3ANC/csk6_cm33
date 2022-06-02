@@ -421,7 +421,7 @@ struct DW_UART_REG_LCR_BITS
     volatile uint32_t DLS                           : 2; // bit 0~1
     volatile uint32_t STOP                          : 1; // bit 2~2
     volatile uint32_t PEN                           : 1; // bit 3~3
-    volatile uint32_t eps                           : 1; // bit 4~4
+    volatile uint32_t EPS                           : 1; // bit 4~4
     volatile uint32_t STICK_PARITY                  : 1; // bit 5~5
     volatile uint32_t BC                            : 1; // bit 6~6
     volatile uint32_t DLAB                          : 1; // bit 7~7
