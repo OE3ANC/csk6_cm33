@@ -22,9 +22,6 @@
 
 #define SPIB_VERSION 0x02002000
 
-extern void switch_to_inn(int clk);
-extern void switch_to_ext(int clk);
-extern int platform_init(int spi, int clk);
 extern unsigned int spib_get_ifset(unsigned long base);
 extern void spib_set_ifset(unsigned long base, unsigned int reg);
 extern unsigned int spib_get_pio(unsigned long base);
@@ -46,19 +43,19 @@ extern unsigned int spib_get_data(unsigned long base);
 extern void spib_set_data(unsigned long base, unsigned int data);
 extern unsigned int spib_get_regtiming(unsigned long base);
 extern void spib_set_regtiming(unsigned long base, unsigned int data);
-//extern void spib_get_fifo(unsigned int *buffer, unsigned int start, unsigned int length);
-//extern unsigned int spib_set_fifo(unsigned int *buffer, unsigned int start, unsigned int length);
+// extern void spib_get_fifo(unsigned int *buffer, unsigned int start, unsigned int length);
+// extern unsigned int spib_set_fifo(unsigned int *buffer, unsigned int start, unsigned int length);
 extern unsigned int spib_prepare_dctrl(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int);
-extern unsigned int spib_wait_spi(unsigned long base);
+extern int spib_wait_spi(unsigned long base);
 extern unsigned int spib_get_version(unsigned long base);
 extern unsigned int spib_get_busy(unsigned long base);
 extern unsigned int spib_get_rx_empty(unsigned long base);
-extern unsigned int spib_wait_rx_empty(unsigned long base);
+extern int spib_wait_rx_empty(unsigned long base);
 extern unsigned int spib_get_rx_entries(unsigned long base);
 extern void spib_clr_fifo(unsigned long base);
 extern void spib_exe_cmmd(unsigned long base, unsigned int op_addr, unsigned int spib_dctrl);
 extern void spib_rx_data(unsigned long base, unsigned int *pRxdata, int RxBytes);
-extern void spib_tx_data(unsigned long base, unsigned int *pTxdata, int TxBytes);
+extern void spib_tx_data(unsigned long base, void *pTxdata, int TxBytes);
 
 extern unsigned int spib_prepare_dctrl2(unsigned int cmden,
 										unsigned int addren,
