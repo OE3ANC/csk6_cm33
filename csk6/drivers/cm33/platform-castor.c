@@ -128,6 +128,8 @@ extern int mxic_enable_dc(FLASH_DEV *dev);
 extern int mxic_disable_dc(FLASH_DEV *dev);
 extern int mxic_get_dc(FLASH_DEV *dev, unsigned char *dc);
 
+static uint8_t s_ext_addr4 = 0;
+
 _EXT_RAM int platform_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc1)
 {
 	int ret = 0;
@@ -142,6 +144,7 @@ _EXT_RAM int platform_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc
 	if (rdid[2] >= 24) {
 		dev->addr4 = 1;
 	}
+	s_ext_addr4 = dev->addr4;
 
 	if(dev->addr4) {
 		RetData = (3 << SPIB_IF_ADDLEN_OFFSET) & SPIB_IF_ADDLEN_MASK;
@@ -214,6 +217,21 @@ _EXT_RAM int platform_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc
 	} while(0);
 
     return ret;
+}
+
+_EXT_RAM int csk_flash_clear_add4(void)
+{
+	if (!s_ext_addr4)
+		return 0;
+
+#define EXT_CLR_ADDR4 0xe9
+	unsigned int op_addr, spib_dctrl;
+	unsigned long base = CMN_FLASHC_BASE;
+
+	op_addr = EXT_CLR_ADDR4;
+	spib_dctrl = spib_prepare_dctrl(0x0, 0x0, SPIB_TM_WRonly, 0, 0, 0);
+	spib_exe_cmmd(base, op_addr, spib_dctrl);
+	return spib_wait_spi(base);
 }
 
 /*--------------------------------------------*/

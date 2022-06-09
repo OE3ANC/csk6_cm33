@@ -451,21 +451,6 @@ _EXT_RAM int spirom_set_extaddr(FLASH_DEV *dev, unsigned int addr)
 	return result;
 }
 
-
-_EXT_RAM int csk_flash_clear_add4(void)
-{
-#define EXT_SET_ADDR4 0xb7
-#define EXT_CLR_ADDR4 0xe9
-	unsigned int op_addr, spib_dctrl;
-	unsigned long base = CMN_FLASHC_BASE;
-
-	op_addr = EXT_CLR_ADDR4;
-	spib_dctrl = spib_prepare_dctrl(0x0, 0x0, SPIB_TM_WRonly, 0, 0, 0);
-	spib_exe_cmmd(base, op_addr, spib_dctrl);
-	return spib_wait_spi(base);
-}
-
-
 _EXT_RAM int spirom_set_addr4(FLASH_DEV *dev, int en)
 {
 #define EXT_SET_ADDR4 0xb7
