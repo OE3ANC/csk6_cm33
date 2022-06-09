@@ -646,14 +646,8 @@ int32_t UART_Control(void *res, uint32_t control, uint32_t arg)
 
         if (arg) {
             uart->info->flags |= UART_FLAG_RX_ENABLED;
-
-            // RX Line interrupt enable (overrun, framing, parity error, break)
-            uart->reg->REG_IER.all |= UARTC_IER_RLS;
-
         } else {
             uart->info->flags &= ~UART_FLAG_RX_ENABLED;
-            uart->reg->REG_IER.all &= ~UARTC_IER_RLS;
-
         }
 
         return CSK_DRIVER_OK;
