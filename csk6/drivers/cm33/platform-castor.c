@@ -135,15 +135,19 @@ _EXT_RAM int platform_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc
 	unsigned int RetData, SCLK_DIV = dev->sclk_div;  //0xff;	//SCLK is the same as the SPI clock source
 	unsigned char val;
 
-#ifdef EXT_ADDR4_MODE
-    if(dev->d_width == 4){
-        RetData = (3 << SPIB_IF_ADDLEN_OFFSET) & SPIB_IF_ADDLEN_MASK;
-    }else{
-        RetData = (2 << SPIB_IF_ADDLEN_OFFSET) & SPIB_IF_ADDLEN_MASK;
-    }
-#else
-	RetData = (2 << SPIB_IF_ADDLEN_OFFSET) & SPIB_IF_ADDLEN_MASK;
-#endif
+	uint8_t rdid[3] = {0};
+	ret = spirom_cmd_send(dev, SPIROM_CMD_RDID, 0x0, 0, NULL, (unsigned int*)rdid);
+	if (ret) return ret;
+	// enable 4-byte addressing if flash is larger than 16 MB (2 ^ 24 bytes)
+	if (rdid[2] >= 24) {
+		dev->addr4 = 1;
+	}
+
+	if(dev->addr4) {
+		RetData = (3 << SPIB_IF_ADDLEN_OFFSET) & SPIB_IF_ADDLEN_MASK;
+	} else {
+		RetData = (2 << SPIB_IF_ADDLEN_OFFSET) & SPIB_IF_ADDLEN_MASK;
+	}
 	RetData |= ((7 << SPIB_IF_DATALEN_OFFSET) & SPIB_IF_DATALEN_MASK) |
 	        ((1 << SPIB_IF_DATAMERGE_OFFSET) & SPIB_IF_DATAMERGE_MASK) | ((0 << SPIB_IF_DIR_OFFSET) & SPIB_IF_DIR_MASK) |
 	        ((0 << SPIB_IF_LSB_OFFSET) & SPIB_IF_LSB_MASK) | ((0 << SPIB_IF_SLV_OFFSET) & SPIB_IF_SLV_MASK) |
@@ -155,37 +159,27 @@ _EXT_RAM int platform_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc
 	spib_set_regtiming(base, RetData | SCLK_DIV);    
 // #if 0
 //	ret = spirom_cmd_send(dev, SPIROM_CMD_RDID, 0x0, 0, NULL, (unsigned int*)&RetData);
-#ifdef EXT_ADDR4_MODE
-    extern int spirom_set_addr4(FLASH_DEV *dev, int en);
-    if(dev->d_width == 4){
-        ret = spirom_set_addr4(dev, 1);
-    }
-#endif
+	extern int spirom_set_addr4(FLASH_DEV *dev, int en);
+	if(dev->addr4) {
+		ret = spirom_set_addr4(dev, 1);
+	}
 	do {
 		if(dev->d_width == 4) {
 			ret = mxic_enable_qd(dev);  //let flash support quad mode
 			if(ret) break;
-#ifdef EXT_ADDR4_MODE
-    if(dev->d_width == 4){
-        outw(SPIB_REG_MEMACCESS(base), 13);  //set spi read mode as Quad mode
-    }else{
-        outw(SPIB_REG_MEMACCESS(base), 5);  //set spi read mode as Quad mode
-    }
-#else
-			outw(SPIB_REG_MEMACCESS(base), 5);  //set spi read mode as Quad mode
-#endif
+			if(dev->addr4) {
+				outw(SPIB_REG_MEMACCESS(base), 13);  //set spi read mode as Quad mode
+			} else {
+				outw(SPIB_REG_MEMACCESS(base), 5);  //set spi read mode as Quad mode
+			}
 		} else {
 			ret = mxic_disable_qd(dev);
 			if(ret) break;
-#ifdef EXT_ADDR4_MODE
-    if(dev->d_width == 4){
-        outw(SPIB_REG_MEMACCESS(base), 9);
-    }else{
-        outw(SPIB_REG_MEMACCESS(base), 1);
-    }            
-#else
-			outw(SPIB_REG_MEMACCESS(base), 1);
-#endif
+			if(dev->addr4) {
+				outw(SPIB_REG_MEMACCESS(base), 9);
+			} else {
+				outw(SPIB_REG_MEMACCESS(base), 1);
+			}
 		}
 		usr_cfg = 0xf5000000;
 //		if(dev->clk_inv) {
