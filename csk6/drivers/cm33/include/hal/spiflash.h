@@ -5,9 +5,6 @@
 #include <stdbool.h>
 // #include "types.h"
 
-/* 4 bytes address mode */
-#define EXT_ADDR4_MODE
-
 typedef enum
 {
 	RUN_WITH_INT = 0, // run with interrupt
@@ -22,6 +19,7 @@ typedef struct FLASH_DEV
 	unsigned char run_mod;
 	unsigned char w_protect;
 	unsigned long timeout;
+	unsigned char addr4;
 } FLASH_DEV;
 
 typedef enum

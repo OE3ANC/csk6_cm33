@@ -193,41 +193,17 @@ spirom_cmd_send(FLASH_DEV *dev, unsigned int cmd, unsigned int addr, unsigned in
 		if (dev->d_width == 4)
 		{
 			spib_dctrl = spib_prepare_dctrl2(0x1, 0x1, SPIB_TM_DY_RD, 0, 1, bytes - 1, 1, 2, 1);
-#ifdef EXT_ADDR4_MODE
-		if(dev->d_width == 4){
-			op = SPIROM_OP_QFAST_READA4;
-		}else{
-			op = SPIROM_OP_QFAST_READ;
-		}
-#else
-			op = SPIROM_OP_QFAST_READ;
-#endif
+			op = dev->addr4 ? SPIROM_OP_QFAST_READA4 : SPIROM_OP_QFAST_READ;
 		}
 		else if (dev->d_width == 2)
 		{
 			spib_dctrl = spib_prepare_dctrl2(0x1, 0x1, SPIB_TM_DY_RD, 0, 0, bytes - 1, 1, 1, 0);
-#ifdef EXT_ADDR4_MODE
-		if(dev->d_width == 4){
-			op = SPIROM_OP_DFAST_READA4;
-		}else{
-			op = SPIROM_OP_DFAST_READ;
-		}
-#else
-			op = SPIROM_OP_DFAST_READ;
-#endif
+			op = dev->addr4 ? SPIROM_OP_DFAST_READA4 : SPIROM_OP_DFAST_READ;
 		}
 		else
 		{
 			spib_dctrl = spib_prepare_dctrl2(0x1, 0x1, SPIB_TM_DY_RD, 0, 0, bytes - 1, 0, 0, 0);
-#ifdef EXT_ADDR4_MODE
-		if(dev->d_width == 4){
-			op = SPIROM_OP_FAST_READA4;
-		}else{
-			op = SPIROM_OP_FAST_READ;
-		}
-#else
-			op = SPIROM_OP_FAST_READ;
-#endif
+			op = dev->addr4 ? SPIROM_OP_FAST_READA4 : SPIROM_OP_FAST_READ;
 		}
 		spib_exe_cmmd2(base, op, addr, spib_dctrl);
 		spib_rx_data(base, pdata, bytes);
@@ -243,41 +219,17 @@ spirom_cmd_send(FLASH_DEV *dev, unsigned int cmd, unsigned int addr, unsigned in
 		spib_exe_cmmd(base, op_addr, spib_dctrl);
 		break;
 	case SPIROM_CMD_ERASE:
-#ifdef EXT_ADDR4_MODE
-		if(dev->d_width == 4){
-			op = SPIROM_OP_SEA4;
-		}else{
-			op = SPIROM_OP_SE;
-		}
-#else
-		op = SPIROM_OP_SE;
-#endif
+		op = dev->addr4 ? SPIROM_OP_SEA4 : SPIROM_OP_SE;
 		spib_dctrl = spib_prepare_dctrl2(0x1, 0x1, SPIB_TM_NONE, 0, 0, 0, 0, 0, 0);
 		spib_exe_cmmd2(base, op, addr, spib_dctrl);
 		break;
 	case SPIROM_CMD_ERASE_B32:
-#ifdef EXT_ADDR4_MODE
-		if(dev->d_width == 4){
-			op = SPIROM_OP_BEA4;
-		}else{
-			op = SPIROM_OP_BE;
-		}
-#else
-		op = SPIROM_OP_BE;
-#endif
+		op = dev->addr4 ? SPIROM_OP_BEA4 : SPIROM_OP_BE;
 		spib_dctrl = spib_prepare_dctrl2(0x1, 0x1, SPIB_TM_NONE, 0, 0, 0, 0, 0, 0);
 		spib_exe_cmmd2(base, op, addr, spib_dctrl);
 		break;
 	case SPIROM_CMD_ERASE_B64:
-#ifdef EXT_ADDR4_MODE
-		if(dev->d_width == 4){
-			op = SPIROM_OP_BE2A4;
-		}else{
-			op = SPIROM_OP_BE2;
-		}
-#else
-		op = SPIROM_OP_BE2;
-#endif
+		op = dev->addr4 ? SPIROM_OP_BE2A4 : SPIROM_OP_BE2;
 		spib_dctrl = spib_prepare_dctrl2(0x1, 0x1, SPIB_TM_NONE, 0, 0, 0, 0, 0, 0);
 		spib_exe_cmmd2(base, op, addr, spib_dctrl);
 		break;
@@ -289,28 +241,12 @@ spirom_cmd_send(FLASH_DEV *dev, unsigned int cmd, unsigned int addr, unsigned in
 	case SPIROM_CMD_PROGRAM:
 		if (dev->d_width == 4)
 		{
-#ifdef EXT_ADDR4_MODE
-		if(dev->d_width == 4){
-			op = SPIROM_OP_QPPA4;
-		}else{
-			op = SPIROM_OP_QPP;
-		}
-#else
-			op = SPIROM_OP_QPP;
-#endif
+			op = dev->addr4 ? SPIROM_OP_QPPA4 : SPIROM_OP_QPP;
 			spib_dctrl = spib_prepare_dctrl2(0x1, 0x1, SPIB_TM_WRonly, bytes - 1, 0, 0, 0, 2, 0);
 		}
 		else
 		{
-#ifdef EXT_ADDR4_MODE
-		if(dev->d_width == 4){
-			op = SPIROM_OP_PPA4;
-		}else{
-			op = SPIROM_OP_PP;
-		}
-#else
-			op = SPIROM_OP_PP;
-#endif
+			op = dev->addr4 ? SPIROM_OP_PPA4 : SPIROM_OP_PP;
 			spib_dctrl = spib_prepare_dctrl2(0x1, 0x1, SPIB_TM_WRonly, bytes - 1, 0, 0, 0, 0, 0);
 		}
 		spib_exe_cmmd2(base, op, addr, spib_dctrl);
@@ -514,21 +450,6 @@ _EXT_RAM int spirom_set_extaddr(FLASH_DEV *dev, unsigned int addr)
 
 	return result;
 }
-
-
-_EXT_RAM int csk_flash_clear_add4(void)
-{
-#define EXT_SET_ADDR4 0xb7
-#define EXT_CLR_ADDR4 0xe9
-	unsigned int op_addr, spib_dctrl;
-	unsigned long base = CMN_FLASHC_BASE;
-
-	op_addr = EXT_CLR_ADDR4;
-	spib_dctrl = spib_prepare_dctrl(0x0, 0x0, SPIB_TM_WRonly, 0, 0, 0);
-	spib_exe_cmmd(base, op_addr, spib_dctrl);
-	return spib_wait_spi(base);
-}
-
 
 _EXT_RAM int spirom_set_addr4(FLASH_DEV *dev, int en)
 {
