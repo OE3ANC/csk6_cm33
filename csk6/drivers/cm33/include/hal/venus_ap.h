@@ -154,7 +154,7 @@ static inline unsigned long CACHE_LINE_SIZE(enum cache_t cache)
 
 #define CMN_PSRAMC_BASE         0x4A030000 // size=1MB
 
-
+#define CMN_DVP_BASE            0x4A050000 // size=64KB
 
 /** @addtogroup Peripheral_declaration
   * @{
