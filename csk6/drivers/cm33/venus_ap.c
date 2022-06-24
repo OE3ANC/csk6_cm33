@@ -251,7 +251,7 @@ void test_divNM()
 
 void* CP_Vector_Table[__HAL_CP_VECTOR_MAX] = { 0 };
 
-static void HAL_CP_Interrupt_Handler(){
+void HAL_CP_Interrupt_Handler(){
     int locate = 0;
     /// get interrupt status
     uint32_t status = IP_SYSCTRL->REG_CP2AP_INTS.all;

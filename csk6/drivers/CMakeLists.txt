@@ -48,6 +48,7 @@ elseif(${CONFIG_SOC_CSK6})
                             cm33/gpadc_venus.c
                             cm33/AON_IOMuxManager.c
                             cm33/keysense.c
+                            cm33/dvp_venus.c
                             cm33/sdmmc/drv_sdc.c
                             cm33/sdmmc/ftsdc021_ops.c
                             cm33/sdmmc/ftsdc021_sdio.c
