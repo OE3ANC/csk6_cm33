@@ -39,6 +39,7 @@
 // #include <trng_reg_venus.h>
 #include <dw_uart_reg_venus.h>
 // #include <wdt_reg_venus.h>
+#include <aon_timer_reg_venus.h>
 //#include <usb/usb_venus.h>
 
 /*****************************************************************************
@@ -147,6 +148,7 @@ static inline unsigned long CACHE_LINE_SIZE(enum cache_t cache)
 #define AON_KEYSENSE_BASE       0x46900000 // size=1MB
 #define AON_CBUTTON_BASE        0x46A00000 // size=1MB
 #define AON_IWDT_BASE           0x46B00000 // size=1MB
+#define AON_TIMER_BASE          0x46B00000 // size=1MB
 #define AON_RTC_BASE            0x46C00000 // size=1MB
 #define AON_EFUSECTRL_BASE      0x46D00000 // size=1MB
 #define AON_VAD_BASE            0x46E00000 // size=1MB
@@ -196,6 +198,7 @@ static inline unsigned long CACHE_LINE_SIZE(enum cache_t cache)
 #define IP_KEYSENSE                	((KEYSENSE_RegDef *) AON_KEYSENSE_BASE)
 #define IP_CBUTTON                	((CBUTTON_RegDef *) AON_CBUTTON_BASE)
 #define IP_IWDT                		((WDT_RegDef *) AON_IWDT_BASE)
+#define IP_AON_TIMER                ((AON_TIMER_RegDef *) AON_TIMER_BASE)
 #define IP_RTC                		((VENUS_RTC_RegDef *) AON_RTC_BASE)
 #define IP_EFUSECTRL               	((EFUSE_RegDef *) AON_EFUSECTRL_BASE)
 //#define VAD                		((XXX_TypeDef *) AON_VAD_BASE)
@@ -238,6 +241,7 @@ static inline unsigned long CACHE_LINE_SIZE(enum cache_t cache)
 #define IRQ_AON_CBUTTON_VECTOR          24
 #define IRQ_AON_RTC_VECTOR              25
 #define IRQ_AON_IWDT_VECTOR             26
+#define IRQ_AON_TIMER_VECTOR            26
 #define IRQ_AON_WAKEUP_VECTOR           27
 #define IRQ_AON_PMUC_VECTOR             28 // Reserved
 #define IRQ_CP0_VECTOR                  29 // Reserved
