@@ -33,7 +33,7 @@ typedef enum _prefetch_level{
 #define PSRAM_LOG_CHECK                     (1)
 #define PSRAM_ODT_ENA                       (0)
 #if defined(CSK6001)
-#define PSRAM_PREFETCH_LEVEL                _prefetch_level3
+#define PSRAM_PREFETCH_LEVEL                _prefetch_level2
 #define PSRAM_PREFETCH_PRED_NUM             2
 #define PSRAM_PREFETCH_FIFO_DEPTH           0x40
 
