@@ -550,13 +550,13 @@ _EXT_RAM int mxic_erase(FLASH_DEV *dev, unsigned int FlashAddr, unsigned int Dat
 		if (result)
 			break;
 		/*-- erase --*/
-		if (!(EraseAddrStart & SPIROM_BLK64_MASK) && EraseSectorCnt >= SPIROM_BLK64_SIZE / SPIROM_SECTOR_SIZE)
+		if (!(EraseAddrStart & SPIROM_BLK64_MASK) && (EraseSectorCnt >= (SPIROM_BLK64_SIZE / SPIROM_SECTOR_SIZE + i)))
 		{
 			result = spirom_cmd_send(dev, SPIROM_CMD_ERASE_B64, EraseAddrStart, 0, NULL, &RetData);
 			EraseAddrStart += SPIROM_BLK64_SIZE;
 			i += SPIROM_BLK64_SIZE / SPIROM_SECTOR_SIZE;
 		}
-		else if (!(EraseAddrStart & SPIROM_BLK32_MASK) && EraseSectorCnt >= SPIROM_BLK32_SIZE / SPIROM_SECTOR_SIZE)
+		else if (!(EraseAddrStart & SPIROM_BLK32_MASK) && (EraseSectorCnt >= (SPIROM_BLK32_SIZE / SPIROM_SECTOR_SIZE + i)))
 		{
 			result = spirom_cmd_send(dev, SPIROM_CMD_ERASE_B32, EraseAddrStart, 0, NULL, &RetData);
 			EraseAddrStart += SPIROM_BLK32_SIZE;
@@ -564,9 +564,11 @@ _EXT_RAM int mxic_erase(FLASH_DEV *dev, unsigned int FlashAddr, unsigned int Dat
 		}
 		else
 		{
-			result = spirom_cmd_send(dev, SPIROM_CMD_ERASE, EraseAddrStart, 0, NULL, &RetData);
-			EraseAddrStart += SPIROM_SECTOR_SIZE;
-			i += 1;
+			if(EraseSectorCnt >= (i+1)){
+				result = spirom_cmd_send(dev, SPIROM_CMD_ERASE, EraseAddrStart, 0, NULL, &RetData);
+				EraseAddrStart += SPIROM_SECTOR_SIZE;
+				i += 1;
+			}
 		}
 		if (result != 0)
 		{
