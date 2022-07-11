@@ -385,7 +385,7 @@ int32_t AON_WDT_Disable(void* res){
     AON_WDT_RESOURCES *aon_wdt = (AON_WDT_RESOURCES*) res;
 
     // Release protect
-    while(aon_wdt->reg->REG_AON_WDTTIMER_CTRL.bit.STOP){
+    while(aon_wdt->reg->REG_AON_WDTTIMER_CTRL.bit.STOP_PROTECTED){
         aon_wdt->reg->REG_STOP_PROTECT.all = AON_WDT_STOP_PROTECT_RELEASE;
     }
 
@@ -394,7 +394,7 @@ int32_t AON_WDT_Disable(void* res){
     while(aon_wdt->reg->REG_AON_WDTTIMER_CTRL.bit.WDENABLED);
 
     // Lock protect
-    while(!aon_wdt->reg->REG_AON_WDTTIMER_CTRL.bit.STOP){
+    while(!aon_wdt->reg->REG_AON_WDTTIMER_CTRL.bit.STOP_PROTECTED){
         aon_wdt->reg->REG_STOP_PROTECT.all = AON_WDT_STOP_PROTECT_LOCK;
     }
 
