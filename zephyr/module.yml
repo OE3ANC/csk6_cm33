@@ -1,3 +1,4 @@
 name: hal_csk
 build:
   cmake: .
+  kconfig: ./Kconfig
