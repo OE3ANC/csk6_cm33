@@ -249,7 +249,7 @@ RTC_Control(void* res, uint32_t control, uint32_t arg)
         else if (arg == 0)
         {
 
-            CSK_AON_RTC->CTRL = (~CTRL_ALARM_INT);
+            CSK_AON_RTC->CTRL &= (~CTRL_ALARM_INT);
             rtc->info->flag &= (~RTC_FLAG_ALARM);
         }
         break;
