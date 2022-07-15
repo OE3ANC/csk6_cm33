@@ -49,6 +49,7 @@ elseif(${CONFIG_SOC_CSK6})
                             cm33/keysense.c
                             cm33/dvp_venus.c
                             cm33/crypto.c
+                            cm33/trng.c
                             cm33/sdmmc/drv_sdc.c
                             cm33/sdmmc/ftsdc021_ops.c
                             cm33/sdmmc/ftsdc021_sdio.c
