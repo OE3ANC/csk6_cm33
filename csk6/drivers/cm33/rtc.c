@@ -53,6 +53,10 @@ RTC_Initialize(void *res, CSK_RTC_SignalEvent_t cb_event, void* workspace)
 
     rtc->info->flag = RTC_FLAG_INITIALIZED;
 
+    //硬件上rtc和keysense使用同一个寄存器配置时钟源
+    IP_PMUCTRL->REG_AON_CRM_CTRL1.bit.ENA_KEYSENSE_CLK = 1;
+    IP_PMUCTRL->REG_AON_CRM_CTRL1.bit.SEL_KEYSENSE_CLK = 0;
+
     return CSK_DRIVER_OK;
 }
 
