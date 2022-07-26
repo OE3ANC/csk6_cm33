@@ -301,11 +301,11 @@ GPIO_SetDir(void* res, uint32_t pin_mask, uint32_t dir){
 }
 
 int32_t
-GPIO_Status(void* res, _GPIO_* status, uint32_t* size){
+GPIO_Status(void* res, _GPIO_** status, uint32_t* size){
     CHECK_RESOURCES(res);
     GPIO_RESOURCES* gpio = (GPIO_RESOURCES*)res;
 
-    status = gpio->info->gpio_info;
+    *status = gpio->info->gpio_info;
     *size = gpio->max_num;
 
     return CSK_DRIVER_OK;
