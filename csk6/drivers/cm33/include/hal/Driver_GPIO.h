@@ -131,7 +131,7 @@ int32_t GPIO_PinRead(void* res, uint32_t pin_mask);
 
 int32_t GPIO_SetDir(void* res, uint32_t pin_mask, uint32_t dir);
 
-int32_t GPIO_Status(void* res, _GPIO_* status, uint32_t* size);
+int32_t GPIO_Status(void* res, _GPIO_** status, uint32_t* size);
 
 void* GPIOA(void);
 
