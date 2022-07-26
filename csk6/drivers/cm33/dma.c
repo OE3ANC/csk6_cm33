@@ -159,19 +159,18 @@ void dma_irq_handler (void);
 */
 static int32_t set_channel_active_flag (uint8_t ch)
 {
-  uint8_t gie = GINT_enabled();
+    int32_t r;
+    uint32_t k = hal_irq_lock();
 
-  if (gie) { disable_GINT(); }
+    if (channel_active & (1U << ch)) {
+        r = -1;
+    } else {
+        channel_active |= (1U << ch);
+        r = 0;
+    }
+    hal_irq_unlock(k);
 
-  if (channel_active & (1U << ch)) {
-    if (gie) { enable_GINT(); }
-    return -1;
-  }
-
-  channel_active |= (1U << ch);
-
-  if (gie) { enable_GINT(); }
-  return 0;
+    return r;
 }
 
 /**
@@ -181,17 +180,15 @@ static int32_t set_channel_active_flag (uint8_t ch)
 */
 static void clear_channel_active_flag (uint8_t ch)
 {
-  uint8_t gie = GINT_enabled();
-  uint32_t ch_bit = 1U << ch;
+    uint32_t ch_bit = 1U << ch;
+    uint32_t k = hal_irq_lock();
 
-  if (gie) { disable_GINT(); }
+    /* BSD: only NOT reserved channel can be clear active flay... */
+    if ((channel_reserved & ch_bit) == 0) {
+        channel_active &= ~ch_bit;
+    }
 
-  //channel_active &= ~(1U << ch);
-  //BSD: only NOT reserved channel can be clear active flay...
-  if ((channel_reserved & ch_bit) == 0)
-      channel_active &= ~ch_bit;
-
-  if (gie) { enable_GINT(); }
+    hal_irq_unlock(k);
 }
 
 /**
@@ -204,24 +201,22 @@ static void clear_channel_active_flag (uint8_t ch)
 */
 static int32_t set_channel_reserved_flag (uint8_t ch)
 {
-  uint8_t gie = GINT_enabled();
-  uint32_t ch_bit = 1U << ch;
+    uint32_t ch_bit = 1U << ch;
+    int32_t r;
 
-  if (gie) { disable_GINT(); }
+    uint32_t k = hal_irq_lock();
+    /* return failure if already reserved or active */
+    if ((channel_reserved & ch_bit) || (channel_active & ch_bit)) {
+        r = -1;
+    } else {
+        /* set reserved flag and active flag */
+        channel_reserved |= ch_bit;
+        channel_active |= ch_bit;
+        r = 0;
+    }
+    hal_irq_unlock(k);
 
-  // return failure if already reserved or active
-  if ((channel_reserved & ch_bit) || (channel_active & ch_bit)) {
-    if (gie) { enable_GINT(); }
-    return -1;
-  }
-
-  // set reserved flag and active flag
-  channel_reserved |= ch_bit;
-  channel_active |= ch_bit;
-
-  if (gie) { enable_GINT(); }
-
-  return 0;
+    return r;
 }
 
 /**
@@ -231,18 +226,15 @@ static int32_t set_channel_reserved_flag (uint8_t ch)
 */
 static void clear_channel_reserved_flag (uint8_t ch)
 {
-  uint8_t gie = GINT_enabled();
-  uint32_t ch_bit = 1U << ch;
+    uint32_t ch_bit = 1U << ch;
+    uint32_t k = hal_irq_lock();
 
-  if (gie) { disable_GINT(); }
-
-  // clear reserved flag and active flag
-  if (channel_reserved & ch_bit) {
-      channel_reserved &= ~ch_bit;
-      channel_active &= ~ch_bit;
-  }
-
-  if (gie) { enable_GINT(); }
+    /* clear reserved flag and active flag */
+    if (channel_reserved & ch_bit) {
+        channel_reserved &= ~ch_bit;
+        channel_active &= ~ch_bit;
+    }
+    hal_irq_unlock(k);
 }
 
 /**
@@ -324,21 +316,22 @@ int32_t dma_uninitialize (void) {
 _FAST_FUNC_RO static int32_t dma_get_free_channel(uint8_t *pch)
 {
 
-    uint8_t gie, i, found = 0;
+    uint8_t i, found = 0;
 
-    if (pch == NULL)
+    if (pch == NULL) {
         return -1;
+    }
 
-    gie = GINT_enabled();
-    if (gie) { disable_GINT(); }
-    for (i=0; i<DMA_NUMBER_OF_CHANNELS; i++) {
+    uint32_t k = hal_irq_lock();
+    for (i = 0; i < DMA_NUMBER_OF_CHANNELS; i++) {
         if ((channel_active & (1U << i)) == 0) {
             *pch = i;
             found = 1;
             break;
         }
     }
-    if (gie) { enable_GINT(); }
+    hal_irq_unlock(k);
+
     return (found ? 0 : -1);
 }
 
@@ -1396,23 +1389,14 @@ uint32_t dma_channel_get_status (uint8_t ch)
   \returns     Number of transferred data items
 */
 uint32_t dma_channel_get_count (uint8_t ch) {
-    // Check if channel is valid
-    if (ch >= DMA_NUMBER_OF_CHANNELS) return 0;
 
-    //// disable DMAC interrupt during calculation of count
-    //uint8_t int_en = IRQ_enabled(IRQ_DMAC_VECTOR);
-    //if (int_en) disable_IRQ(IRQ_DMAC_VECTOR);
-
-    // disable DMAC interrupt & task switching interrupt (SWI)
-    uint8_t gie = GINT_enabled();
-    if (gie) disable_GINT();
-
+    if (ch >= DMA_NUMBER_OF_CHANNELS) {
+        return 0;
+    }
+    uint32_t k = hal_irq_lock();
     uint32_t count = channel_info[ch].SizeXfered;
-    //if (CSK_DMA->CH_EN & (1U << ch)) // DMA channel transfer is ongoing
     count += (DMA_CHANNEL(ch)->CTL_HI & DMA_CH_CTLH_BLOCK_TS_MASK);
-
-    //if (int_en) enable_IRQ(IRQ_DMAC_VECTOR);
-    if (gie) enable_GINT();
+    hal_irq_unlock(k);
 
     return count;
 }

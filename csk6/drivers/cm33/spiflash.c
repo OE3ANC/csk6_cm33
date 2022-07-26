@@ -41,12 +41,12 @@ _EXT_RAM int flash_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc1)
 	}
 	if (dev->run_mod)
 	{
-		disable_GINT();
+		hal_global_irq_disable();
 	}
 	ret = platform_init(dev, udc0, udc1);
 	if (dev->run_mod)
 	{
-		enable_GINT();
+		hal_global_irq_enable();
 	}
 
 	return ret;
@@ -63,12 +63,12 @@ _EXT_RAM int sflash_read(FLASH_DEV *dev, off_t offset, void *data, size_t len)
 
 		if (dev->run_mod)
 		{
-			disable_GINT();
+			hal_global_irq_disable();
 		}
 		ret = mxic_read(dev, (unsigned int)offset, (unsigned char *)data, (unsigned int)len);
 		if (dev->run_mod)
 		{
-			enable_GINT();
+			hal_global_irq_enable();
 		}
 	} while (0);
 
@@ -83,12 +83,12 @@ _EXT_RAM int sflash_write(FLASH_DEV *dev, off_t offset, const void *data, size_t
 	{
 		if (dev->run_mod)
 		{
-			disable_GINT();
+			hal_global_irq_disable();
 		}
 		ret = mxic_program(dev, (unsigned int)offset, (unsigned char *)data, (unsigned int)len);
 		if (dev->run_mod)
 		{
-			enable_GINT();
+			hal_global_irq_enable();
 		}
 	}
 
@@ -103,12 +103,12 @@ _EXT_RAM int sflash_erase(FLASH_DEV *dev, off_t offset, size_t size)
 	{
 		if (dev->run_mod)
 		{
-			disable_GINT();
+			hal_global_irq_disable();
 		}
 		ret = mxic_erase(dev, (unsigned int)offset, (unsigned int)size);
 		if (dev->run_mod)
 		{
-			enable_GINT();
+			hal_global_irq_enable();
 		}
 	}
 	return ret;
@@ -122,12 +122,12 @@ _EXT_RAM int flash_erase_page(FLASH_DEV *dev, off_t offset, size_t size)
 	{
 		if (dev->run_mod)
 		{
-			disable_GINT();
+			hal_global_irq_disable();
 		}
 		ret = mxic_erase_page(dev, (unsigned int)offset, (unsigned int)size);
 		if (dev->run_mod)
 		{
-			enable_GINT();
+			hal_global_irq_enable();
 		}
 	}
 	return ret;

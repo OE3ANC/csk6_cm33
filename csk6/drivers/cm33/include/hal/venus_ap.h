@@ -8,6 +8,8 @@
 #ifndef INCLUDE_VENUS_AP_H_
 #define INCLUDE_VENUS_AP_H_
 
+#include "hal_os.h"
+
 #include <stddef.h> // for NULL etc.
 #include <stdint.h>
 //#include <core_cm33.h> // for IRQ operations
@@ -315,32 +317,6 @@ uint32_t eval_freq_divNM2(uint16_t N_max, uint16_t M_max, uint32_t freq_in,
 #define MAX_INTERRUPT_PRIORITY_RVAL     (0x5UL << (8 - __NVIC_PRIO_BITS)) // __NVIC_PRIO_BITS = 5
 #define MID_INTERRUPT_PRIORITY          ((1 << (__NVIC_PRIO_BITS - 1)) - 1) // 15
 #define DEF_INTERRUPT_PRIORITY          (MID_INTERRUPT_PRIORITY > 5 ? MID_INTERRUPT_PRIORITY : 5) // 15
-
-// Is Global Interrupt enabled? 0 = disabled, 1 = enabled
-static inline uint8_t GINT_enabled()
-{
-    //TODO: is it OK for Arm Star?
-    //uint32_t ret = __get_PRIMASK(); // based on PRIMASK
-    //return (ret ? 0 : 1);
-    uint32_t ret = __get_BASEPRI(); // based on BASEPRI
-    return (ret == MAX_INTERRUPT_PRIORITY_RVAL ? 0 : 1);
-}
-
-// Enable GINT
-static inline void enable_GINT()
-{
-    //TODO: is it OK for Arm Star?
-    //__set_PRIMASK(0); // based on PRIMASK
-    __set_BASEPRI(0); // based on BASEPRI
-}
-
-// Disable GINT
-static inline void disable_GINT()
-{
-    //TODO: is it OK for Arm Star?
-    //__set_PRIMASK(1); // based on PRIMASK
-    __set_BASEPRI(MAX_INTERRUPT_PRIORITY_RVAL); // based on BASEPRI
-}
 
 // ISR function prototype
 typedef void (*ISR)(void);

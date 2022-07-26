@@ -557,12 +557,11 @@ int32_t MBX_Initialize(void *mbx_dev, CSK_MBX_SignalEvent_t cb_event)
 //		mbx_res.usr_param = usr_param;
 		mbx_res.flags |= MBX_FLAG_INITIALIZED;
 
-//		xthal_disable_interrupts(); // ALL INTERRUPTS OFF during initialization
-		disable_GINT();
+		uint32_t k = hal_irq_lock();
 //		xtos_set_interrupt_handler(IRQ_MAILBOX_VECTOR, (xtos_handler) mbx_irq_handler, NULL, NULL);
 		register_ISR(IRQ_MAILBOX_VECTOR, (ISR) mbx_irq_handler, NULL);
 //		xthal_enable_interrupts();
-		enable_GINT();
+		hal_irq_unlock(k);
 		//clear interrupt bits, and enable
 		mbx_res.mbx_cb->REG_AP_MAILBOX_IRQ.all = val;
 		enable_IRQ(IRQ_MAILBOX_VECTOR);

@@ -151,7 +151,7 @@ void cache_dma_fast_inv_stage2(unsigned long start, unsigned long end)
 		use_lock = 1;
 
 	if (use_lock) {
-		disable_GINT();
+		hal_global_irq_disable();
 	}
 
 	if (start != old_start) {
@@ -166,7 +166,7 @@ void cache_dma_fast_inv_stage2(unsigned long start, unsigned long end)
 	}
 
 	if (use_lock) {
-		enable_GINT();
+		hal_global_irq_enable();
 	}
 #endif
 }
