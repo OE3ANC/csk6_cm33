@@ -141,7 +141,7 @@ _EXT_RAM int platform_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc
 	ret = spirom_cmd_send(dev, SPIROM_CMD_RDID, 0x0, 0, NULL, (unsigned int*)rdid);
 	if (ret) return ret;
 	// enable 4-byte addressing if flash is larger than 16 MB (2 ^ 24 bytes)
-	if (rdid[2] >= 24) {
+	if (rdid[2] > 24) {
 		dev->addr4 = 1;
 	}
 	s_ext_addr4 = dev->addr4;
