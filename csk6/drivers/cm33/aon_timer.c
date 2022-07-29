@@ -407,6 +407,7 @@ static void __AON_WDT_Handler__(AON_WDT_RESOURCES* aon_wdt){
     if (aon_wdt->info->cb_event){
         aon_wdt->info->cb_event(aon_wdt->info->workspace);
     }
+    while(aon_wdt->reg->REG_AON_TIMER_IRQ_CAUSE.bit.WDT_WAKEUP_STATUS);
 }
 
 void AON_TIMER_WDT_SHARE_Handler(void){
