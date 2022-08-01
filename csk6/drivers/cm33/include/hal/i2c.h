@@ -13,27 +13,26 @@
 
 #define MAX_XFER_SZ                 (256)           // 256 bytes
 
-// I2C mode: standard-mode, fast-mode, fast-mode-plus, all based on APB-clk(40MHZ)
-#define SETUP_T_SUDAT_STD           (0x9)           // setup time = (4 + 2 + 4) * 25ns = 250ns
-#define SETUP_T_SP_STD              (0x2)           // spikes time = 2 * 25ns = 50ns
-#define SETUP_T_HDDAT_STD           (0x9)           // hold time = (4 + 2 + 6) * 25ns = 300ns
-#define SETUP_T_SCL_RATIO_STD       (0x0)           // ratio=1, (4 + 2 + 182) * 25ns >= 4000ns, for I2C SCL clock
-// The T_SCLHi value must be greater than T_SP and T_HDDAT values.
-#define SETUP_T_SCLHI_STD           (229)           // (4 + 2 + 182 * 1) * 25ns >= 4700ns
+// Standard-mode
+#define STANDARD_MODE_SP_MAX         50             // ns
+#define STANDARD_MODE_SETUP_MIN      250
+#define STANDARD_MODE_HOLD_MIN       300
+#define STANDARD_MODE_HIGH_MIN       4700
+#define STANDARD_MODE_RADIO_FIX      1
 
-#define SETUP_T_SUDAT_FAST          (0x4)           // setup time = (4 + 2 + 0) * 25ns = 150ns
-#define SETUP_T_SP_FAST             (0x2)           // spikes time = 2 * 25ns = 50ns
-#define SETUP_T_HDDAT_FAST          (0x9)           // hold time = (4 + 2 + 6) * 25ns = 300ns
-#define SETUP_T_SCL_RATIO_FAST      (0x1)           // ratio=2, (4 + 2 + 23) * 25ns >= 600ns, for I2C SCL clock
-// The T_SCLHi value must be greater than T_SP and T_HDDAT values.
-#define SETUP_T_SCLHI_FAST          (32)            // (4 + 2 + 23 * 2) * 25ns >= 1300ns
+// Fast-mode
+#define FAST_MODE_SP_MAX             50             // ns
+#define FAST_MODE_SETUP_MIN          100
+#define FAST_MODE_HOLD_MIN           300
+#define FAST_MODE_HIGH_MIN           830
+#define FAST_MODE_RADIO_FIX          2
 
-#define SETUP_T_SUDAT_FAST_P        (0x4)           // setup time = (4 + 2 + 0) * 25ns = 150ns
-#define SETUP_T_SP_FAST_P           (0x2)           // spikes time = 2 * 25ns = 50ns
-#define SETUP_T_HDDAT_FAST_P        (0x9)           // hold time = (4 + 2 + 0) * 25ns = 150ns
-#define SETUP_T_SCL_RATIO_FAST_P    (0x1)           // ratio=2, (4 + 2 + 7) * 25ns >= 260ns, for I2C SCL clock
-// The T_SCLHi value must be greater than T_SP and T_HDDAT values.
-#define SETUP_T_SCLHI_FAST_P        (10)             // (4 + 2 + 7 * 2) * 25ns >= 500ns
+// Standard-mode
+#define FAST_MODE_PLUS_SP_MAX        50             // ns
+#define FAST_MODE_PLUS_SETUP_MIN     50
+#define FAST_MODE_PLUS_HOLD_MIN      150
+#define FAST_MODE_PLUS_HIGH_MIN      300
+#define FAST_MODE_PLUS_RADIO_FIX     2
 
 #define VENUS_I2C0              ((I2C_RegDef *)  I2C0_BASE)
 #define VENUS_I2C1              ((I2C_RegDef *)  I2C1_BASE)
