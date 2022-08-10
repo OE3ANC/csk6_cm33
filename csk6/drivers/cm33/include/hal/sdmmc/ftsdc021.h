@@ -412,7 +412,7 @@ typedef struct
     struct sdio_func_tuple* tuples;
 #endif
 
-} __packed SDCardInfo;
+}  SDCardInfo;
 
 typedef struct
 {
