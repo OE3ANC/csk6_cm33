@@ -401,6 +401,10 @@ int32_t AON_WDT_Disable(void* res){
     return CSK_DRIVER_OK;
 }
 
+uint32_t AON_WDT_GetMaxValue(void){
+    return AON_TIMER_LOAD_VALUE_MASK;
+}
+
 static void __AON_WDT_Handler__(AON_WDT_RESOURCES* aon_wdt){
     aon_wdt->reg->REG_AON_TIMER_IRQ_CLR.bit.AONWDT_CLR = 0x1;
 
