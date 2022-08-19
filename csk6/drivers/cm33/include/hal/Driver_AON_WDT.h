@@ -41,6 +41,8 @@ int32_t AON_WDT_Refresh(void* res);
 
 int32_t AON_WDT_Disable(void* res);
 
+uint32_t AON_WDT_GetMaxValue(void);
+
 void* AON_WDT(void);
 
 void AON_TIMER_WDT_SHARE_Handler(void);
