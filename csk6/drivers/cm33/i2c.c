@@ -212,8 +212,7 @@ I2C_PowerControl(void* res, CSK_POWER_STATE state)
 
         // I2C query FIFO depth
         // read only FIFO size config
-        Tmp_S1 = i2c->reg->REG_CFG.all;
-        switch (Tmp_S1 & BITSET_0X010_CFG_MASK)
+        switch (i2c->reg->REG_CFG.all & BITSET_0X010_CFG_MASK)
         {
         case BITSET_0X010_FIFOSIZE_2_BYTES:
             i2c->info->FIFO_Depth = 2;
@@ -243,17 +242,13 @@ I2C_PowerControl(void* res, CSK_POWER_STATE state)
         {
             Tmp_C |= BITSET_0X02C_DMAEN;
         }
-        Tmp_C |= ((SETUP_T_SUDAT_STD << 24) |
-                (SETUP_T_SP_STD << 21) |
-                (SETUP_T_HDDAT_STD << 16) |
-                (SETUP_T_SCL_RATIO_STD << 13) |
-                (SETUP_T_SCLHI_STD << 4) |
-                BITSET_0X02C_IICEN);
+        Tmp_C |= BITSET_0X02C_IICEN;
         i2c->reg->REG_SETUP.all = Tmp_C;
 
         // I2C setting: enable completion interrupt & address hit interrupt
         Tmp_C = i2c->reg->REG_INTEN.all;
         // dma-slave mode still need complete interrupt
+
         Tmp_C |= (BITSET_0X014_CMPL | BITSET_0X014_ADDRHIT);
         i2c->reg->REG_INTEN.all = Tmp_C;
 
@@ -292,7 +287,7 @@ I2C_MasterTransmit(void* res, uint32_t addr, const uint8_t* data, uint32_t num,
     I2C_RESOURCES* i2c = (I2C_RESOURCES*)res;
 
     uint32_t Tmp_C = 0;
-
+    int32_t stat = 0;
 
     // max 10-bit address(0x3FF), null data or num is no payload for acknowledge polling
     // If no I2C payload, set Phase_data=0x0
@@ -465,7 +460,7 @@ I2C_MasterReceive(void* res, uint32_t addr, uint8_t* data, uint32_t num,
     I2C_RESOURCES* i2c = (I2C_RESOURCES*)res;
 
     uint32_t Tmp_C = 0;
-
+    int32_t stat = 0;
 
     // max 10-bit address(0x3FF), null data or num is no payload for acknowledge polling
     // If no I2C payload, set Phase_data=0x0
@@ -766,39 +761,44 @@ I2C_Control(void* res, uint32_t control, uint32_t arg0)
         Tmp_C &= (~(BITSET_0X02C_T_SUDAT | BITSET_0X02C_T_SP | BITSET_0X02C_T_HDDAT
                 | BITSET_0X02C_T_SCLRATIO | BITSET_0X02C_T_SCLHI));
 
+        uint32_t pclk = 1000000000 / CRM_GetApapbFreq();
+        uint16_t sudat, sp, hddat, ratio, sclhi = 0;
+
         switch (arg0)
         {
         case CSK_I2C_BUS_SPEED_STANDARD:
             // I2C speed standard
-            // apply current setting
-            Tmp_C |= ((SETUP_T_SUDAT_STD << 24) |
-                    (SETUP_T_SP_STD << 21) |
-                    (SETUP_T_HDDAT_STD << 16) |
-                    (SETUP_T_SCL_RATIO_STD << 13) |
-                    (SETUP_T_SCLHI_STD << 4));
-
+            sp = STANDARD_MODE_SP_MAX / pclk;
+            sudat = (STANDARD_MODE_SETUP_MIN / pclk) - (4 + sp);
+            hddat = (STANDARD_MODE_HOLD_MIN / pclk) - (4 + sp);
+            sclhi = (STANDARD_MODE_HIGH_MIN / pclk) - (4 + sp);
+            ratio = STANDARD_MODE_RADIO_FIX - 1;
             break;
         case CSK_I2C_BUS_SPEED_FAST:
             // I2C speed fast
-            // apply current setting
-            Tmp_C |= ((SETUP_T_SUDAT_FAST << 24) |
-                    (SETUP_T_SP_FAST << 21) |
-                    (SETUP_T_HDDAT_FAST << 16) |
-                    (SETUP_T_SCL_RATIO_FAST << 13) |
-                    (SETUP_T_SCLHI_FAST << 4));
+            sp = FAST_MODE_SP_MAX / pclk;
+            sudat = (FAST_MODE_SETUP_MIN / pclk) - (4 + sp);
+            hddat = (FAST_MODE_HOLD_MIN / pclk) - (4 + sp);
+            sclhi = (FAST_MODE_HIGH_MIN / pclk) - (4 + sp);
+            ratio = FAST_MODE_RADIO_FIX - 1;
             break;
         case CSK_I2C_BUS_SPEED_FAST_PLUS:
             // I2C speed fast plus
-            // apply current setting
-            Tmp_C |= ((SETUP_T_SUDAT_FAST_P << 24) |
-                    (SETUP_T_SP_FAST_P << 21) |
-                    (SETUP_T_HDDAT_FAST_P << 16) |
-                    (SETUP_T_SCL_RATIO_FAST_P << 13) |
-                    (SETUP_T_SCLHI_FAST_P << 4));
+            sp = FAST_MODE_PLUS_SP_MAX / pclk;
+            sudat = (FAST_MODE_PLUS_SETUP_MIN / pclk) - (4 + sp);
+            hddat = (FAST_MODE_PLUS_HOLD_MIN / pclk) - (4 + sp);
+            sclhi = (FAST_MODE_PLUS_HIGH_MIN / pclk) - (4 + sp);
+            ratio = FAST_MODE_PLUS_RADIO_FIX - 1;
             break;
         default:
             return CSK_DRIVER_ERROR_UNSUPPORTED;
         }
+
+        Tmp_C |= ((sudat << 24) |
+                  (sp << 21) |
+                  (hddat << 16) |
+                  (ratio << 13) |
+                  (sclhi << 4));
 
         // apply
         i2c->reg->REG_SETUP.all = Tmp_C;
