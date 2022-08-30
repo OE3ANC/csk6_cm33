@@ -1,4 +1,5 @@
 #include "i2c.h"
+#include "ClockManager.h"
 
 #define CSK_I2C_DRV_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,1)
 
@@ -154,7 +155,7 @@ I2C_PowerControl(void* res, CSK_POWER_STATE state)
 
     I2C_RESOURCES* i2c = (I2C_RESOURCES*)res;
 
-    uint32_t Tmp_C = 0, Tmp_S1 = 0;
+    uint32_t Tmp_C = 0;
 
     i2c->info->Pwr_State = state;
 
@@ -287,7 +288,6 @@ I2C_MasterTransmit(void* res, uint32_t addr, const uint8_t* data, uint32_t num,
     I2C_RESOURCES* i2c = (I2C_RESOURCES*)res;
 
     uint32_t Tmp_C = 0;
-    int32_t stat = 0;
 
     // max 10-bit address(0x3FF), null data or num is no payload for acknowledge polling
     // If no I2C payload, set Phase_data=0x0
@@ -460,7 +460,6 @@ I2C_MasterReceive(void* res, uint32_t addr, uint8_t* data, uint32_t num,
     I2C_RESOURCES* i2c = (I2C_RESOURCES*)res;
 
     uint32_t Tmp_C = 0;
-    int32_t stat = 0;
 
     // max 10-bit address(0x3FF), null data or num is no payload for acknowledge polling
     // If no I2C payload, set Phase_data=0x0
