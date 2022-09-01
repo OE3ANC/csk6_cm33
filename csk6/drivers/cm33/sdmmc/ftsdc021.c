@@ -2568,13 +2568,13 @@ ftsdc021_init_normal(u8 ip_idx)
     //sdc_dbg_print("clk = %d ,timeount ms = %d\n",gm_pmu_get_axi_clk(),SDHost[ip_idx].Card->FlowSet.timeout_ms);
 
 //        OS_CPU_Vector_Table[IRQ_SDHC_VECTOR] = SDHC_ISR;
-    register_ISR(IRQ_SDIO_VECTOR, ftsdc021_0_IntrHandler, NULL);
+    // register_ISR(IRQ_SDIO_VECTOR, ftsdc021_0_IntrHandler, NULL);
 //    __nds32__set_int_priority(NDS32_HWINT(IRQ_SDHC_VECTOR), 0);
 //    /* enable HW# (timer1, GPIO & SWI) */
 //    __nds32__enable_int(NDS32_HWINT(IRQ_SDHC_VECTOR));
 //    /* Interrupt pending register, write 1 to clear */
 //    __nds32__mtsr(IC_SDHC, NDS32_SR_INT_PEND2);
-    enable_IRQ(IRQ_SDIO_VECTOR);
+    // enable_IRQ(IRQ_SDIO_VECTOR);
 
     //ftsdc021_intr_en(ip_idx, 1);
 
