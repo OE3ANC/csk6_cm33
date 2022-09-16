@@ -1068,6 +1068,12 @@ i2cx_master_fifo_write(I2C_RESOURCES* i2c, uint8_t is_flash_addr)
         write_fifo_count = 2;
     }
 
+    if (write_fifo_count == 0) {
+	    Tmp_C = i2c->reg->REG_INTEN.all;
+	    Tmp_C &= (~BITSET_0X014_FIFOEMPTY);
+	    i2c->reg->REG_INTEN.all = Tmp_C;
+    }
+
     // I2C write a patch of data(FIFO_Depth) to FIFO,
     // it will be consumed empty if data is actually issued on I2C bus */
     for (i = 0; i < write_fifo_count; i++)
