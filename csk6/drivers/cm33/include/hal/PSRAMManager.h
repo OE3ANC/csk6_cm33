@@ -42,12 +42,12 @@ typedef enum _prefetch_level{
 #endif
 
 // Search dqs
-#define PSRAM_RD_DQS_SEARCH                 (1)
-#define PSRAM_WT_DQS_SEARCH                 (1)
+#define PSRAM_RD_DQS_SEARCH                 (0)
+#define PSRAM_WT_DQS_SEARCH                 (0)
 
 // 采用默认的wt 或者 rd 的delay参数
-#define DEFAULT_WT_DELAY                    (0)
-#define DEFAULT_RD_DELAY                    (0xa)
+#define DEFAULT_WT_DELAY                    (0x2d)
+#define DEFAULT_RD_DELAY                    (0x15)
 
 #if defined(CSK6001_MPW)
 #if BOARD_BOOTCLOCKRUN_PSRAM_CLK >= 200000000UL
