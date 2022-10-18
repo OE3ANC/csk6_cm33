@@ -54,7 +54,9 @@ elseif(${CONFIG_SOC_CSK6})
                             cm33/sdmmc/ftsdc021_ops.c
                             cm33/sdmmc/ftsdc021_sdio.c
                             cm33/sdmmc/ftsdc021.c
-                            cm33/aon_timer.c)
+                            cm33/aon_timer.c
+                            cm33/pwr.c
+                            )
 else()
     message(FATAL_ERROR 'listenai hal driver does not support this platform')
 endif()
