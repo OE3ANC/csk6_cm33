@@ -30,6 +30,7 @@
 #endif
 #define PSRAM_LOGE(str, ...) 
 
+#if (PSRAM_RD_DQS_SEARCH || PSRAM_WT_DQS_SEARCH)
 static uint32_t psram_src_array[PSRAM_SEARCH_DQS_NUM] __attribute__ ((aligned(32)));
 static uint32_t psram_dst_array[PSRAM_SEARCH_DQS_NUM] __attribute__ ((aligned(32)));
 
@@ -68,6 +69,7 @@ static uint32_t psram_random_data_check(uint8_t writed){
     // 0 means equal
     return ret;
 }
+#endif
 
 typedef struct {
     uint32_t delay_max;
@@ -75,6 +77,7 @@ typedef struct {
     uint32_t delay_gap;
 }DqsDelay_FmtDef;
 
+#if PSRAM_WT_DQS_SEARCH
 static int32_t search_write_dqs_delay(uint8_t writed){
     unsigned int ret=0;
     DqsDelay_FmtDef dqs_delay = {0};
@@ -162,7 +165,9 @@ static int32_t search_write_dqs_delay(uint8_t writed){
 
     return 0;
 }
+#endif
 
+#if PSRAM_RD_DQS_SEARCH
 static int32_t search_read_dqs_delay(uint8_t writed){
     unsigned int ret=0;
     DqsDelay_FmtDef dqs_delay = {0};
@@ -250,6 +255,7 @@ static int32_t search_read_dqs_delay(uint8_t writed){
 
     return 0;
 }
+#endif
 
 __unused static void check_reg(uint32_t* address){
     unsigned int rdata = 0x0;
