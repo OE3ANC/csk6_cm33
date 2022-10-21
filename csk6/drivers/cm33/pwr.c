@@ -71,7 +71,7 @@ static const PWR_RESOURCES pwr_resources = {
 static void
 pwr_irq_handler(PWR_RESOURCES* hpwr){
 
-	uint32_t intflag, modeflag;
+	uint32_t intflag;
 
 	intflag = hpwr->reg->REG_AON_STATUS_3.bit.IRQ_AON_WAKEUP;
 
@@ -169,7 +169,6 @@ HAL_PWR_Uninitialize(void *res){
 int32_t HAL_PWR_PowerControl(void *res, CSK_POWER_STATE state)
 {
 	PWR_RESOURCES * pPwr = (PWR_RESOURCES *)res;
-	uint32_t rddat;
 
 	switch(state){
 	case CSK_POWER_OFF:
@@ -223,7 +222,7 @@ HAL_PWR_Control(void* res, uint32_t control){
     CHECK_RESOURCES(res);
 
 	PWR_RESOURCES * pPwr = (PWR_RESOURCES *)res;
-	uint32_t tmp, regValue=0;
+	uint32_t tmp;
 
     if ((pPwr->info->flags & PWR_FLAG_POWERED) == 0U) {
         // UART not powered
