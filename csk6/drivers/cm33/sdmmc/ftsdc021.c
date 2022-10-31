@@ -2396,6 +2396,13 @@ ftsdc021_scan_cards(u8 ip_idx)            //, u8 boot_mode)
                 return 1;
             }
 
+            if(SDHost[ip_idx].Card->rblk_sz_2exp > 9)
+            {
+                SDHost[ip_idx].Card->numOfBlocks *= (1 << (SDHost[ip_idx].Card->rblk_sz_2exp - 9));
+            }
+            SDHost[ip_idx].Card->rblk_sz_2exp = (SDHost[ip_idx].Card->rblk_sz_2exp > 9) ? 9 : SDHost[ip_idx].Card->rblk_sz_2exp;
+            SDHost[ip_idx].Card->wblk_sz_2exp = (SDHost[ip_idx].Card->wblk_sz_2exp > 9) ? 9 : SDHost[ip_idx].Card->wblk_sz_2exp;
+
             SDHost[ip_idx].Card->read_block_len = (1 << SDHost[ip_idx].Card->rblk_sz_2exp);
             SDHost[ip_idx].Card->write_block_len = (1 << SDHost[ip_idx].Card->wblk_sz_2exp);
             sdc_dbg_print("block num = %d, block length = %d / %d bytes, erase sector size =%d\n",
