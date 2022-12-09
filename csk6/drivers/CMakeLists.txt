@@ -43,6 +43,7 @@ elseif(${CONFIG_SOC_CSK6})
                             cm33/i2c.c
                             cm33/spi.c
                             cm33/rtc.c
+                            cm33/dual_timer.c
                             cm33/power_control.c
                             cm33/gpadc_venus.c
                             cm33/AON_IOMuxManager.c
