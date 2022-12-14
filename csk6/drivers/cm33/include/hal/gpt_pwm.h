@@ -15,6 +15,7 @@ typedef struct _GPT_PWM_INFO
 {
     uint32_t freq[GPT_NUMBER_OF_CHANNELS];       // PWM channel frequency
     uint32_t duty[GPT_NUMBER_OF_CHANNELS];   	 	 // PWM channel duty cycle (0 ~ 255)
+    uint32_t polarity[GPT_NUMBER_OF_CHANNELS];
 }GPT_PWM_INFO;
 
 // GPT_LEDC DMA
