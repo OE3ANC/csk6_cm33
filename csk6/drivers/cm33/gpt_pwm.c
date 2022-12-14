@@ -322,9 +322,11 @@ int32_t HAL_GPT_PWMControl(void *pGpt, uint32_t control, GPT_CHANNEL_TYPE channe
 	tmp = (control & CSK_GPT_PWM_OUTMODE_Msk) >> CSK_GPT_PWM_OUTMODE_Pos;
 	pGptPWM->gpt_resources->reg->CHx_CTRL[channel] |= tmp << GPT_CHx_CTRL_PWMOUT_MODE_Pos;		
 	
-	//set pwm output plarity	
+	//set pwm output polarity
 	pGptPWM->gpt_resources->reg->CHx_CTRL[channel] &= ~(GPT_CHx_CTRL_PWM_POLARITY_Msk);
 	tmp = (control & CSK_GPT_PWM_OUTPOLARITY_Msk) >> CSK_GPT_PWM_OUTPOLARITY_Pos;
+	//save pwm polarity
+	pGptPWM->pwm_info->polarity[channel] = tmp;
 	pGptPWM->gpt_resources->reg->CHx_CTRL[channel] |= tmp << GPT_CHx_CTRL_PWM_POLARITY_Pos;		
 
 	//arg will pass which channel is to be activated
@@ -387,6 +389,24 @@ int32_t HAL_GPT_SetPWMFreqDuty(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_t fr
 	pGptPWM->pwm_info->duty[channel] = duty;
 	pGptPWM->pwm_info->freq[channel] = freq;
 	
+	if(duty == 0){
+		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] |= GPT_CHx_CTRL_CH_START;
+		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] &= ~GPT_CHx_CTRL_PWM_POLARITY;
+		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] |= GPT_CHx_CTRL_CH_STOP;
+		return CSK_DRIVER_OK;
+	}else if(duty == 100){
+		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] |= GPT_CHx_CTRL_CH_START;
+		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] |= GPT_CHx_CTRL_PWM_POLARITY;
+		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] |= GPT_CHx_CTRL_CH_STOP;
+		return CSK_DRIVER_OK;
+	}else{
+		//set pwm output polarity
+		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] &= ~(GPT_CHx_CTRL_PWM_POLARITY_Msk);
+		//restore pwm polarity
+		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] |= pGptPWM->pwm_info->polarity[channel] << GPT_CHx_CTRL_PWM_POLARITY_Pos;
+		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] |= GPT_CHx_CTRL_CH_START;
+	}
+
 	uint32_t high16bit,low16bit;
 	uint8_t freqpos, pos;
 	pos = (pGptPWM->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_DIV) >> GPT_CHx_CLK_CTRL_CLK_DIV_Pos;
