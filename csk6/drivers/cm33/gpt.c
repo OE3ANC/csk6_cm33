@@ -19,6 +19,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "gpt.h"
+#include "gpt_timer.h"
 #include "cmn_sysctrl_reg_venus.h"
 
 /** @addtogroup CSK_HAL_Driver
@@ -84,9 +85,11 @@ static void gpt_irq_handler (void *pGpt) {
 	//get interrupt channel and service interrupt route pGpt->info->cb_event
 	for(ch = 0; ch < GPT_NUMBER_OF_CHANNELS; ch++)
 	{
+		
+		uint32_t now_ticks = pGpt_Temp->reg->CHx_CNT[ch];
 		//timer overflow interrupt handle
 		if((pGpt_Temp->hardware->channel_stat[ch] == HARDWARE_CHANNEL_STAT_USED_BY_TIM)
-			&&(intflag_timer & (0x01010101 << ch)))
+			&&(intflag_timer & (0x01010101 << ch)) && now_ticks == 0)
 		{
 			pGpt_Temp->info->cb_event[ch](CSK_GPT_EVENT_OVERFLOW, pGpt_Temp->user_param);
 		}
