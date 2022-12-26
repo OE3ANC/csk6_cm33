@@ -95,7 +95,8 @@ int32_t IOMuxManager_ModeConfigure(uint8_t pad, uint8_t pin_num, uint8_t pin_mod
     switch (pin_mode){
     case HAL_IOMUX_NONE_MODE:
     {
-        (*(volatile uint32_t* volatile)(pin_base)) &= (~0x40000);
+        (*(volatile uint32_t* volatile)(pin_base)) &= (~0x30000);
+        (*(volatile uint32_t* volatile)(pin_base)) |= 0x40000;
     }
         break;
     case HAL_IOMUX_PULLUP_MODE:
