@@ -1505,13 +1505,13 @@ spi_irq_handler(SPI_DEV *spi)
                 }
             } //end for
             //FIXME:
-            if ((spi->info->txrx_mode & CSK_SPI_MODE_Msk) == CSK_SPI_MODE_SLAVE) {
-                //count = spi->reg->SLVDATACNT & 0x1FF;
-                count = SLV_RDCNT(spi);
-                CLR_SLV_RDCNT(spi); // clear RCnt on updated IP
-                LOGD("%s: SLVDATACNT.RCnt = %d Data\n", __func__, count);
-                spi->info->xfer.rx_cnt = count;
-            }
+            // if ((spi->info->txrx_mode & CSK_SPI_MODE_Msk) == CSK_SPI_MODE_SLAVE) {
+            //     //count = spi->reg->SLVDATACNT & 0x1FF;
+            //     count = SLV_RDCNT(spi);
+            //     CLR_SLV_RDCNT(spi); // clear RCnt on updated IP
+            //     LOGD("%s: SLVDATACNT.RCnt = %d Data\n", __func__, count);
+            //     spi->info->xfer.rx_cnt = count;
+            // }
         }
 
         // clear TX/RX FIFOs
