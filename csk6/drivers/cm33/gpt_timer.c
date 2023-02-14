@@ -387,11 +387,43 @@ int32_t HAL_GPT_SetTimerPeriodByCount(void *pGpt, GPT_CHANNEL_TYPE channel, uint
 	//set timer reload value in hardware and update gpt->info
 	pGptTimer->timer_info->period_count[channel] = count;
 	pGptTimer->gpt_resources->reg->CHx_RELOAD[channel] = count;
-	pGptTimer->gpt_resources->reg->SHADOW_LOAD = (1<<8)<<channel;
-	pGptTimer->gpt_resources->reg->SHADOW_SYNC = (1<<8)<<channel;
-
+	pGptTimer->gpt_resources->reg->SHADOW_SYNC &= ~((1<<8)<<channel);
+	pGptTimer->gpt_resources->reg->SHADOW_LOAD |= (1<<8)<<channel;
 	return CSK_DRIVER_OK;
 }
+
+
+/*!
+ \fn         int32_t HAL_GPT_SetTimerPeriodDirectByCount(uint32_t channel, uint32_t count)
+ \brief      Sets the timer period in units of count directly(reload value update immediately).
+ \param[in]  channel: Timer channel number
+ \param[in]  count: Timer period in units of count
+ \return      \ref execution_status
+ */
+int32_t HAL_GPT_SetTimerPeriodDirectByCount(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_t count)
+{
+    GPT_TIMER_RESOURCES * pGptTimer = (GPT_TIMER_RESOURCES *)pGpt;
+
+    if((pGptTimer->gpt_resources->info->flags&GPT_FLAG_POWERED) == 0)
+    {
+        //gpt is not powered
+        return CSK_DRIVER_ERROR;
+    }
+
+    if(pGptTimer->gpt_resources->hardware->channel_stat[channel] != HARDWARE_CHANNEL_STAT_USED_BY_TIM)
+    {
+        return CSK_GPT_ERROR_HARDWARE_CONFLICTION;
+    }
+
+    //set timer reload value in hardware and update gpt->info
+    pGptTimer->timer_info->period_count[channel] = count;
+    pGptTimer->gpt_resources->reg->CHx_RELOAD[channel] = count;
+    pGptTimer->gpt_resources->reg->SHADOW_SYNC |= (1<<8)<<channel;
+    pGptTimer->gpt_resources->reg->SHADOW_LOAD |= (1<<8)<<channel;
+    return CSK_DRIVER_OK;
+}
+
+
 
 
 /*!
@@ -444,12 +476,66 @@ int32_t HAL_GPT_SetTimerPeriodByMs(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_
 	//set timer reload value in hardware and update gpt->info
 	pGptTimer->timer_info->period_count[channel] = cntval;
 	pGptTimer->gpt_resources->reg->CHx_RELOAD[channel] = cntval;
-	pGptTimer->gpt_resources->reg->SHADOW_LOAD = (1<<8)<<channel;
-	pGptTimer->gpt_resources->reg->SHADOW_SYNC = (1<<8)<<channel;
-
+	pGptTimer->gpt_resources->reg->SHADOW_SYNC &= ~((1<<8)<<channel);
+	pGptTimer->gpt_resources->reg->SHADOW_LOAD |= (1<<8)<<channel;
 	return CSK_DRIVER_OK;
 }
 
+
+/*!
+ \fn         int32_t HAL_GPT_SetTimerPeriodDirectByMs(uint32_t channel, uint32_t ms)
+ \brief      Sets the timer period in units of ms directly(reload value update immediately)..
+ \param[in]  channel: Timer channel number
+ \param[in]  count: Timer period in units of ms
+ \return      \ref execution_status
+ */
+int32_t HAL_GPT_SetTimerPeriodDirectByMs(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_t ms)
+{
+    GPT_TIMER_RESOURCES * pGptTimer = (GPT_TIMER_RESOURCES *)pGpt;
+
+    if((pGptTimer->gpt_resources->info->flags&GPT_FLAG_POWERED) == 0)
+    {
+        //gpt is not powered
+        return CSK_DRIVER_ERROR;
+    }
+
+    if(pGptTimer->gpt_resources->hardware->channel_stat[channel] != HARDWARE_CHANNEL_STAT_USED_BY_TIM)
+    {
+        return CSK_GPT_ERROR_HARDWARE_CONFLICTION;
+    }
+
+    uint32_t clocksrc = (pGptTimer->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_SEL) >> GPT_CHx_CLK_CTRL_CLK_SEL_Pos;
+    uint32_t cntdiv = (pGptTimer->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_DIV) >> GPT_CHx_CLK_CTRL_CLK_DIV_Pos;
+	uint32_t clockfreq, cntval,p_clock;
+	p_clock = BOARD_BOOTCLOCKRUN_AP_CMN_CFG_PCLK_CLK;
+    switch(clocksrc)
+    {
+        case 0x00:
+        //24M crystal
+            clockfreq = 24000000>>cntdiv;
+        break;
+        case 0x01:
+        //external unknow
+            clockfreq = 10000000>>cntdiv;
+        break;
+        case 0x02:
+        //PCLK
+            clockfreq = p_clock>>cntdiv;
+        break;
+        default:
+            clockfreq = p_clock>>cntdiv;
+        break;
+    }
+
+    cntval = clockfreq/1000 * ms;
+
+    //set timer reload value in hardware and update gpt->info
+    pGptTimer->timer_info->period_count[channel] = cntval;
+    pGptTimer->gpt_resources->reg->CHx_RELOAD[channel] = cntval;
+    pGptTimer->gpt_resources->reg->SHADOW_SYNC |= (1<<8)<<channel;
+    pGptTimer->gpt_resources->reg->SHADOW_LOAD |= (1<<8)<<channel;
+    return CSK_DRIVER_OK;
+}
 
 
 /*!
@@ -480,22 +566,22 @@ int32_t HAL_GPT_StartTimer(void *pGpt, GPT_CHANNEL_TYPE channel)
 		default:
 			break;
 		case CSK_GPT_TIMER_32_BIT_TIMER:
-			//channelx timer0 enable	
-			pGptTimer->gpt_resources->reg->CH_TIMER_ENABLE |= 0x01<<channel; 
 			//cnt start
 			pGptTimer->gpt_resources->reg->CH_CNT_EN |= 0x01<<channel;
+            //channelx timer0 enable
+            pGptTimer->gpt_resources->reg->CH_TIMER_ENABLE |= 0x01<<channel;
 			break;
 		case CSK_GPT_TIMER_16_BIT_TIMER:
+			//cnt start
+			pGptTimer->gpt_resources->reg->CH_CNT_EN |= 0x01<<channel;
 			//channelx timer0&timer1 enable
 			pGptTimer->gpt_resources->reg->CH_TIMER_ENABLE |= (0x01<<channel) | ((0x01<<8)<<channel);
-			//cnt start
-			pGptTimer->gpt_resources->reg->CH_CNT_EN |= 0x01<<channel;
 			break;
 		case CSK_GPT_TIMER_8_BIT_TIMER:
-			//channelx timer0&timer1&timer2&timer3 enable	
-			pGptTimer->gpt_resources->reg->CH_TIMER_ENABLE |= (0x01<<channel) | ((0x01<<8)<<channel) | ((0x01<<16)<<channel) | ((0x01<<24)<<channel);
 			//cnt start
 			pGptTimer->gpt_resources->reg->CH_CNT_EN |= 0x01<<channel;
+			//channelx timer0&timer1&timer2&timer3 enable	
+			pGptTimer->gpt_resources->reg->CH_TIMER_ENABLE |= (0x01<<channel) | ((0x01<<8)<<channel) | ((0x01<<16)<<channel) | ((0x01<<24)<<channel);
 			break;		
 	}
 	return CSK_DRIVER_OK;
@@ -557,6 +643,8 @@ int32_t HAL_GPT_StopTimer(void *pGpt, GPT_CHANNEL_TYPE channel)
     /* TODO: hardware layer */
 	//get timer mode
 	tmp =	(pGptTimer->gpt_resources->reg->CHx_CTRL[channel] & GPT_CHx_CTRL_CH_MODE_Msk) >> GPT_CHx_CTRL_CH_MODE_Pos;
+    //cnt stop
+    pGptTimer->gpt_resources->reg->CH_CNT_EN |= (0x0100<<channel);
 	switch(tmp){
 		default:
 			break;
