@@ -196,6 +196,31 @@ int32_t HAL_GPT_RegisterTimerCallback(void *pGpt, GPT_CHANNEL_TYPE channel, CSK_
  */
 int32_t HAL_GPT_SetTimerPeriodByCount(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_t count);
 
+/*!
+ \brief      Sets the timer period in units of count directly(reload value update immediately).
+ \param[in]  channel: Timer channel number
+ \param[in]  count: Timer period in units of count
+ \return      \ref execution_status
+ */
+int32_t HAL_GPT_SetTimerPeriodDirectByCount(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_t count);
+
+
+/*!
+ \brief		 Sets the timer period in units of ms.
+ \param[in]  channel Timer channel number
+ \param[in]  count Timer period in units of ms
+ */
+int32_t HAL_GPT_SetTimerPeriodByMs(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_t ms);
+
+
+/*!
+ \brief      Sets the timer period in units of ms directly(reload value update immediately)..
+ \param[in]  channel: Timer channel number
+ \param[in]  count: Timer period in units of ms
+ \return      \ref execution_status
+ */
+int32_t HAL_GPT_SetTimerPeriodDirectByMs(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_t ms);
+
 
 /*!
  \brief		 Starts the timer counting.
