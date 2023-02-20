@@ -20,7 +20,7 @@
  ****************************************************************************/
 #include <ana_aon_regfile_reg_venus.h>
 #include <ana_core_regfile_reg_venus.h>
-// #include <aon_efuse_ctrl_reg_venus.h>
+#include <aon_efuse_ctrl_reg_venus.h>
 #include <aon_iomux_reg_venus.h>
 #include <aon_pmuctrl_reg_venus.h>
 #include <audpll_ctrl_reg_venus.h>
