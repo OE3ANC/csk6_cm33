@@ -5,8 +5,6 @@
 #ifndef __DRIVER_I2C_H
 #define __DRIVER_I2C_H
 
-#include "IOMuxManager.h"
-
 #include "Driver_Common.h"
 
 #define CSK_I2C_API_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,01)  /* API version */
@@ -25,7 +23,6 @@
 #define CSK_I2C_BUS_SPEED_STANDARD      (0x01)      ///< Standard Speed (100kHz)
 #define CSK_I2C_BUS_SPEED_FAST          (0x02)      ///< Fast Speed     (400kHz)
 #define CSK_I2C_BUS_SPEED_FAST_PLUS     (0x03)      ///< Fast+ Speed    (  1MHz)
-#define CSK_I2C_BUS_SPEED_HIGH          (0x04)      ///< High Speed     (3.4MHz)
 
 /****** I2C Address Flags *****/
 

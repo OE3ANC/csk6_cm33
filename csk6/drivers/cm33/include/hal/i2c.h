@@ -1,15 +1,12 @@
 #ifndef __I2C_AE210P_H
 #define __I2C_AE210P_H
 
-#include "cmn_sysctrl_reg_venus.h"
 #include "dma.h"
-#include "i2c_reg_venus.h"
-
 #include "venus_ap.h"
 #include "Driver_I2C.h"
+#include "ClockManager.h"
 
-// n-byte FIFO, where n is the number 2, 4, 8 or 16.
-#define VENUS_IIC_FIFO_DEPTH_N      (16)
+#include "assert.h"
 
 #define MAX_XFER_SZ                 (256)           // 256 bytes
 
@@ -34,14 +31,27 @@
 #define FAST_MODE_PLUS_HIGH_MIN      300
 #define FAST_MODE_PLUS_RADIO_FIX     2
 
-#define VENUS_I2C0              ((I2C_RegDef *)  I2C0_BASE)
-#define VENUS_I2C1              ((I2C_RegDef *)  I2C1_BASE)
+#define I2C0_DMA_TX_CH        (2)
+#define I2C0_DMA_RX_CH        (3)
 
-#define VENUS_I2C0_DMA_TX_CH        (2)
-#define VENUS_I2C0_DMA_RX_CH        (3)
+#define I2C1_DMA_TX_CH        (4)
+#define I2C1_DMA_RX_CH        (5)
 
-#define VENUS_I2C1_DMA_TX_CH        (4)
-#define VENUS_I2C1_DMA_RX_CH        (5)
+#define _CMD_NO_ACT                    (0x0)           // no action
+#define _CMD_ISSUE_TRANSACTION         (0x1)           // issue a data transaction (Master only)
+#define _CMD_ACK                       (0x2)           // respond with an ACK to the received byte
+#define _CMD_NACK                      (0x3)           // respond with a NACK to the received byte
+#define _CMD_CLEAR_FIFO                (0x4)           // clear the FIFO
+#define _CMD_RESET_I2C                 (0x5)           /* reset the I2C controller(abort current
+                                                        ransaction, set the SDA and SCL line to the
+                                                        open-drain mode, reset the Status Register and
+                                                        the Interrupt Enable Register, and empty the
+                                                        FIFO) */
+
+#define _FIFOSIZE_2_BYTES               0x0
+#define _FIFOSIZE_4_BYTES               0x1
+#define _FIFOSIZE_8_BYTES               0x2
+#define _FIFOSIZE_16_BYTES              0x3
 
 typedef enum _I2C_CTRL_REG_ITEM_DIR
 {
@@ -70,55 +80,58 @@ typedef enum _I2C_DRIVER_STATE
 
 typedef struct _CSK_I2C_STATUS
 {
-    uint32_t busy :1;        ///< Busy flag
-    uint32_t mode :1;        ///< Mode: 0=Slave, 1=Master
-    uint32_t direction :1;        ///< Direction: 0=Transmitter, 1=Receiver
-    uint32_t general_call :1; ///< General Call indication (cleared on start of next Slave operation)
-    uint32_t arbitration_lost :1; ///< Master lost arbitration (cleared on start of next Master operation)
-    uint32_t bus_error :1; ///< Bus error detected (cleared on start of next Master/Slave operation)
+    uint32_t busy :1;                   ///< Busy flag
+    uint32_t mode :1;                   ///< Mode: 0=Slave, 1=Master
+    uint32_t direction :1;              ///< Direction: 0=Transmitter, 1=Receiver
+    uint32_t general_call :1;           ///< General Call indication (cleared on start of next Slave operation)
+    uint32_t arbitration_lost :1;       ///< Master lost arbitration (cleared on start of next Master operation)
+    uint32_t bus_error :1;              ///< Bus error detected (cleared on start of next Master/Slave operation)
+    uint32_t slave_rx_over_flow :1;
 } CSK_I2C_STATUS;
+
+typedef struct _I2C_TRANSFER_INFO
+{
+    uint8_t* tx_buf;
+    uint32_t tx_num;                       /// total transmit number
+    uint32_t tx_buf_pointer;               /// current send data pointer
+
+    uint8_t* rx_buf;
+    uint32_t rx_num;                       /// total transmit number
+    uint32_t rx_buf_pointer;               /// current receive data pointer
+
+    uint32_t cmpl_count;                   /// complete transmit count
+
+    uint8_t  slave_read_mid_buf[MAX_XFER_SZ];     /// only for slave read
+    uint32_t slave_read_mid_buf_pointer;          /// slave read buffer pointer
+    uint32_t slave_read_last_rx_data_count;
+} I2C_TRANSFER_INFO;
 
 typedef struct _I2C_INFO
 {
-    CSK_I2C_SignalEvent_t Sig_Evt_CB;
-    volatile I2C_DRIVER_STATE Driver_State;
-    CSK_POWER_STATE Pwr_State;
-    uint8_t* middleware_rx_buf;
-    uint8_t* middleware_tx_buf;
-    /* flags for flow control */
-    // salve mode only
-    uint32_t last_rx_data_count;
-    // Xfer_Data_Rd_Buf[] for middleware read out, salve mode only
-    uint32_t middleware_rx_ptr;
-    // salve mode only
-    uint8_t nack_assert;
-    uint32_t FIFO_Depth;
-    uint32_t Slave_Addr;
-    uint32_t Xfer_Wt_Num;
-    uint32_t Xfer_Rd_Num;
-    // write pointer
-    uint32_t Xfered_Data_Wt_Ptr;
-    // read pointer
-    uint32_t Xfered_Data_Rd_Ptr;
-    // read pointer overwrite
-    uint32_t Xfered_Data_Rd_Ptr_Ow;
-    uint8_t Xfer_Data_Rd_Buf[MAX_XFER_SZ];
-    uint32_t Slave_Rx_Cmpl_Ctrl_Reg_Val;
-    volatile CSK_I2C_STATUS Status;
-    uint32_t Xfer_Cmpl_Count;
+    CSK_I2C_SignalEvent_t cb_event;
 
-    // 1: enable dma
-    // 0: enable interrupt
-    uint8_t DMA_EN;
+    volatile I2C_DRIVER_STATE state;
+    CSK_POWER_STATE pwr_state;
+
+    // Transfer information for TX/RX
+    I2C_TRANSFER_INFO trans_info;
+
+    uint32_t slave_address;
+
+    volatile CSK_I2C_STATUS status;
+
+    uint8_t fifo_depth;
+    uint8_t inter_en;   // 0: enable dma
+                        // 1: enable interrupt
     void* workspace;
 } I2C_INFO;
 
 // I2C DMA
-#define CSK_I2C_TX_DMA_WIDTH      DMA_WIDTH_BYTE
-#define CSK_I2C_TX_DMA_BSIZE      DMA_BSIZE_1
+#define _I2C_TX_DMA_WIDTH      DMA_WIDTH_BYTE
+#define _I2C_TX_DMA_BSIZE      DMA_BSIZE_1
 
-#define CSK_I2C_RX_DMA_WIDTH      DMA_WIDTH_BYTE
-#define CSK_I2C_RX_DMA_BSIZE      DMA_BSIZE_1
+#define _I2C_RX_DMA_WIDTH      DMA_WIDTH_BYTE
+#define _I2C_RX_DMA_BSIZE      DMA_BSIZE_1
 
 typedef struct _I2C_DMA
 {
