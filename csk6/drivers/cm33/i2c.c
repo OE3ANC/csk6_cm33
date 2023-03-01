@@ -1271,6 +1271,11 @@ i2c_irq_handler(I2C_RESOURCES* i2c)
     {
         event |= CSK_I2C_EVENT_TRANSFER_INCOMPLETE;
     }
+    
+    if ((iir & BITSET_0X018_BYTETRANS) && (ier & BITSET_0X014_BYTETRANS)) {
+
+        event |= CSK_I2C_EVENT_BYTE_TRANSFER_DONE;
+    }
 
     if ((iir & BITSET_0X018_FIFO_EMPTY) && (ier & BITSET_0X014_FIFOEMPTY))
     {

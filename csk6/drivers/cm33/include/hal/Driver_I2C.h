@@ -39,6 +39,7 @@
 #define CSK_I2C_EVENT_ARBITRATION_LOST    (1UL << 6)  ///< Master lost arbitration
 #define CSK_I2C_EVENT_BUS_ERROR           (1UL << 7)  ///< Bus error detected (START/STOP at illegal position)
 #define CSK_I2C_EVENT_BUS_CLEAR           (1UL << 8)  ///< Bus clear finished
+#define CSK_I2C_EVENT_BYTE_TRANSFER_DONE  (1UL << 9)  ///< Master/Slave transmitted Byte transfer done
 
 typedef void
 (*CSK_I2C_SignalEvent_t)(uint32_t event, void* workspace); ///< Pointer to \ref CSK_I2C_SignalEvent : Signal I2C Event.
