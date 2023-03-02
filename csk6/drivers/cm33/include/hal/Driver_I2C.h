@@ -5,8 +5,6 @@
 #ifndef __DRIVER_I2C_H
 #define __DRIVER_I2C_H
 
-#include "IOMuxManager.h"
-
 #include "Driver_Common.h"
 
 #define CSK_I2C_API_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,01)  /* API version */
@@ -25,7 +23,6 @@
 #define CSK_I2C_BUS_SPEED_STANDARD      (0x01)      ///< Standard Speed (100kHz)
 #define CSK_I2C_BUS_SPEED_FAST          (0x02)      ///< Fast Speed     (400kHz)
 #define CSK_I2C_BUS_SPEED_FAST_PLUS     (0x03)      ///< Fast+ Speed    (  1MHz)
-#define CSK_I2C_BUS_SPEED_HIGH          (0x04)      ///< High Speed     (3.4MHz)
 
 /****** I2C Address Flags *****/
 
@@ -42,6 +39,7 @@
 #define CSK_I2C_EVENT_ARBITRATION_LOST    (1UL << 6)  ///< Master lost arbitration
 #define CSK_I2C_EVENT_BUS_ERROR           (1UL << 7)  ///< Bus error detected (START/STOP at illegal position)
 #define CSK_I2C_EVENT_BUS_CLEAR           (1UL << 8)  ///< Bus clear finished
+#define CSK_I2C_EVENT_BYTE_TRANSFER_DONE  (1UL << 9)  ///< Master/Slave transmitted Byte transfer done
 
 typedef void
 (*CSK_I2C_SignalEvent_t)(uint32_t event, void* workspace); ///< Pointer to \ref CSK_I2C_SignalEvent : Signal I2C Event.
