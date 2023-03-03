@@ -12,7 +12,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "clock_config.h"
-#define PSRAM_CHIP_SIZE                     (4) // 8MBytes
+
+#ifndef CONFIG_PSRAM_SIZE
+#define CONFIG_PSRAM_SIZE 0x800000
+#endif
+
+#define PSRAM_CHIP_SIZE (CONFIG_PSRAM_SIZE / (1024 * 1024))
 
 #define PSRAM_INNER_SEARCH_LOOP_NUM         64
 #define PSRAM_SEARCH_DQS_NUM                64             // word
