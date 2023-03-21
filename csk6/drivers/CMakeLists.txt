@@ -42,6 +42,7 @@ elseif(${CONFIG_SOC_CSK6})
                             cm33/mbox.c
                             cm33/PSRAMManger.c
                             cm33/i2c.c
+                            cm33/ir.c
                             cm33/spi.c
                             cm33/rtc.c
                             cm33/dual_timer.c
