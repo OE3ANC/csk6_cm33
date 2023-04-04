@@ -146,7 +146,6 @@ _EXT_RAM uint32_t sflash_read_id(FLASH_DEV *dev)
 _EXT_RAM int sflash_read(FLASH_DEV *dev, off_t offset, void *data, size_t len)
 {
 	int ret = -1;
-	printf("sflash_read\n");
 	do
 	{
 		if (dev == NULL)
