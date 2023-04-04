@@ -128,6 +128,11 @@ extern int mxic_enable_dc(FLASH_DEV *dev);
 extern int mxic_disable_dc(FLASH_DEV *dev);
 extern int mxic_get_dc(FLASH_DEV *dev, unsigned char *dc);
 
+// 支持lock的flash品牌
+#define FLASH_XTX   0x0b
+#define FLASH_GD    0xc8
+#define FLASH_WB    0xef
+
 static uint8_t s_ext_addr4 = 0;
 
 _EXT_RAM int platform_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc1)
@@ -140,6 +145,14 @@ _EXT_RAM int platform_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc
 	uint8_t rdid[3] = {0};
 	ret = spirom_cmd_send(dev, SPIROM_CMD_RDID, 0x0, 0, NULL, (unsigned int*)rdid);
 	if (ret) return ret;
+
+    // printk("rdid[0] = 0x%x\n", rdid[0]);
+    dev->lockable = 0;
+    if (rdid[0] == FLASH_XTX || rdid[0] == FLASH_GD || rdid[0] == FLASH_WB)
+    {
+        dev->lockable = 1;
+    }
+    
 	// enable 4-byte addressing if flash is larger than 16 MB (2 ^ 24 bytes)
 	if (rdid[2] > 24) {
 		dev->addr4 = 1;

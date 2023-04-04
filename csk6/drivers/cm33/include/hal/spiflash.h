@@ -20,6 +20,7 @@ typedef struct FLASH_DEV
 	unsigned char w_protect;
 	unsigned long timeout;
 	unsigned char addr4;
+	unsigned char lockable;
 } FLASH_DEV;
 
 typedef enum
@@ -226,6 +227,12 @@ int sflash_write_protection_set(FLASH_DEV *dev, bool enable);
  *  @return  write block size in bytes.
  */
 size_t sflash_get_write_block_size(FLASH_DEV *dev);
+
+#ifdef CONFIG_FLASH_CSK6_LOCK
+int sflash_lock(FLASH_DEV *dev);
+int sflash_unlock(FLASH_DEV *dev);
+uint32_t flash_csk6_read_id(const struct device *dev);
+#endif
 
 struct sflash_pages_info
 {
