@@ -52,10 +52,101 @@ _EXT_RAM int flash_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc1)
 	return ret;
 }
 
-_EXT_RAM int sflash_read(FLASH_DEV *dev, off_t offset, void *data, size_t len)
+_EXT_RAM int sflash_lock(FLASH_DEV *dev)
 {
 	int ret = -1;
 
+	if (dev)
+	{
+		if (dev->run_mod)
+		{
+			hal_global_irq_disable();
+		}
+		ret = mxic_lock(dev, 0, 0);
+		if (dev->run_mod)
+		{
+			hal_global_irq_enable();
+		}
+	}
+	return ret;
+}
+
+_EXT_RAM static int mxic_bp_check(FLASH_DEV *dev)
+{
+	unsigned int result, RetData = 0;
+	result = spirom_cmd_send(dev, SPIROM_CMD_RDST, 0x0, 0, NULL, &RetData);
+
+	if (result != 0) {
+		printf("mxic_bp_check: block protect check fail\n");
+		return -1;
+	}
+	
+	if (RetData & SPIROM_SR_BP_MASK) {
+		printf("mxic_program: Flash block locked. \n");
+		return -1;
+	}
+	return 0;
+}
+
+
+_EXT_RAM int sflash_unlock(FLASH_DEV *dev)
+{
+	int ret = -1;
+
+	if (dev)
+	{
+		if (dev->run_mod)
+		{
+			hal_global_irq_disable();
+		}
+		ret = mxic_wr_en(dev);
+		ret = mxic_unlock(dev, 0, 0);
+		if (dev->run_mod)
+		{
+			hal_global_irq_enable();
+		}
+	}
+	return ret;
+}
+
+_EXT_RAM uint32_t flash_read_id(FLASH_DEV *dev)
+{
+	unsigned int ret;
+	uint32_t id;
+
+	ret = spirom_cmd_send(dev, SPIROM_CMD_RDID, 0x0, 0, NULL, (unsigned int *)&id);
+	if (ret != 0) {
+		printf("ERROR: Read flash id failed\n");
+		return 0;
+	} else {
+		return id & 0xFFFFFF;
+	}
+}
+
+_EXT_RAM uint32_t sflash_read_id(FLASH_DEV *dev)
+{
+	uint32_t id = 0;
+
+	if (dev)
+	{
+		if (dev->run_mod)
+		{
+			hal_global_irq_disable();
+		}
+		id = flash_read_id(dev);
+		if (dev->run_mod)
+		{
+			hal_global_irq_enable();
+		}
+	}
+	return id;
+}
+
+
+_EXT_RAM int sflash_read(FLASH_DEV *dev, off_t offset, void *data, size_t len)
+{
+	int ret = -1;
+	printf("sflash_read\n");
 	do
 	{
 		if (dev == NULL)
@@ -86,6 +177,7 @@ _EXT_RAM int sflash_write(FLASH_DEV *dev, off_t offset, const void *data, size_t
 			hal_global_irq_disable();
 		}
 		ret = mxic_program(dev, (unsigned int)offset, (unsigned char *)data, (unsigned int)len);
+		printk("sflash_write mxic_program ret = %d", ret);
 		if (dev->run_mod)
 		{
 			hal_global_irq_enable();
@@ -360,31 +452,26 @@ _EXT_RAM static int mxic_wr_en(FLASH_DEV *dev)
 	unsigned int result, RetData, j;
 
 	result = spirom_cmd_send(dev, SPIROM_CMD_WREN, 0x0, 0, NULL, &RetData);
-	if (result != 0)
-	{
-		printk("mxic_program: (program) page %d enable write fail\n", i);
+	if(result != 0) {
+		printf("mxic_program: (program) page %d enable write fail\n", result);
 		return -1;
 	}
-	for (j = 1; j < dev->timeout; j++)
-	{
+	for (j = 1; j < dev->timeout; j++) {
 		/*-- get enable status --*/
 		result = spirom_cmd_send(dev, SPIROM_CMD_RDST, 0x0, 0, NULL, &RetData);
-		if (result != 0)
-		{
-			printk("mxic_program: get (program) page %d write enable status fail\n", i);
+		if(result != 0) {
+			printf("mxic_program: get (program) page %d write enable status fail\n", result);
 			return -1;
 		}
-		if (RetData & SPIROM_SR_BP_MASK)
-		{
-			printk("mxic_program: Flash block locked.\n");
-			return -1;
-		}
-		else if (RetData & SPIROM_SR_WEL_MASK)
+		// if(RetData & SPIROM_SR_BP_MASK) {
+		// 	printf("mxic_program: Flash block locked.\n");
+		// 	return -1;
+		// }
+		if(RetData & SPIROM_SR_WEL_MASK)
 			break;
 	}
-	if ((RetData & SPIROM_SR_WEL_MASK) == 0)
-	{
-		printk("mxic_program: (program) page %d, write enable is not set (status %x)\n", i, RetData);
+	if((RetData & SPIROM_SR_WEL_MASK) == 0) {
+		printf("mxic_program: (program) page %d, write enable is not set (status %x)\n", result, RetData);
 		return -1;
 	}
 	return 0;
@@ -399,7 +486,7 @@ _EXT_RAM static int mxic_wr_rdy(FLASH_DEV *dev)
 		result = spirom_cmd_send(dev, SPIROM_CMD_RDST, 0x0, 0, NULL, &RetData);
 		if (result != 0)
 		{
-			printk("mxic_program: get (program) page %d write enable status fail\n", i);
+			printk("mxic_program: get (program) page %d write enable status fail\n", result);
 			return -1;
 		}
 		if ((RetData & (SPIROM_SR_WIP_MASK | SPIROM_SR_WEL_MASK)) == 0)
@@ -407,7 +494,7 @@ _EXT_RAM static int mxic_wr_rdy(FLASH_DEV *dev)
 	}
 	if ((RetData & (SPIROM_SR_WIP_MASK | SPIROM_SR_WEL_MASK)) != 0)
 	{
-		printk("mxic_program: (program) page %d, write enable is not clear (status %x)\n", i, RetData);
+		printk("mxic_program: (program) page %d, write enable is not clear (status %x)\n", j, RetData);
 		return -1;
 	}
 	return 0;
@@ -535,6 +622,10 @@ _EXT_RAM int mxic_erase(FLASH_DEV *dev, unsigned int FlashAddr, unsigned int Dat
 	unsigned int EraseAddrStart, EraseSize, EraseSectorCnt, /*EraseSectorIndex,*/ i;
 	int result, RetData;
 
+	result = mxic_bp_check(dev);
+	if(result)
+		return result;
+	
 	EraseAddrStart = (FlashAddr / SPIROM_SECTOR_SIZE) * SPIROM_SECTOR_SIZE;
 	EraseSize = (FlashAddr - EraseAddrStart) + DataSize;
 	EraseSectorCnt = (EraseSize + (SPIROM_SECTOR_SIZE - 1)) / SPIROM_SECTOR_SIZE;
@@ -592,6 +683,11 @@ _EXT_RAM int mxic_erase_page(FLASH_DEV *dev, unsigned int FlashAddr, unsigned in
 	unsigned int EraseAddrStart, EraseSize, EraseCnt, /*EraseSectorIndex,*/ i;
 	unsigned int result, RetData;
 
+	/*- - get bp status --*/
+	result = mxic_bp_check(dev);
+	if(result)
+		return result;
+
 	EraseAddrStart = (FlashAddr / SPIROM_PAGE_SIZE) * SPIROM_PAGE_SIZE;
 	EraseSize = (FlashAddr - EraseAddrStart) + DataSize;
 	EraseCnt = (EraseSize + (SPIROM_PAGE_SIZE - 1)) / SPIROM_PAGE_SIZE;
@@ -639,18 +735,21 @@ _EXT_RAM int _mxic_program(FLASH_DEV *dev, unsigned int FlashAddr, unsigned int 
 		/*---------------------------*/
 		/*-- write enable --*/
 		result = mxic_wr_en(dev);
+		// printk("mxic_wr_en result = %d\n", result);
 		if (result)
 			break;
-
 		// printk("send program cmd......\n");
 		result = spirom_cmd_send(dev, SPIROM_CMD_PROGRAM, FlashAddr, step_size, pdata, &RetData);
+		// printk("spirom_cmd_send result = %d\n", result);
+
 		if (result != 0)
 		{
-			printk("mxic_program: (program) page %d fail\n", i);
+			// printk("mxic_program: (program) page %d fail\n", i);
 			break;
 		}
 		/*-- ckeck completion --*/
 		result = mxic_wr_rdy(dev);
+		// printk("mxic_wr_rdy result = %d\n", result);
 		if (result)
 			break;
 
@@ -675,6 +774,11 @@ _EXT_RAM int mxic_program(FLASH_DEV *dev, unsigned int FlashAddr, unsigned char 
 	unsigned int result, FirstWrite, MidWrite, LastWrite, addr;
 	unsigned char data[4] __attribute__((aligned(4)));
 	unsigned char *pdata = start;
+
+	/*- - get bp status --*/
+	result = mxic_bp_check(dev);
+	if(result)
+		return result;
 
 	do
 	{
@@ -811,26 +915,61 @@ _EXT_RAM int mxic_read(FLASH_DEV *dev, unsigned int FlashAddr, unsigned char *st
 // TODO: modify this function to target-specific function - lock flash
 _EXT_RAM int mxic_lock(FLASH_DEV *dev, unsigned int FlashAddr, unsigned int DataSize)
 {
-#if INDIVIDUAL_BLK_PROTECT
-#else
+	if (dev->lockable == 0)
+	{
+		printk("mxic_lock: not lockable \n");
+		return 0;
+	}
 	unsigned int RetData = 0;
-
 	spirom_cmd_send(dev, SPIROM_CMD_RDST, 0x0, 0, NULL, &RetData);
+	if (RetData & 0x3C)
+	{
+		printk("mxic_lock: already locked \n");
+		return 0;
+	}
 	mxic_set_wrsr(dev, RetData | 0x3C);
 	spirom_cmd_send(dev, SPIROM_CMD_RDST, 0x0, 0, NULL, &RetData);
 	printk("mxic_lock: status = %08x \n", RetData);
-#endif
 	return 0;
 }
+
+
+_EXT_RAM int mxic_is_lock(FLASH_DEV *dev)
+{
+	if (dev->lockable == 0)
+	{
+		printk("mxic_lock: not lockable \n");
+		return 0;
+	}
+	unsigned int RetData = 0;
+
+	spirom_cmd_send(dev, SPIROM_CMD_RDST, 0x0, 0, NULL, &RetData);
+	// printk("mxic_read_lock: status = %08x \n", RetData);
+	if (RetData & 0x3C)
+		return 1;
+	else
+		return 0;
+}
+
 
 // TODO: modify this function to target-specific function - unlock flash
 _EXT_RAM int mxic_unlock(FLASH_DEV *dev, unsigned int FlashAddr, unsigned int DataSize)
 {
+	if (dev->lockable == 0)
+	{
+		printk("mxic_lock: not lockable \n");
+		return 0;
+	}
 #if INDIVIDUAL_BLK_PROTECT
 #else
 	unsigned int RetData = 0;
 
 	spirom_cmd_send(dev, SPIROM_CMD_RDST, 0x0, 0, NULL, &RetData);
+	if (!(RetData & 0x3C))
+	{
+		printk("mxic_unlock: already unlocked \n");
+		return 0;
+	}
 	mxic_set_wrsr(dev, RetData & ~0x3C);
 	spirom_cmd_send(dev, SPIROM_CMD_RDST, 0x0, 0, NULL, &RetData);
 	printk("mxic_unlock: status = %08x \n", RetData);
