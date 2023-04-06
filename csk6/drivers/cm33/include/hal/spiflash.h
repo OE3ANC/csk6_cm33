@@ -231,7 +231,7 @@ size_t sflash_get_write_block_size(FLASH_DEV *dev);
 #ifdef CONFIG_FLASH_CSK6_LOCK
 int sflash_lock(FLASH_DEV *dev);
 int sflash_unlock(FLASH_DEV *dev);
-uint32_t flash_csk6_read_id(const struct device *dev);
+int32_t sflash_read_id(FLASH_DEV *dev);
 #endif
 
 struct sflash_pages_info
