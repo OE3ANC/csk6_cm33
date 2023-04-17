@@ -228,11 +228,11 @@ int sflash_write_protection_set(FLASH_DEV *dev, bool enable);
  */
 size_t sflash_get_write_block_size(FLASH_DEV *dev);
 
-#ifdef CONFIG_FLASH_CSK6_LOCK
+
 int sflash_lock(FLASH_DEV *dev);
 int sflash_unlock(FLASH_DEV *dev);
+int sflash_lock_status(FLASH_DEV *dev);
 int32_t sflash_read_id(FLASH_DEV *dev);
-#endif
 
 struct sflash_pages_info
 {
