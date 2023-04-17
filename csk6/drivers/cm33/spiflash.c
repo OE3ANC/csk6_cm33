@@ -73,21 +73,41 @@ _EXT_RAM int sflash_lock(FLASH_DEV *dev)
 	return ret;
 }
 
-_EXT_RAM static int mxic_bp_check(FLASH_DEV *dev)
-{
-	unsigned int result, RetData = 0;
-	result = spirom_cmd_send(dev, SPIROM_CMD_RDST, 0x0, 0, NULL, &RetData);
 
-	if (result != 0) {
-		printf("mxic_bp_check: block protect check fail\n");
-		return -1;
+_EXT_RAM int mxic_bp_check(FLASH_DEV *dev)
+{
+	if (dev->lockable == 0)
+	{
+		printk("mxic_lock: not lockable \n");
+		return 0;
 	}
-	
-	if (RetData & SPIROM_SR_BP_MASK) {
-		printf("mxic_program: Flash block locked. \n");
-		return -1;
+	unsigned int RetData = 0;
+
+	spirom_cmd_send(dev, SPIROM_CMD_RDST, 0x0, 0, NULL, &RetData);
+	if (RetData & 0x3C)
+		return 1;
+	else
+		return 0;
+}
+
+
+_EXT_RAM int sflash_lock_status(FLASH_DEV *dev)
+{
+	int status = 0;
+
+	if (dev)
+	{
+		if (dev->run_mod)
+		{
+			hal_global_irq_disable();
+		}
+		status = mxic_bp_check(dev);
+		if (dev->run_mod)
+		{
+			hal_global_irq_enable();
+		}
 	}
-	return 0;
+	return status;
 }
 
 
@@ -921,23 +941,6 @@ _EXT_RAM int mxic_lock(FLASH_DEV *dev, unsigned int FlashAddr, unsigned int Data
 	mxic_set_wrsr(dev, RetData | 0x3C);
 	spirom_cmd_send(dev, SPIROM_CMD_RDST, 0x0, 0, NULL, &RetData);
 	return 0;
-}
-
-
-_EXT_RAM int mxic_is_lock(FLASH_DEV *dev)
-{
-	if (dev->lockable == 0)
-	{
-		printk("mxic_lock: not lockable \n");
-		return -1;
-	}
-	unsigned int RetData = 0;
-
-	spirom_cmd_send(dev, SPIROM_CMD_RDST, 0x0, 0, NULL, &RetData);
-	if (RetData & 0x3C)
-		return 1;
-	else
-		return 0;
 }
 
 
