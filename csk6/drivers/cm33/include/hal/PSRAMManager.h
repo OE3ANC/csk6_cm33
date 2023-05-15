@@ -8,14 +8,26 @@
 #ifndef INCLUDE_DRIVER_PSRAMMANAGER_H_
 #define INCLUDE_DRIVER_PSRAMMANAGER_H_
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include "clock_config.h"
 
+#ifndef CONFIG_PSRAM_SIZE
+#define CONFIG_PSRAM_SIZE 0x800000
+#endif
+
+#define PSRAM_CHIP_SIZE (CONFIG_PSRAM_SIZE / (1024 * 1024))
+
 #define PSRAM_INNER_SEARCH_LOOP_NUM         64
-#define PSRAM_SEARCH_DQS_NUM                64 
+#define PSRAM_SEARCH_DQS_NUM                64             // word
+#if PSRAM_CHIP_SIZE == 4
+#define PSRAM_SIZE                          (4*1024*1024)  // bytes
+#elif PSRAM_CHIP_SIZE == 8
 #define PSRAM_SIZE                          (8*1024*1024)  // bytes
+#else
+#error Unsupported PSRAM size
+#endif
 #define PSRAM_EYE_DIAGRAM_TOP               (0xB4)
 #define PSRAM_EYE_DIAGRAM_BOTTOM            (0x0)
 
@@ -148,23 +160,55 @@ typedef enum _prefetch_level{
 // bit[N]=1: port N in group1
 // bit[N]=0: port N in group0
 #define CONTROLLER_PRIO_FIXED               (0x0)
-#define CONTROLLER_PRIO_ROUND_ROBIN         (0x1f)
-#define CONTROLLER_PRIO_SETTING             (CONTROLLER_PRIO_FIXED)
+#define CONTROLLER_PRIO_ROUND_ROBIN         (0x3f)
+#define CONTROLLER_PRIO_SETTING             (CONTROLLER_PRIO_ROUND_ROBIN)
 
 // bypass 置1时，表示DQS delay采用delay cells去延迟，反之表示，采用百分比延迟
 #define PSRAM_DLL_BYPASS                    (0x1)
 
 //******************MR0
+#if PSRAM_CHIP_SIZE == 4
+// For 4M PSRAM
+// 0x0 1/16
+// 0x1 Half
+// 0x2 1/4
+// 0x3 1/8
+#define PSRAM_MR0_DRIVE_STR                 (0x1)      // bit0-1
+#elif PSRAM_CHIP_SIZE == 8
 // 0x0 Full (25Ω)
 // 0x1 Half (50Ω)
 // 0x2 1/4 (100Ω)
 // 0x3 1/8 (200Ω default)
 #define PSRAM_MR0_DRIVE_STR                 (0x0)      // bit0-1
+#endif
 #define PSRAM_MR0_LT                        (0x1)      // bit5
+
+//******************MR1-MR2
+#define PSRAM_MR1_VENDOR_ID_OFFSET          (0x0)
+#define PSRAM_MR2_DEV_ID_OFFSET             (0x3)
+#define PSRAM_MR2_GB_OFFSET                 (0x7)
+
+//******************MR3
+// SRF-> 0   mean: Slow Refresh
+//    -> 1   mean: Fast Refresh
+#define PSRAM_MR3_SRF                       (0x1)      // bit5
+#define PSRAM_MR3_VCC                       (0x0)      // bit6
 
 //******************MR4
 #define PSRAM_MR4_PASR                      (0x0)      // bit0-2
+// RF-> 0   mean: Fast Refresh
+//   -> 1   mean: Enables Slow Refresh when temperature allows
 #define PSRAM_MR4_RF                        (0x0)      // bit3
+// Diff in chip die of 4M and 8M
+#if PSRAM_CHIP_SIZE == 4
+#define PSRAM_MR4_WL_MASK                   (0x1)
+#define PSRAM_MR4_WL_POS                    (7)
+#define PSRAM_MR4_WL_SHIFT                  (2)
+#elif PSRAM_CHIP_SIZE == 8
+#define PSRAM_MR4_WL_MASK                   (0x7)
+#define PSRAM_MR4_WL_POS                    (5)
+#define PSRAM_MR4_WL_SHIFT                  (0)
+#endif
 
 //******************MR8
 #define PSRAM_MR8_BL                        (0x3)      // bit0-1       // warp 1k
