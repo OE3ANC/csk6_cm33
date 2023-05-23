@@ -417,10 +417,6 @@ int32_t UART_PowerControl(void *res, CSK_POWER_STATE state)
 
         uart->info->flags = UART_FLAG_POWERED | UART_FLAG_INITIALIZED;
 
-        // Configure interrupt handle
-        register_ISR(uart->irq_num, uart->irq_handler, NULL);
-        enable_IRQ(uart->irq_num);
-
         break;
     }
     return CSK_DRIVER_OK;
