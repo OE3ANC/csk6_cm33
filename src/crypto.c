@@ -46,6 +46,7 @@ static CRYPTO_INFO crypto0_info = {
         CRYPTO_MODE_NONE,
         0,
         0,
+        0,
 };
 
 static const CRYPTO_RESOURCES crypto0_resources = {
@@ -87,6 +88,8 @@ int32_t CRYPTO_Initialize (void *res, CSK_CRYPTO_SignalEvent_t cb_event, void* w
     crypto->info->key_mode = CRYPTO_MODE_SYS_KEY;
     crypto->info->mode = CRYPTO_MODE_NONE;
     crypto->info->user_key = NULL;
+    // Default using little endian
+    crypto->info->sha_inv = 1;
 
     // clear information
     __builtin_memset(crypto->info->ecb_info, 0, sizeof(ECB_INFO));
@@ -111,6 +114,8 @@ int32_t CRYPTO_Uninitialize (void *res) {
     crypto->info->key_mode = CRYPTO_MODE_SYS_KEY;
     crypto->info->mode = CRYPTO_MODE_NONE;
     crypto->info->user_key = NULL;
+    // Default using little endian
+    crypto->info->sha_inv = 1;
 
     // clear information
     __builtin_memset(crypto->info->ecb_info, 0, sizeof(ECB_INFO));
@@ -161,15 +166,19 @@ int32_t CRYPTO_PowerControl (void* res, CSK_POWER_STATE  state) {
         IP_SYSCTRL->REG_SW_RESET2.bit.CRYPTO_RESET = 0x1;
 
         // Change all input or output format to LITTLE-ENDIAN
+        // Out
         crypto->reg->REG_CPT_CONFIG.bit.OUT_WORD_INV = 0x1;
         crypto->reg->REG_CPT_CONFIG.bit.OUT_BYTE_INV = 0x1;
-        crypto->reg->REG_CPT_CONFIG.bit.WORD_INV = 0x1;
+        // In
+        crypto->reg->REG_CPT_CONFIG.bit.RESV_2_7 = 0x1;
         crypto->reg->REG_CPT_CONFIG.bit.BYTE_INV = 0x1;
+        crypto->reg->REG_CPT_CONFIG.bit.WORD_INV = 0x0;
+        // Key
         crypto->reg->REG_CPT_CONFIG.bit.KEY_WORD_INV = 0x1;
         crypto->reg->REG_CPT_CONFIG.bit.KEY_BYTE_INV = 0x1;
+        // IV
         crypto->reg->REG_CPT_CONFIG.bit.IV_WORD_INV = 0x1;
         crypto->reg->REG_CPT_CONFIG.bit.IV_BYTE_INV = 0x1;
-        crypto->reg->REG_CPT_CONFIG.bit.SHA_INV = 0x1;
 
         // initialization vector
         crypto->reg->REG_CPT_AES_IV0.all = 0x0;
@@ -423,10 +432,11 @@ int32_t CRYPTO_Hash (void* res, uint32_t * p_source,
     // flush source
     dcache_flush_range((unsigned long)p_source, (unsigned long)(p_source + (num_bytes / 4)));
 
+    crypto->reg->REG_CPT_CONFIG.bit.SHA_INV = 0x0;
     crypto->reg->REG_CPT_SRC_ADDR.all = (uint32_t)p_source;
     crypto->reg->REG_CPT_SRC_SIZE.all = num_bytes;
 
-    if (!crypto->info->hash_info->updata){
+    if (!updata){
         crypto->reg->REG_CPT_SHA_ST0.all = 0x6a09e667;
         crypto->reg->REG_CPT_SHA_ST1.all = 0xbb67ae85;
         crypto->reg->REG_CPT_SHA_ST2.all = 0x3c6ef372;
@@ -522,46 +532,46 @@ int32_t CRYPTO_Control (void* res, uint32_t control,
 
     // Invert output word format
     if (control & CSK_CRYPTO_IV_OUT_WORD_Msk){
-        crypto->reg->REG_CPT_CONFIG.bit.OUT_WORD_INV =! crypto->reg->REG_CPT_CONFIG.bit.OUT_WORD_INV;
+        crypto->reg->REG_CPT_CONFIG.bit.OUT_WORD_INV = arg0;
     }
 
     // Invert output byte format
     if (control & CSK_CRYPTO_IV_OUT_BYTE_Msk){
-        crypto->reg->REG_CPT_CONFIG.bit.OUT_BYTE_INV =! crypto->reg->REG_CPT_CONFIG.bit.OUT_BYTE_INV;
+        crypto->reg->REG_CPT_CONFIG.bit.OUT_BYTE_INV = arg0;
     }
 
     // Invert input word format
     if (control & CSK_CRYPTO_IV_IN_WORD_Msk){
-        crypto->reg->REG_CPT_CONFIG.bit.WORD_INV =! crypto->reg->REG_CPT_CONFIG.bit.WORD_INV;
+        crypto->reg->REG_CPT_CONFIG.bit.RESV_2_7 = arg0;
     }
 
     // Invert input byte format
     if (control & CSK_CRYPTO_IV_IN_BYTE_Msk){
-        crypto->reg->REG_CPT_CONFIG.bit.BYTE_INV =! crypto->reg->REG_CPT_CONFIG.bit.BYTE_INV;
+        crypto->reg->REG_CPT_CONFIG.bit.BYTE_INV = arg0;
     }
 
     // Invert key word format
     if (control & CSK_CRYPTO_IV_KEY_WORD_Msk){
-        crypto->reg->REG_CPT_CONFIG.bit.KEY_WORD_INV =! crypto->reg->REG_CPT_CONFIG.bit.KEY_WORD_INV;
+        crypto->reg->REG_CPT_CONFIG.bit.KEY_WORD_INV = arg0;
     }
 
     // Invert key byte format
     if (control & CSK_CRYPTO_IV_KEY_BYTE_Msk){
-        crypto->reg->REG_CPT_CONFIG.bit.KEY_BYTE_INV =! crypto->reg->REG_CPT_CONFIG.bit.KEY_BYTE_INV;
+        crypto->reg->REG_CPT_CONFIG.bit.KEY_BYTE_INV = arg0;
     }
 
     // Invert vector word format
     if (control & CSK_CRYPTO_IV_VECTOR_WORD_Msk){
-        crypto->reg->REG_CPT_CONFIG.bit.IV_WORD_INV =! crypto->reg->REG_CPT_CONFIG.bit.IV_WORD_INV;
+        crypto->reg->REG_CPT_CONFIG.bit.IV_WORD_INV = arg0;
     }
 
     // Invert vector byte format
     if (control & CSK_CRYPTO_IV_VECTOR_BYTE_Msk){
-        crypto->reg->REG_CPT_CONFIG.bit.IV_BYTE_INV =! crypto->reg->REG_CPT_CONFIG.bit.IV_BYTE_INV;
+        crypto->reg->REG_CPT_CONFIG.bit.IV_BYTE_INV = arg0;
     }
 
     if (control & CSK_CRYPTO_IV_HASH_Msk){
-        crypto->reg->REG_CPT_CONFIG.bit.SHA_INV =! crypto->reg->REG_CPT_CONFIG.bit.SHA_INV;
+        crypto->info->sha_inv = arg0;
     }
 
     return CSK_DRIVER_OK;
@@ -586,6 +596,9 @@ static void CRYPTO_IRQHandler (CRYPTO_RESOURCES *crypto) {
         event |= CSK_CRYPTO_EVENT_DONE;
         // copy the result to destination
         if (crypto->info->mode == CRYPTO_MODE_HASH){
+            if (crypto->info->sha_inv){
+                crypto->reg->REG_CPT_CONFIG.bit.SHA_INV = 0x1;
+            }
             crypto->info->hash_info->dst[0] = crypto->reg->REG_CPT_SHA_ST0.all;
             crypto->info->hash_info->dst[1] = crypto->reg->REG_CPT_SHA_ST1.all;
             crypto->info->hash_info->dst[2] = crypto->reg->REG_CPT_SHA_ST2.all;

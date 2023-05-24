@@ -117,12 +117,17 @@
 #define CSK_UART2_RX_DMA_REQSEL   (DMA_HSID_UART2_RX)
 // ******************************************
 
+
+// ******************************************UART3
+#define CSK_UART3_FIFO            (32)// Depth of FIFO (Bytes)
+// ******************************************
+
 #define CSK_UART_RX_TRIG_LVL_0   (1)           // 1 character in FIFO
 #define CSK_UART_RX_TRIG_LVL_1   (8)           // FIFO 1/4 full
 #define CSK_UART_RX_TRIG_LVL_2   (16)          // FIFO 1/2 full
 #define CSK_UART_RX_TRIG_LVL_3   (30)          // FIFO 2 less than full
 
-#define CSK_UART_RX_TRIG_LVL                   CSK_UART_RX_TRIG_LVL_0
+#define CSK_UART_RX_TRIG_LVL                   CSK_UART_RX_TRIG_LVL_1
 
 
 #if CSK_UART_RX_TRIG_LVL == CSK_UART_RX_TRIG_LVL_0     // Greater than or equal 1 character trigger DMA transmit
