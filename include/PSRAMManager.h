@@ -8,6 +8,7 @@
 #ifndef INCLUDE_DRIVER_PSRAMMANAGER_H_
 #define INCLUDE_DRIVER_PSRAMMANAGER_H_
 
+<<<<<<< HEAD
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +19,12 @@
 #endif
 
 #define PSRAM_CHIP_SIZE (CONFIG_PSRAM_SIZE / (1024 * 1024))
+=======
+#include <stdio.h>
+#include <stdlib.h>
+#include "clock_config.h"
+#define PSRAM_CHIP_SIZE                     (8) // 8MBytes
+>>>>>>> feature/zephyr
 
 #define PSRAM_INNER_SEARCH_LOOP_NUM         64
 #define PSRAM_SEARCH_DQS_NUM                64             // word
@@ -25,8 +32,11 @@
 #define PSRAM_SIZE                          (4*1024*1024)  // bytes
 #elif PSRAM_CHIP_SIZE == 8
 #define PSRAM_SIZE                          (8*1024*1024)  // bytes
+<<<<<<< HEAD
 #else
 #error Unsupported PSRAM size
+=======
+>>>>>>> feature/zephyr
 #endif
 #define PSRAM_EYE_DIAGRAM_TOP               (0xB4)
 #define PSRAM_EYE_DIAGRAM_BOTTOM            (0x0)
@@ -54,12 +64,21 @@ typedef enum _prefetch_level{
 #endif
 
 // Search dqs
+<<<<<<< HEAD
 #define PSRAM_RD_DQS_SEARCH                 (0)
 #define PSRAM_WT_DQS_SEARCH                 (0)
 
 // 采用默认的wt 或者 rd 的delay参数
 #define DEFAULT_WT_DELAY                    (0x2d)
 #define DEFAULT_RD_DELAY                    (0x15)
+=======
+#define PSRAM_RD_DQS_SEARCH                 (1)
+#define PSRAM_WT_DQS_SEARCH                 (1)
+
+// 采用默认的wt 或者 rd 的delay参数
+#define DEFAULT_WT_DELAY                    (0x2e)
+#define DEFAULT_RD_DELAY                    (0x16)
+>>>>>>> feature/zephyr
 
 #if defined(CSK6001_MPW)
 #if BOARD_BOOTCLOCKRUN_PSRAM_CLK >= 200000000UL
@@ -167,6 +186,7 @@ typedef enum _prefetch_level{
 #define PSRAM_DLL_BYPASS                    (0x1)
 
 //******************MR0
+<<<<<<< HEAD
 #if PSRAM_CHIP_SIZE == 4
 // For 4M PSRAM
 // 0x0 1/16
@@ -175,12 +195,17 @@ typedef enum _prefetch_level{
 // 0x3 1/8
 #define PSRAM_MR0_DRIVE_STR                 (0x1)      // bit0-1
 #elif PSRAM_CHIP_SIZE == 8
+=======
+>>>>>>> feature/zephyr
 // 0x0 Full (25Ω)
 // 0x1 Half (50Ω)
 // 0x2 1/4 (100Ω)
 // 0x3 1/8 (200Ω default)
 #define PSRAM_MR0_DRIVE_STR                 (0x0)      // bit0-1
+<<<<<<< HEAD
 #endif
+=======
+>>>>>>> feature/zephyr
 #define PSRAM_MR0_LT                        (0x1)      // bit5
 
 //******************MR1-MR2

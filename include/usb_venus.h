@@ -367,6 +367,7 @@ enum usb_venus_out_ep_idx {
 
 #define DMA_MULTIPLE (1)
 
+<<<<<<< HEAD
 #define GET_FIFOSZ_CFG(fifosize)	((fifosize <= 8) ? (USB_VENUS_FIFOSZ_SZ_8) :\
 								 	 ((fifosize <= 16) ? (USB_VENUS_FIFOSZ_SZ_16) :\
 								 	 ((fifosize <= 32) ? (USB_VENUS_FIFOSZ_SZ_32) :\
@@ -375,6 +376,18 @@ enum usb_venus_out_ep_idx {
 								     ((fifosize <= 256) ? (USB_VENUS_FIFOSZ_SZ_256) :\
 								     ((fifosize <= 512) ? (USB_VENUS_FIFOSZ_SZ_512) :\
 								     ((fifosize <= 1024) ? (USB_VENUS_FIFOSZ_SZ_1024) :(USB_VENUS_FIFOSZ_SZ_2048)))))))))
+=======
+#define GET_FIFOSZ_CFG(fifosize)	((fifosize == 8) ? (USB_VENUS_FIFOSZ_SZ_8) :\
+								 	 ((fifosize <= 16) ? (USB_VENUS_FIFOSZ_SZ_16) :\
+								 	 ((fifosize <= 32) ? (USB_VENUS_FIFOSZ_SZ_32) :\
+		                             ((fifosize <= 48) ? (USB_VENUS_FIFOSZ_SZ_64) :\
+								 	 ((fifosize <= 64) ? (USB_VENUS_FIFOSZ_SZ_64) :\
+								     ((fifosize <= 128) ? (USB_VENUS_FIFOSZ_SZ_128) :\
+		                             ((fifosize <= 192) ? (USB_VENUS_FIFOSZ_SZ_256) :\
+								     ((fifosize <= 256) ? (USB_VENUS_FIFOSZ_SZ_256) :\
+								     ((fifosize <= 512) ? (USB_VENUS_FIFOSZ_SZ_512) :\
+								     ((fifosize <= 1024) ? (USB_VENUS_FIFOSZ_SZ_1024) :(USB_VENUS_FIFOSZ_SZ_256)))))))))))
+>>>>>>> feature/zephyr
 
 
 #endif /* __USB_VENUS_H */

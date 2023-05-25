@@ -7,8 +7,13 @@
 
 #include "reg/ana_aon_regfile_reg_venus.h"
 #include "reg/cmn_sysctrl_reg_venus.h"
+<<<<<<< HEAD
 #include "venus_ap.h"
 #include "ClockManager.h"
+=======
+#include "hal/venus_ap.h"
+#include "hal/ClockManager.h"
+>>>>>>> feature/zephyr
 
 
 #define SYSCTRL_RESET_CP (0xCAFE000B)

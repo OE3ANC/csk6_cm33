@@ -67,7 +67,11 @@
 
 // AudioPll 相关时钟源
 #define BOARD_BOOTCLOCKRUN_AUDPLL_CLK_DEF    0
+<<<<<<< HEAD
 #define BOARD_BOOTCLOCKRUN_AUDPLL_CLK        1190700000UL   // (XTAL * (N + NF/2^24)) / (M)
+=======
+#define BOARD_BOOTCLOCKRUN_AUDPLL_CLK        1190700000UL   // (XTAL * (N + NF/2^23)) / (M)
+>>>>>>> feature/zephyr
 #define BOARD_BOOTCLOCKRUN_AUDPLL_DIV_N      49
 #define BOARD_BOOTCLOCKRUN_AUDPLL_DIV_NF     5138022
 #define BOARD_BOOTCLOCKRUN_AUDPLL_DIV_M      1

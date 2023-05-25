@@ -246,5 +246,9 @@ int32_t  UART_GetStatus(void *res, CSK_UART_STATUS* stat);
 void* UART0(void);
 void* UART1(void);
 void* UART2(void);
+<<<<<<< HEAD
+=======
+void* UART3(void);
+>>>>>>> feature/zephyr
 
 #endif /* DRIVER_UART_H_ */

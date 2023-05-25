@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 #include "gpio.h"
+=======
+#include "hal/gpio.h"
+>>>>>>> feature/zephyr
 
 #define CSK_GPIO_DRV_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,1)
 

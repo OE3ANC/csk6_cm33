@@ -10,8 +10,13 @@
 // #include <semphr.h>
 #include <stdbool.h>
 
+<<<<<<< HEAD
 #include "venus_ap.h"
 #include "reg/cmn_sysctrl_reg_venus.h"
+=======
+#include "hal/venus_ap.h"
+#include "hal/reg/cmn_sysctrl_reg_venus.h"
+>>>>>>> feature/zephyr
 #include "lib_sdc.h"
 #include "drv_sdc.h"
 // #include "venus_log.h"

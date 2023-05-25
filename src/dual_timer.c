@@ -358,8 +358,11 @@ TIMER_IRQ_Handler(TIMER_RESOURCES *timer){
         if(timer->info[0].cb_event){
             timer->info[0].cb_event(event, timer->info[0].workspace);
         }
+<<<<<<< HEAD
         while (timer->reg->REG_MIS0.all);
         
+=======
+>>>>>>> feature/zephyr
     }
 
     event = 0;
@@ -370,7 +373,10 @@ TIMER_IRQ_Handler(TIMER_RESOURCES *timer){
         if(timer->info[1].cb_event){
             timer->info[1].cb_event(event, timer->info[1].workspace);
         }
+<<<<<<< HEAD
         while (timer->reg->REG_MIS1.all);
+=======
+>>>>>>> feature/zephyr
     }
 
 }
