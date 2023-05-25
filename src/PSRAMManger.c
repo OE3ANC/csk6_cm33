@@ -18,11 +18,9 @@
 #define SYSCTRL_RELEASE_CP  (0xCAFE100B)
 #define SYSCTRL_RESET_NPU   (0xCAFE000C)
 
-#define US_TO_CNT(n)    ((n) * (BOARD_BOOTCLOCKRUN_AP_ROOT_CLK / 1000000))
-
 #define max(a,b) \
-    ({ __typeof__(a) _a = (a); \
-       __typeof__(b) _b = (b); \
+    ({ typeof(a) _a = (a); \
+       typeof(b) _b = (b); \
        _a > _b ? _a : _b; })
 
 #if PSRAM_LOG_CHECK == 1
@@ -432,6 +430,12 @@ int32_t PSRAM_Initialize(void){
     }
 #endif
 
+#if PSRAM_CHIP_SIZE == 4
+    IP_PSRAMC->REG_MEM_CMD.bit.WRITE_MEM_CMD = 0x80;
+    IP_PSRAMC->REG_MEM_CMD.bit.READ_MEM_CMD = 0x00;
+#elif PSRAM_CHIP_SIZE == 8
+    // Default
+#endif
     // read command
     PSRAM_LOG("[INFO]PSRAM Write memory command: 0x%x", IP_PSRAMC->REG_MEM_CMD.bit.WRITE_MEM_CMD);
     PSRAM_LOG("[INFO]PSRAM Read memory command: 0x%x", IP_PSRAMC->REG_MEM_CMD.bit.READ_MEM_CMD);
@@ -590,7 +594,7 @@ int32_t PSRAM_Initialize(void){
         uint32_t rdata = 0;
 
         // read latency
-        while(i--){
+        while(--i){
             rdata = IP_PSRAMC->REG_MR0.all;
             if ((rdata & 0xff) == ((PSRAM_MR0_LT << 5) | (PSRAM_MEM_R_WAIT_CYCLES << 2) | PSRAM_MR0_DRIVE_STR)){
                 break;
@@ -605,9 +609,10 @@ int32_t PSRAM_Initialize(void){
             PSRAM_LOGE("PSRAM MR0 configure error");
         }
 
+#if PSRAM_CHIP_SIZE == 8
         // wrap 1K
         i = 100;
-        while(i--){
+        while(--i){
             rdata = IP_PSRAMC->REG_MR8.all;
             if ((rdata & 0xff) == ((PSRAM_MR8_BT << 2) | PSRAM_MR8_BL)){
                 break;
@@ -615,17 +620,65 @@ int32_t PSRAM_Initialize(void){
             IP_PSRAMC->REG_MR8.all = ((PSRAM_MR8_BT << 2) | PSRAM_MR8_BL);
         }
 
+        if (i == 0){
+            PSRAM_LOGE("PSRAM MR8 configure error");
+        }
+#endif
+
         // write latency
         i = 100;
-        while(i--){
+        while(--i){
             rdata = IP_PSRAMC->REG_MR4.all;
-            if ((rdata & 0xff) == ((PSRAM_MEM_W_WAIT_CYCLES << 5) | (PSRAM_MR4_RF << 3) | PSRAM_MR4_PASR)){
+            if ((rdata & 0xff) == ((((PSRAM_MEM_W_WAIT_CYCLES >> PSRAM_MR4_WL_SHIFT) & PSRAM_MR4_WL_MASK) << PSRAM_MR4_WL_POS) | (PSRAM_MR4_RF << 3) | PSRAM_MR4_PASR)){
                 IP_PSRAMC->REG_DDR_WAIT.bit.MEM_W_WAIT = CONTROLLER_MEM_W_WAIT_CYCLES;
                 break;
             }
-            IP_PSRAMC->REG_MR4.all = ((PSRAM_MEM_W_WAIT_CYCLES << 5) | (PSRAM_MR4_RF << 3) | PSRAM_MR4_PASR);
+            IP_PSRAMC->REG_MR4.all = ((((PSRAM_MEM_W_WAIT_CYCLES >> PSRAM_MR4_WL_SHIFT) & PSRAM_MR4_WL_MASK) << PSRAM_MR4_WL_POS) | (PSRAM_MR4_RF << 3) | PSRAM_MR4_PASR);
         }
 
+        if (i == 0){
+            PSRAM_LOGE("PSRAM MR4 configure error");
+        }
+
+#if PSRAM_CHIP_SIZE == 8
+        // MR3
+        i = 100;
+        while(--i){
+            rdata = IP_PSRAMC->REG_MR3.all;
+            if (((rdata & 0xff) & ((0x1 << 5) | (0x1 << 6))) == ((PSRAM_MR3_SRF << 5) | PSRAM_MR3_VCC << 6)){
+                break;
+            }
+            IP_PSRAMC->REG_MR3.all = ((rdata & (~((0x1 << 5) | (0x1 << 6)))) & 0xff) | ((PSRAM_MR3_SRF << 5) | PSRAM_MR3_VCC << 6);
+        }
+
+        if (i == 0){
+            PSRAM_LOGE("PSRAM MR3 configure error");
+        }
+#endif
+
+        // Device Information
+        {
+            rdata = IP_PSRAMC->REG_MR1.all;
+            uint8_t vendor_id = ((rdata & 0xff) >> PSRAM_MR1_VENDOR_ID_OFFSET) & 0x1f;
+
+            rdata = IP_PSRAMC->REG_MR2.all;
+            uint8_t dev_id = ((rdata & 0xff) >> PSRAM_MR2_DEV_ID_OFFSET) & 0x3;
+
+            uint8_t gb = ((rdata & 0xff) >> PSRAM_MR2_GB_OFFSET) & 0x1;
+            if (gb == 0){
+                PSRAM_LOGE("[ERR] Bad Chip");
+            }
+
+            PSRAM_LOG("[INFO] Vendor ID: 0x%x; Dev ID: 0x%x", vendor_id, dev_id);
+        }
+
+#if PSRAM_CHIP_SIZE == 4
+        MR_REG[0] = IP_PSRAMC->REG_MR0.all;
+        MR_REG[1] = IP_PSRAMC->REG_MR1.all;
+        MR_REG[2] = IP_PSRAMC->REG_MR2.all;
+        MR_REG[4] = IP_PSRAMC->REG_MR4.all;
+        MR_REG[6] = IP_PSRAMC->REG_MR6.all;
+#elif PSRAM_CHIP_SIZE == 8
         MR_REG[0] = IP_PSRAMC->REG_MR0.all;
         MR_REG[1] = IP_PSRAMC->REG_MR1.all;
         MR_REG[2] = IP_PSRAMC->REG_MR2.all;
@@ -633,6 +686,7 @@ int32_t PSRAM_Initialize(void){
         MR_REG[4] = IP_PSRAMC->REG_MR4.all;
         MR_REG[6] = IP_PSRAMC->REG_MR6.all;
         MR_REG[8] = IP_PSRAMC->REG_MR8.all;
+#endif
 
     }
 
@@ -710,9 +764,9 @@ void PSRAM_Exit_DeepSleep_Mode(void){
 
 	{
         IP_PSRAMC->REG_MR0.all = MR_REG[0];
-        IP_PSRAMC->REG_MR1.all = MR_REG[1];
-        IP_PSRAMC->REG_MR2.all = MR_REG[2];
-        IP_PSRAMC->REG_MR3.all = MR_REG[3];
+//        IP_PSRAMC->REG_MR1.all = MR_REG[1];
+//        IP_PSRAMC->REG_MR2.all = MR_REG[2];
+//        IP_PSRAMC->REG_MR3.all = MR_REG[3];
         IP_PSRAMC->REG_MR4.all = MR_REG[4];
         IP_PSRAMC->REG_MR6.all = MR_REG[6];
         IP_PSRAMC->REG_MR8.all = MR_REG[8];

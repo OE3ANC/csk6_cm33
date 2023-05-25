@@ -276,7 +276,7 @@ int32_t HAL_GPT_PWMControl(void *pGpt, uint32_t control, GPT_CHANNEL_TYPE channe
 	if(pGptPWM->gpt_resources->hardware->channel_stat[channel] == HARDWARE_CHANNEL_STAT_USED_BY_LEDC)
 	{
 		//configure ledc duty cycle as fixed 0.4us and 0.85us
-		uint32_t high16bits, low16bits;
+		uint32_t high16bits, low16bits, sysclock;
 		uint8_t pos, freqpos;
 		pos = (pGptPWM->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_DIV) >> GPT_CHx_CLK_CTRL_CLK_DIV_Pos;
 		freqpos = (pGptPWM->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_SEL) >> GPT_CHx_CLK_CTRL_CLK_SEL_Pos;
@@ -287,8 +287,8 @@ int32_t HAL_GPT_PWMControl(void *pGpt, uint32_t control, GPT_CHANNEL_TYPE channe
 		high16bits = 0.4*(((clockfreq[freqpos] >> divider[pos])/1000000) & 0x00FF);
 		low16bits = 0.85*(((clockfreq[freqpos] >> divider[pos])/1000000) & 0x00FF);
 		pGptPWM->gpt_resources->reg->CHx_MATCH_0[channel] = (high16bits<<16) | low16bits;
-		pGptPWM->gpt_resources->reg->SHADOW_LOAD = 0x101<<channel;
 		pGptPWM->gpt_resources->reg->SHADOW_SYNC = 0x101<<channel;
+		pGptPWM->gpt_resources->reg->SHADOW_LOAD = 0x101<<channel;
 
 		tmp = control & CSK_GPT_LEDC_TRANSFER_MODE_Msk;
 		if(tmp == CSK_GPT_LEDC_TRANSFER_MODE_POLLING){
@@ -297,8 +297,7 @@ int32_t HAL_GPT_PWMControl(void *pGpt, uint32_t control, GPT_CHANNEL_TYPE channe
 			pGptPWM->gpt_resources->ledc_transmit_info->ledc_tx_mode[channel] = INTERRUPT_MODE;
 		}else if(tmp == CSK_GPT_LEDC_TRANSFER_MODE_DMA){
 			pGptPWM->gpt_resources->ledc_transmit_info->ledc_tx_mode[channel] = DMA_MODE;
-/*
-//			uint32_t sysclock;
+
 //			//DMA request select GPT channel x
 //			#define SYSTEM_CLK    ((SYSCFG_RegDef* ) CMN_SYSCTRL_BASE)
 //			//channel0 => CFG0, channel1-channel3 => CFG1
@@ -309,7 +308,7 @@ int32_t HAL_GPT_PWMControl(void *pGpt, uint32_t control, GPT_CHANNEL_TYPE channe
 //
 //			//GPT module DMA enable
 //			pGptPWM->gpt_resources->reg->DMA_CTRL |= 0x01<<channel;
-*/
+
 			dma_initialize();
 
 		}else{
@@ -391,12 +390,16 @@ int32_t HAL_GPT_SetPWMFreqDuty(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_t fr
 	
 	if(duty == 0){
 		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] |= GPT_CHx_CTRL_CH_START;
+        //polarity output low
 		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] &= ~GPT_CHx_CTRL_PWM_POLARITY;
+        //channel stop
 		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] |= GPT_CHx_CTRL_CH_STOP;
 		return CSK_DRIVER_OK;
 	}else if(duty == 100){
 		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] |= GPT_CHx_CTRL_CH_START;
+        //polarity output high
 		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] |= GPT_CHx_CTRL_PWM_POLARITY;
+        //channel stop
 		pGptPWM->gpt_resources->reg->CHx_CTRL[channel] |= GPT_CHx_CTRL_CH_STOP;
 		return CSK_DRIVER_OK;
 	}else{
