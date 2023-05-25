@@ -7,10 +7,17 @@
 #ifndef __GPIO_AE210P_H
 #define __GPIO_AE210P_H
 
+<<<<<<< HEAD
 #include "reg/cmn_sysctrl_reg_venus.h"
 #include "reg/gpio_reg_venus.h"
 #include "Driver_GPIO.h"
 #include "venus_ap.h"
+=======
+#include "hal/reg/cmn_sysctrl_reg_venus.h"
+#include "hal/reg/gpio_reg_venus.h"
+#include "hal/Driver_GPIO.h"
+#include "hal/venus_ap.h"
+>>>>>>> feature/zephyr
 
 #define VENUS_GPIOA             ((GPIO_RegDef*)  GPIO0_BASE)
 #define VENUS_GPIOB             ((GPIO_RegDef*)  GPIO1_BASE)

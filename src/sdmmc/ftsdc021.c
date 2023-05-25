@@ -1,7 +1,12 @@
 #include "stdbool.h"
 #include "ftsdc021.h"
+<<<<<<< HEAD
 #include "include/cache.h"
 #include "venus_ap.h"
+=======
+#include "hal/cache.h"
+#include "hal/venus_ap.h"
+>>>>>>> feature/zephyr
 //#include "nds32.h"
 
 #pragma GCC push_options
@@ -330,7 +335,10 @@ ftsdc021_wait_for_state(u8 ip_idx, u32 state, u32 ms)
             return 1;
         }
 
+<<<<<<< HEAD
         ftsdc021_delay(3);
+=======
+>>>>>>> feature/zephyr
     } while (((SDHost[ip_idx].Card->respLo >> 9) & 0xF) != state);
 
     return 0;
@@ -1390,8 +1398,13 @@ ftsdc021_set_bus_speed_mode(u8 ip_idx, u8 speed)
 
     if (speed < 4) {
         if (speed < 3) {
+<<<<<<< HEAD
             SDHost[ip_idx].Card->max_dtr = 25000000; // << speed; tiger debug
             //SDHost[ip_idx].Card->max_dtr = 50000000;// << speed;
+=======
+//            SDHost[ip_idx].Card->max_dtr = 25000000; // << speed; tiger debug
+            SDHost[ip_idx].Card->max_dtr = 50000000;// << speed;
+>>>>>>> feature/zephyr
         } else { /* current controller stable @ max 130 MHz */
             SDHost[ip_idx].Card->max_dtr = SDHost[ip_idx].max_clk;
         }

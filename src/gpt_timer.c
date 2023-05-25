@@ -450,8 +450,12 @@ int32_t HAL_GPT_SetTimerPeriodByMs(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_
 
 	uint32_t clocksrc = (pGptTimer->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_SEL) >> GPT_CHx_CLK_CTRL_CLK_SEL_Pos;
 	uint32_t cntdiv = (pGptTimer->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_DIV) >> GPT_CHx_CLK_CTRL_CLK_DIV_Pos;
+<<<<<<< HEAD
 	uint32_t clockfreq, cntval,p_clock;
 	p_clock = BOARD_BOOTCLOCKRUN_AP_CMN_CFG_PCLK_CLK;
+=======
+	uint32_t clockfreq, cntval;
+>>>>>>> feature/zephyr
 	switch(clocksrc)
 	{
 		case 0x00:
@@ -464,10 +468,17 @@ int32_t HAL_GPT_SetTimerPeriodByMs(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_
 		break;
 		case 0x02:
 		//PCLK
+<<<<<<< HEAD
 			clockfreq = p_clock>>cntdiv;
 		break;
 		default:
 			clockfreq = p_clock>>cntdiv;
+=======
+			clockfreq = CRM_GetApapbFreq()>>cntdiv;
+		break;
+		default:
+			clockfreq = CRM_GetApapbFreq()>>cntdiv;
+>>>>>>> feature/zephyr
 		break;
 	}
 
@@ -506,8 +517,12 @@ int32_t HAL_GPT_SetTimerPeriodDirectByMs(void *pGpt, GPT_CHANNEL_TYPE channel, u
 
     uint32_t clocksrc = (pGptTimer->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_SEL) >> GPT_CHx_CLK_CTRL_CLK_SEL_Pos;
     uint32_t cntdiv = (pGptTimer->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_DIV) >> GPT_CHx_CLK_CTRL_CLK_DIV_Pos;
+<<<<<<< HEAD
 	uint32_t clockfreq, cntval,p_clock;
 	p_clock = BOARD_BOOTCLOCKRUN_AP_CMN_CFG_PCLK_CLK;
+=======
+    uint32_t clockfreq, cntval;
+>>>>>>> feature/zephyr
     switch(clocksrc)
     {
         case 0x00:
@@ -520,10 +535,17 @@ int32_t HAL_GPT_SetTimerPeriodDirectByMs(void *pGpt, GPT_CHANNEL_TYPE channel, u
         break;
         case 0x02:
         //PCLK
+<<<<<<< HEAD
             clockfreq = p_clock>>cntdiv;
         break;
         default:
             clockfreq = p_clock>>cntdiv;
+=======
+            clockfreq = CRM_GetApapbFreq()>>cntdiv;
+        break;
+        default:
+            clockfreq = CRM_GetApapbFreq()>>cntdiv;
+>>>>>>> feature/zephyr
         break;
     }
 
@@ -566,6 +588,7 @@ int32_t HAL_GPT_StartTimer(void *pGpt, GPT_CHANNEL_TYPE channel)
 		default:
 			break;
 		case CSK_GPT_TIMER_32_BIT_TIMER:
+<<<<<<< HEAD
 			//cnt start
 			pGptTimer->gpt_resources->reg->CH_CNT_EN |= 0x01<<channel;
             //channelx timer0 enable
@@ -582,6 +605,24 @@ int32_t HAL_GPT_StartTimer(void *pGpt, GPT_CHANNEL_TYPE channel)
 			pGptTimer->gpt_resources->reg->CH_CNT_EN |= 0x01<<channel;
 			//channelx timer0&timer1&timer2&timer3 enable	
 			pGptTimer->gpt_resources->reg->CH_TIMER_ENABLE |= (0x01<<channel) | ((0x01<<8)<<channel) | ((0x01<<16)<<channel) | ((0x01<<24)<<channel);
+=======
+            //channelx timer0 enable
+            pGptTimer->gpt_resources->reg->CH_TIMER_ENABLE |= 0x01<<channel;
+			//cnt start
+			pGptTimer->gpt_resources->reg->CH_CNT_EN |= 0x01<<channel;
+			break;
+		case CSK_GPT_TIMER_16_BIT_TIMER:
+			//channelx timer0&timer1 enable
+			pGptTimer->gpt_resources->reg->CH_TIMER_ENABLE |= (0x01<<channel) | ((0x01<<8)<<channel);
+			//cnt start
+			pGptTimer->gpt_resources->reg->CH_CNT_EN |= 0x01<<channel;
+			break;
+		case CSK_GPT_TIMER_8_BIT_TIMER:
+			//channelx timer0&timer1&timer2&timer3 enable	
+			pGptTimer->gpt_resources->reg->CH_TIMER_ENABLE |= (0x01<<channel) | ((0x01<<8)<<channel) | ((0x01<<16)<<channel) | ((0x01<<24)<<channel);
+			//cnt start
+			pGptTimer->gpt_resources->reg->CH_CNT_EN |= 0x01<<channel;
+>>>>>>> feature/zephyr
 			break;		
 	}
 	return CSK_DRIVER_OK;
@@ -643,8 +684,11 @@ int32_t HAL_GPT_StopTimer(void *pGpt, GPT_CHANNEL_TYPE channel)
     /* TODO: hardware layer */
 	//get timer mode
 	tmp =	(pGptTimer->gpt_resources->reg->CHx_CTRL[channel] & GPT_CHx_CTRL_CH_MODE_Msk) >> GPT_CHx_CTRL_CH_MODE_Pos;
+<<<<<<< HEAD
     //cnt stop
     pGptTimer->gpt_resources->reg->CH_CNT_EN |= (0x0100<<channel);
+=======
+>>>>>>> feature/zephyr
 	switch(tmp){
 		default:
 			break;

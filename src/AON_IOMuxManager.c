@@ -53,7 +53,11 @@ int32_t AON_IOMuxManager_ModeConfigure(uint8_t pad, uint8_t pin_num, uint8_t pin
         }
         aon_pin_base += pin_num;
     }
+<<<<<<< HEAD
 
+=======
+    	break;
+>>>>>>> feature/zephyr
     default:
         return CSK_DRIVER_ERROR_PARAMETER;
     }

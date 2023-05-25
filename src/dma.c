@@ -7,7 +7,11 @@
 //#include "venus_log.h"
 #include "dma.h"
 
+<<<<<<< HEAD
 #include "include/cache.h"
+=======
+#include "hal/cache.h"
+>>>>>>> feature/zephyr
 #include <string.h> // for memset
 #include <assert.h>
 //#define __aeabi_assert // for keil compiler
@@ -99,6 +103,7 @@ typedef struct {
     // cache sync operation
     uint8_t             cache_sync;
 
+<<<<<<< HEAD
 //    // bytes of data item, calculated from CTLx.SRC_TR_WIDTH
 //    uint8_t             width_bytes;
     // SRC width shift from CTLx.SRC_TR_WIDTH, for faster calculation
@@ -110,6 +115,16 @@ typedef struct {
     uint8_t             dst_wid_shift;
 
     uint8_t             reserved[1];
+=======
+    // SRC width shift from CTLx.SRC_TR_WIDTH, for faster calculation
+    uint8_t             width_shift;
+
+    // DST width shift from CTLx.DST_TR_WIDTH, for faster calculation
+    uint8_t             dst_wid_shift;
+
+    // bit[0]: HW LLP if 1; bit[1]: polling (NO interrupt) if 1
+    uint8_t             flags;
+>>>>>>> feature/zephyr
 
     // value of SGR (Source Gather)
     uint32_t            src_gath;
@@ -134,8 +149,17 @@ typedef struct {
     uint32_t            CacheSyncBytes;
 } DMA_Channel_Info;
 
+<<<<<<< HEAD
 #define MAX_BLK_TS      4095 // see BLOCK_TS in CTLx bit[43:32]
 #define FIT_BLK_TS      4092 // make it multiple of 4
+=======
+#define DMA_FLAG_HW_LLP     0x1 // bit[0] @ flags
+#define DMA_FLAG_POLLING    0x2 // bit[1] @ flags
+
+#if SUPPORT_HW_LLP
+_DMA DMA_LLI ll_items[DMA_MAX_LL_ITEMS]; // link list items
+#endif // #if SUPPORT_HW_LLP
+>>>>>>> feature/zephyr
 
 static uint32_t init_cnt       = 0U;
 // channel active flag, set when channel is selected and cleared when DMA is completed or disabled
@@ -157,7 +181,11 @@ void dma_irq_handler (void);
    - \b  0: function succeeded
    - \b -1: function failed
 */
+<<<<<<< HEAD
 static int32_t set_channel_active_flag (uint8_t ch)
+=======
+_FAST_FUNC_RO static int32_t set_channel_active_flag (uint8_t ch)
+>>>>>>> feature/zephyr
 {
     int32_t r;
     uint32_t k = hal_irq_lock();
@@ -178,7 +206,11 @@ static int32_t set_channel_active_flag (uint8_t ch)
   \brief       Protected clear of channel active flag
   \param[in]   ch        Channel number (0..7 or 4)
 */
+<<<<<<< HEAD
 static void clear_channel_active_flag (uint8_t ch)
+=======
+_FAST_FUNC_RO static void clear_channel_active_flag (uint8_t ch)
+>>>>>>> feature/zephyr
 {
     uint32_t ch_bit = 1U << ch;
     uint32_t k = hal_irq_lock();
@@ -481,7 +513,11 @@ bool dma_channel_is_reserved(uint8_t ch)
 }
 
 
+<<<<<<< HEAD
 static void cache_sync_src(uint32_t control, uint32_t src_addr, uint32_t bytes, DMA_Channel_Info *ch_info)
+=======
+_FAST_FUNC_RO static void cache_sync_src(uint32_t control, uint32_t src_addr, uint32_t bytes, DMA_Channel_Info *ch_info)
+>>>>>>> feature/zephyr
 {
     uint32_t start, end;
     uint32_t addr_ctrl = control & DMA_CH_CTLL_SRCADDRCTL_MASK;
@@ -514,7 +550,11 @@ static void cache_sync_src(uint32_t control, uint32_t src_addr, uint32_t bytes, 
     dcache_clean_range(start, end);
 }
 
+<<<<<<< HEAD
 static void cache_sync_dst(uint32_t control, uint32_t dst_addr, uint32_t bytes, DMA_Channel_Info *ch_info)
+=======
+_FAST_FUNC_RO static void cache_sync_dst(uint32_t control, uint32_t dst_addr, uint32_t bytes, DMA_Channel_Info *ch_info)
+>>>>>>> feature/zephyr
 {
     uint32_t start, end;
     uint32_t addr_ctrl = control & DMA_CH_CTLL_DSTADDRCTL_MASK;
@@ -561,7 +601,11 @@ static void cache_sync_dst(uint32_t control, uint32_t dst_addr, uint32_t bytes, 
 
 
 // Calculate how many bytes equal to "size" of data items on Source
+<<<<<<< HEAD
 static uint32_t calc_src_bytes(DMA_Channel_Info *ch_info, uint32_t control, uint32_t size)
+=======
+_FAST_FUNC_RO static uint32_t calc_src_bytes(DMA_Channel_Info *ch_info, uint32_t control, uint32_t size)
+>>>>>>> feature/zephyr
 {
     uint32_t bytes, sg_cnt, sg_int;
 
@@ -580,7 +624,11 @@ static uint32_t calc_src_bytes(DMA_Channel_Info *ch_info, uint32_t control, uint
 
 
 // Calculate how many bytes equal to "size" of data items on Destination
+<<<<<<< HEAD
 static uint32_t calc_dst_bytes(DMA_Channel_Info *ch_info, uint32_t control, uint32_t size)
+=======
+_FAST_FUNC_RO static uint32_t calc_dst_bytes(DMA_Channel_Info *ch_info, uint32_t control, uint32_t size)
+>>>>>>> feature/zephyr
 {
     uint32_t bytes, dst_size, sg_cnt, sg_int;
 
@@ -601,7 +649,11 @@ static uint32_t calc_dst_bytes(DMA_Channel_Info *ch_info, uint32_t control, uint
 
 
 // do cache sync operation on src/dst
+<<<<<<< HEAD
 static void do_cache_sync(DMA_Channel_Info *ch_info, uint32_t control, uint32_t src_addr, uint32_t dst_addr, uint32_t size)
+=======
+_FAST_FUNC_RO static void do_cache_sync(DMA_Channel_Info *ch_info, uint32_t control, uint32_t src_addr, uint32_t dst_addr, uint32_t size)
+>>>>>>> feature/zephyr
 {
     uint32_t src_bytes, dst_bytes;
     assert(ch_info != NULL && size != 0);
@@ -649,7 +701,11 @@ static void do_cache_sync(DMA_Channel_Info *ch_info, uint32_t control, uint32_t 
     }
 }
 
+<<<<<<< HEAD
 static void update_next_xfer_addr(DMA_Channel_Info *ch_info, uint32_t control,
+=======
+_FAST_FUNC_RO static void update_next_xfer_addr(DMA_Channel_Info *ch_info, uint32_t control,
+>>>>>>> feature/zephyr
                                 uint32_t src_addr, uint32_t dst_addr, uint32_t size)
 {
     assert(ch_info != NULL && size != 0);
@@ -747,6 +803,24 @@ _FAST_FUNC_RO __inline static void enable_error_interrupts(uint32_t ch_bits)
     CSK_DMA->MASK.ERROR = (ch_bits << 8) | ch_bits;
 }
 
+<<<<<<< HEAD
+=======
+_FAST_FUNC_RO __inline static void disable_xfer_interrupts(uint32_t ch_bits)
+{
+    CSK_DMA->MASK.XFER = (ch_bits << 8);
+}
+
+_FAST_FUNC_RO __inline static void disable_block_interrupts(uint32_t ch_bits)
+{
+    CSK_DMA->MASK.BLOCK = (ch_bits << 8);
+}
+
+_FAST_FUNC_RO __inline static void disable_error_interrupts(uint32_t ch_bits)
+{
+    CSK_DMA->MASK.ERROR = (ch_bits << 8);
+}
+
+>>>>>>> feature/zephyr
 __inline static uint32_t calc_burst_bytes(uint32_t width, uint32_t bsize)
 {
     uint32_t count;
@@ -814,6 +888,10 @@ _FAST_FUNC_RO int32_t dma_fast_update_only_for_fix_channel(uint8_t ch, uint32_t 
 
 /**
   \fn  int32_t dma_channel_configure_internal (uint8_t     ch,
+<<<<<<< HEAD
+=======
+                                        uint8_t            en_int,
+>>>>>>> feature/zephyr
                                         uint32_t           src_addr,
                                         uint32_t           dst_addr,
                                         uint32_t           size,
@@ -835,6 +913,10 @@ _FAST_FUNC_RO int32_t dma_fast_update_only_for_fix_channel(uint8_t ch, uint32_t 
 */
 _FAST_FUNC_RO static int32_t dma_channel_configure_internal (
                                 uint8_t            ch,
+<<<<<<< HEAD
+=======
+                                uint8_t            en_int,
+>>>>>>> feature/zephyr
                                 uint32_t           src_addr,
                                 uint32_t           dst_addr,
                                 uint32_t           size,
@@ -850,6 +932,17 @@ _FAST_FUNC_RO static int32_t dma_channel_configure_internal (
     dma_ch = DMA_CHANNEL(ch);
     ch_info = &channel_info[ch];
 
+<<<<<<< HEAD
+=======
+    if (en_int == 0) {
+        ch_info->flags |= DMA_FLAG_POLLING; // polling, no interrupt
+        control &= ~DMA_CH_CTLL_INT_EN; // Disable interrupt
+    } else {
+        ch_info->flags &= ~DMA_FLAG_POLLING; // use interrupt
+        control |= DMA_CH_CTLL_INT_EN; // Enable interrupt
+    }
+
+>>>>>>> feature/zephyr
     // Disable DMA interrupts
     disable_all_interrupts(ch_bit);
 
@@ -863,19 +956,42 @@ _FAST_FUNC_RO static int32_t dma_channel_configure_internal (
     dma_ch->DAR = dst_addr;
 
     // Write control & configuration etc. registers
+<<<<<<< HEAD
     dma_ch->CTL_LO = control | DMA_CH_CTLL_INT_EN; // Enable interrupt
     dma_ch->CFG_LO = config_low;
     dma_ch->CFG_HI = config_high;
 
     // Reset LLP, use mock BLOCK transfer (NOT real LLP!!)
     dma_ch->LLP = 0;
+=======
+    dma_ch->CTL_LO = control;
+    dma_ch->CFG_LO = config_low;
+    dma_ch->CFG_HI = config_high;
+
+    // Reset LLP, if NOT use HW LLP (single block or SW LLP, a.k.a. mock BLOCK transfer
+#if SUPPORT_HW_LLP
+    if (!(ch_info->flags & DMA_FLAG_HW_LLP)) // HW LLP
+#endif
+    dma_ch->LLP = 0;
+
+>>>>>>> feature/zephyr
     // Reset scatter/gather etc. registers
     dma_ch->SGR = (control & DMA_CH_CTLL_S_GATH_EN ? ch_info->src_gath : 0);
     dma_ch->DSR = (control & DMA_CH_CTLL_D_SCAT_EN ? ch_info->dst_scat : 0);
 
     // Enable DMA XFER and ERROR interrupts (no BLOCK & TRANS interrupts)
+<<<<<<< HEAD
     enable_xfer_interrupts(ch_bit);
     enable_error_interrupts(ch_bit);
+=======
+    if (en_int == 0) {
+        disable_xfer_interrupts(ch_bit);
+        disable_error_interrupts(ch_bit);
+    } else {
+    enable_xfer_interrupts(ch_bit);
+    enable_error_interrupts(ch_bit);
+    }
+>>>>>>> feature/zephyr
 
     // Enable DMA Channel to trigger data transfer
     CSK_DMA->CH_EN = (ch_bit << 8) | ch_bit;
@@ -888,7 +1004,12 @@ _FAST_FUNC_RO static int32_t dma_channel_configure_internal (
 
 
 /**
+<<<<<<< HEAD
   \fn          int32_t dma_channel_configure (uint8_t      ch,
+=======
+  \fn          int32_t dma_channel_configure_wrapper (uint8_t      ch,
+                                    uint8_t         en_int,
+>>>>>>> feature/zephyr
                                     uint32_t        src_addr,
                                     uint32_t        dst_addr,
                                     uint32_t        total_size,
@@ -899,6 +1020,10 @@ _FAST_FUNC_RO static int32_t dma_channel_configure_internal (
                                     uint32_t        dst_scat);
   \brief       Configure DMA channel for block transfer (and enable DMA channel implicitly)
   \param[in]   ch           The selected Channel number returned by dma_channel_select()
+<<<<<<< HEAD
+=======
+  \param[in]   en_int       Whether to enable DMA interrupts. enable interrupts if non-zero.
+>>>>>>> feature/zephyr
   \param[in]   src_addr     Source address
   \param[in]   dest_addr    Destination address
   \param[in]   total_size   Amount of data items to transfer from source (maybe greater than 4095)
@@ -912,7 +1037,61 @@ _FAST_FUNC_RO static int32_t dma_channel_configure_internal (
    - \b  0: function succeeded
    - \b -1: function failed
 */
+<<<<<<< HEAD
 _FAST_FUNC_RO int32_t dma_channel_configure (uint8_t      ch,
+=======
+
+#if SUPPORT_HW_LLP
+
+_FAST_FUNC_RO static bool dma_fill_ll_items(DMA_Channel_Info *ch_info,
+                                            uint32_t      src_addr,
+                                            uint32_t      dst_addr,
+                                            uint32_t      control,
+                                            uint32_t      total_size)
+{
+    //JUST HERE!!
+    uint32_t i, count, size;
+    DMA_LLP pi = &ll_items[0];
+
+    if (ch_info == NULL || total_size == 0)
+        return false;
+
+    count = (total_size + MAX_BLK_TS) >> MAX_BLK_BITS;
+    size = (count << MAX_BLK_BITS) - count;
+    if (total_size > size)
+        count++;
+
+    if (count > DMA_MAX_LL_ITEMS)
+        return false;
+
+    size = total_size;
+
+    // item 0 ~ count-2
+    for (i = 0; i < count - 1; i++, pi++) {
+        pi->SAR = src_addr;
+        pi->DAR = dst_addr;
+        pi->LLP = (uint32_t) &ll_items[i+1];
+        pi->CTL_LO = control | DMA_CH_CTLL_LLP_EN_MASK;
+        pi->u.CTL_HI = MAX_BLK_TS;
+        src_addr += MAX_BLK_TS << ch_info->width_shift;
+        dst_addr += MAX_BLK_TS << ch_info->width_shift;
+        size -= MAX_BLK_TS;
+    } // end for
+
+    if (size > 0) {
+        pi->SAR = src_addr;
+        pi->DAR = dst_addr;
+        pi->LLP = 0;
+        pi->CTL_LO = control & ~DMA_CH_CTLL_LLP_EN_MASK;
+        pi->u.CTL_HI = size;
+    }
+
+    return true;
+}
+
+_FAST_FUNC_RO int32_t dma_channel_configure_wrapper (uint8_t      ch,
+                                            uint8_t       en_int,
+>>>>>>> feature/zephyr
                                             uint32_t      src_addr,
                                             uint32_t      dst_addr,
                                             uint32_t      total_size,
@@ -957,7 +1136,10 @@ _FAST_FUNC_RO int32_t dma_channel_configure (uint8_t      ch,
         //width = DMA_WIDTH_MAX;
     }
     ch_info->dst_wid_shift = width; // dst width shift
+<<<<<<< HEAD
 //    ch_info->dst_wid_bytes = (1 << width); // dst width bytes
+=======
+>>>>>>> feature/zephyr
 
     width = (control & DMA_CH_CTLL_SRC_WIDTH_MASK) >> DMA_CH_CTLL_SRC_WIDTH_POS;
     if (width > DMA_WIDTH_MAX) {
@@ -965,7 +1147,10 @@ _FAST_FUNC_RO int32_t dma_channel_configure (uint8_t      ch,
         //width = DMA_WIDTH_MAX;
     }
     ch_info->width_shift = width; // src width shift
+<<<<<<< HEAD
 //    ch_info->width_bytes = (1 << width); // src width bytes
+=======
+>>>>>>> feature/zephyr
 
     ch_info->src_gath = src_gath;
     ch_info->dst_scat = dst_scat;
@@ -978,7 +1163,115 @@ _FAST_FUNC_RO int32_t dma_channel_configure (uint8_t      ch,
     ch_info->CacheSyncStart = 0;
     ch_info->CacheSyncBytes = 0;
 
+<<<<<<< HEAD
     size = total_size > MAX_BLK_TS ? FIT_BLK_TS : total_size;
+=======
+//    size = total_size > MAX_BLK_TS ? FIT_BLK_TS : total_size;
+//    update_next_xfer_addr(ch_info, control, src_addr, dst_addr, size);
+
+    // do cache sync operation before the mock BLOCK transfer
+    do_cache_sync(ch_info, control, src_addr, dst_addr, total_size);
+
+    // Disable DMA Channel
+    //CSK_DMA->CH_EN = (ch_bit << 8);
+
+    // Clear DMA interrupts
+    clear_all_interrupts(ch_bit);
+
+    // make sure remove LLP_EN
+    // NOT use HW LLP is less than MAX_BLK_TS or greater than DMA_MAX_LL_DATA
+    if (total_size <= MAX_BLK_TS || total_size > DMA_MAX_LL_DATA) { // use single block or SW LLP
+        size = total_size > MAX_BLK_TS ? MAX_BLK_TS : total_size;
+        update_next_xfer_addr(ch_info, control, src_addr, dst_addr, size);
+
+        ch_info->flags &= ~DMA_FLAG_HW_LLP;
+        control &= ~DMA_CH_CTLL_LLP_EN_MASK;
+    } else { // use HW LLP
+        ch_info->llp = &ll_items[0];
+        dma_fill_ll_items(ch_info,
+                        src_addr + (MAX_BLK_TS << ch_info->width_shift),
+                        dst_addr + (MAX_BLK_TS << ch_info->width_shift),
+                        control,
+                        total_size - MAX_BLK_TS);
+        size = MAX_BLK_TS;
+
+        ch_info->flags |= DMA_FLAG_HW_LLP;
+        control |= DMA_CH_CTLL_LLP_EN_MASK;
+    }
+
+    // Trigger first DMA transfer
+    return dma_channel_configure_internal(ch, en_int, src_addr, dst_addr, size, control, config_low, config_high);
+}
+
+#else  // !SUPPORT_HW_LLP
+
+_FAST_FUNC_RO int32_t dma_channel_configure_wrapper (uint8_t      ch,
+                                            uint8_t       en_int,
+                                            uint32_t      src_addr,
+                                            uint32_t      dst_addr,
+                                            uint32_t      total_size,
+                                            uint32_t      control,
+                                            uint32_t      config_low,
+                                            uint32_t      config_high,
+                                            uint32_t      src_gath,
+                                            uint32_t      dst_scat)
+{
+    uint32_t ch_bit, width, size;
+    DMA_Channel_Info *ch_info;
+
+    // Check if channel is valid
+    if (ch >= DMA_NUMBER_OF_CHANNELS)
+        return -1;
+
+    ch_bit = 0x1U << ch;
+
+    // return failure if channel is enabled or active flag is not set (indicates NOT selected before)
+    if ((CSK_DMA->CH_EN & ch_bit) || !(channel_active & ch_bit))
+        return -1;
+
+    // check if src/dst burst size & xfer width are legal
+    //if (check_burst_bytes(ch, control) != 0)
+    //    return -1;
+
+    // check scatter/gather validity
+    if (control & DMA_CH_CTLL_S_GATH_EN) {
+        if (SG_COUNT(src_gath) == 0)
+            return -1;
+    }
+    if (control & DMA_CH_CTLL_D_SCAT_EN) {
+        if (SG_COUNT(dst_scat) == 0)
+            return -1;
+    }
+
+    ch_info = &channel_info[ch];
+
+    width = (control & DMA_CH_CTLL_DST_WIDTH_MASK) >> DMA_CH_CTLL_DST_WIDTH_POS;
+    if (width > DMA_WIDTH_MAX) {
+        return -1;
+        //width = DMA_WIDTH_MAX;
+    }
+    ch_info->dst_wid_shift = width; // dst width shift
+
+    width = (control & DMA_CH_CTLL_SRC_WIDTH_MASK) >> DMA_CH_CTLL_SRC_WIDTH_POS;
+    if (width > DMA_WIDTH_MAX) {
+        return -1;
+        //width = DMA_WIDTH_MAX;
+    }
+    ch_info->width_shift = width; // src width shift
+
+    ch_info->src_gath = src_gath;
+    ch_info->dst_scat = dst_scat;
+
+    ch_info->SizeToXfer = total_size;
+    ch_info->SizeXfered = 0;
+    ch_info->llp = 0;
+    ch_info->SrcAddr = 0;
+    ch_info->DstAddr = 0;
+    ch_info->CacheSyncStart = 0;
+    ch_info->CacheSyncBytes = 0;
+
+    size = total_size > MAX_BLK_TS ? MAX_BLK_TS : total_size;
+>>>>>>> feature/zephyr
     update_next_xfer_addr(ch_info, control, src_addr, dst_addr, size);
 
     // do cache sync operation before the mock BLOCK transfer
@@ -994,9 +1287,54 @@ _FAST_FUNC_RO int32_t dma_channel_configure (uint8_t      ch,
     control &= ~DMA_CH_CTLL_LLP_EN_MASK;
 
     // Trigger first DMA transfer
+<<<<<<< HEAD
     return dma_channel_configure_internal(ch, src_addr, dst_addr, size, control, config_low, config_high);
 }
 
+=======
+    return dma_channel_configure_internal(ch, en_int, src_addr, dst_addr, size, control, config_low, config_high);
+}
+
+#endif // SUPPORT_HW_LLP
+
+/*
+_FAST_FUNC_RO int32_t dma_channel_configure (uint8_t      ch,
+                                            uint32_t      src_addr,
+                                            uint32_t      dst_addr,
+                                            uint32_t      total_size,
+                                            uint32_t      control,
+                                            uint32_t      config_low,
+                                            uint32_t      config_high,
+                                            uint32_t      src_gath,
+                                            uint32_t      dst_scat)
+{
+    return dma_channel_configure_wrapper(ch, 1, src_addr, dst_addr, total_size, control,
+                                    config_low, config_high, src_gath, dst_scat);
+}
+*/
+
+
+_FAST_FUNC_RO int32_t dma_channel_configure_polling (uint8_t      ch,
+                                            uint32_t      src_addr,
+                                            uint32_t      dst_addr,
+                                            uint32_t      total_size,
+                                            uint32_t      control,
+                                            uint32_t      config_low,
+                                            uint32_t      config_high,
+                                            uint32_t      src_gath,
+                                            uint32_t      dst_scat)
+{
+#if SUPPORT_HW_LLP
+    if (total_size > DMA_MAX_LL_DATA)
+#else
+    if (total_size > MAX_BLK_TS)
+#endif
+        return -1; //TODO: CSK_DRIVER_ERROR_PARAMETER;
+
+    return dma_channel_configure_wrapper(ch, 0, src_addr, dst_addr, total_size, control,
+                                    config_low, config_high, src_gath, dst_scat);
+}
+>>>>>>> feature/zephyr
 
 /**
   \fn          int32_t dma_channel_configure_LLP (
@@ -1019,6 +1357,153 @@ _FAST_FUNC_RO int32_t dma_channel_configure (uint8_t      ch,
    - \b  0: function succeeded
    - \b -1: function failed
 */
+<<<<<<< HEAD
+=======
+
+#if SUPPORT_HW_LLP
+
+//FIXME: if HW LLP is used, DMA_CACHE_SYNC_DST may NOT take effect!!
+_FAST_FUNC_RO int32_t dma_channel_configure_LLP (
+                                       uint8_t      ch,
+                                       DMA_LLP      llp,
+                                       uint32_t     config_low,
+                                       uint32_t     config_high,
+                                       uint32_t     src_gath,
+                                       uint32_t     dst_scat)
+{
+    // traverse all Linked List items
+    DMA_LLP cur, next;
+
+    // List Master Select, AHB layer/interface of memory device where LLI stores
+    uint32_t ch_bit, lms, width, size;
+    DMA_Channel_Info *ch_info;
+
+    // SHOULD NOT set Auto Reload for Src/Dst
+    if (llp == NULL || (config_low & DMA_CH_CFGL_RELOAD_MASK) != 0)
+        return -1;
+
+    // use "mock" BLOCK transfer (actually DMA transfer), SHOULD remove LLP_EN
+    llp->CTL_LO &= ~DMA_CH_CTLL_LLP_EN_MASK;
+
+     lms = llp->LLP & 0x03;
+   // LMS is hardcoded on VENUS
+    if ( lms != DMAH_CH_LMS )
+        return -1;
+
+    bool hw_llp = true; // assume HW LLP is supported
+
+    cur = (DMA_LLP)(llp->LLP & ~0x3UL); // LLI address is 4bytes aligned
+    while (cur != NULL) {
+        // Usually LMS bits SHOULD NOT change
+        if (lms != (cur->LLP & 0x03))
+            return -1;
+
+        // check scatter/gather validity
+        if (cur->CTL_LO & DMA_CH_CTLL_S_GATH_EN) {
+            if (SG_COUNT(src_gath) == 0)
+                return -1;
+        }
+        if (cur->CTL_LO & DMA_CH_CTLL_D_SCAT_EN) {
+            if (SG_COUNT(dst_scat) == 0)
+                return -1;
+        }
+
+        if (cur->u.SIZE > MAX_BLK_TS)
+            hw_llp = false;
+
+        // Get next LLI (LLI address is 4bytes aligned)
+        next = (DMA_LLP)(cur->LLP & ~0x3UL);
+
+        // use "mock" BLOCK transfer (actually DMA transfer), SHOULD remove LLP_EN
+        cur->CTL_LO &= ~DMA_CH_CTLL_LLP_EN_MASK;
+
+        cur = next; // next LLI
+    } //end while
+
+    // Check if channel is valid
+    if (ch >= DMA_NUMBER_OF_CHANNELS)
+        return -1;
+
+    ch_bit = 0x1U << ch;
+
+    // return failure if channel is enabled or active flag is not set (indicates NOT selected before)
+    if ((CSK_DMA->CH_EN & ch_bit) || !(channel_active & ch_bit))
+        return -1;
+
+    // check if src/dst burst size & xfer width are legal
+    //if (check_burst_bytes(ch, llp->CTL_LO) != 0)
+    //    return -1;
+
+    ch_info = &channel_info[ch];
+
+    width = (llp->CTL_LO & DMA_CH_CTLL_DST_WIDTH_MASK) >> DMA_CH_CTLL_DST_WIDTH_POS;
+    if (width > DMA_WIDTH_MAX) {
+        return -1;
+        //width = DMA_WIDTH_MAX;
+    }
+    ch_info->dst_wid_shift = width; // dst width shift
+//    ch_info->dst_wid_bytes = (1 << width); // dst width bytes
+
+    width = (llp->CTL_LO & DMA_CH_CTLL_SRC_WIDTH_MASK) >> DMA_CH_CTLL_SRC_WIDTH_POS;
+    if (width > DMA_WIDTH_MAX) {
+        return -1;
+        //width = DMA_WIDTH_MAX;
+    }
+    ch_info->width_shift = width; // src width shift
+//    ch_info->width_bytes = (1 << width); // src width bytes
+
+    ch_info->src_gath = src_gath;
+    ch_info->dst_scat = dst_scat;
+    ch_info->SizeXfered = 0;
+    ch_info->llp = (DMA_LLP)(llp->LLP);
+    ch_info->SrcAddr = 0;
+    ch_info->DstAddr = 0;
+    ch_info->CacheSyncStart = 0;
+    ch_info->CacheSyncBytes = 0;
+
+    //size = llp->u.SIZE > MAX_BLK_TS ? FIT_BLK_TS : llp->u.SIZE;
+    size = llp->u.SIZE > MAX_BLK_TS ? MAX_BLK_TS : llp->u.SIZE;
+
+    if (!hw_llp) { // SW LLP
+        ch_info->flags &= ~DMA_FLAG_HW_LLP;
+        ch_info->SizeToXfer = llp->u.SIZE;
+
+        update_next_xfer_addr(ch_info, llp->CTL_LO, llp->SAR, llp->DAR, size);
+
+        // do cache sync operation before the mock BLOCK transfer
+        do_cache_sync(ch_info, llp->CTL_LO, llp->SAR, llp->DAR, llp->u.SIZE);
+
+    } else { // HW LLP
+        ch_info->flags |= DMA_FLAG_HW_LLP;
+        ch_info->SizeToXfer = 0;
+
+        cur = (DMA_LLP)(llp->LLP & ~0x3UL); // LLI address is 4bytes aligned
+        while (cur != NULL) {
+            ch_info->SizeToXfer += cur->u.SIZE;
+            // do cache sync operation before the mock BLOCK transfer
+            do_cache_sync(ch_info, cur->CTL_LO, cur->SAR, cur->DAR, cur->u.SIZE);
+            // Get next LLI (LLI address is 4bytes aligned)
+            next = (DMA_LLP)(cur->LLP & ~0x3UL);
+            // add LLP_EN if not last one
+            if (next != NULL)   cur->CTL_LO |= DMA_CH_CTLL_LLP_EN_MASK;
+            cur = next; // next LLI
+        } //end while
+    }
+
+    // Disable DMA Channel
+    //CSK_DMA->CH_EN = (ch_bit << 8);
+
+    // Clear DMA interrupts
+    clear_all_interrupts(ch_bit);
+
+    // Trigger first DMA transfer
+    return dma_channel_configure_internal(ch, 1, llp->SAR, llp->DAR, size, llp->CTL_LO,
+                                          config_low, config_high);
+}
+
+#else // !SUPPORT_HW_LLP
+
+>>>>>>> feature/zephyr
 _FAST_FUNC_RO int32_t dma_channel_configure_LLP (
                                        uint8_t      ch,
                                        DMA_LLP      llp,
@@ -1110,7 +1595,10 @@ _FAST_FUNC_RO int32_t dma_channel_configure_LLP (
         //width = DMA_WIDTH_MAX;
     }
     ch_info->dst_wid_shift = width; // dst width shift
+<<<<<<< HEAD
 //    ch_info->dst_wid_bytes = (1 << width); // dst width bytes
+=======
+>>>>>>> feature/zephyr
 
     width = (llp->CTL_LO & DMA_CH_CTLL_SRC_WIDTH_MASK) >> DMA_CH_CTLL_SRC_WIDTH_POS;
     if (width > DMA_WIDTH_MAX) {
@@ -1118,7 +1606,10 @@ _FAST_FUNC_RO int32_t dma_channel_configure_LLP (
         //width = DMA_WIDTH_MAX;
     }
     ch_info->width_shift = width; // src width shift
+<<<<<<< HEAD
 //    ch_info->width_bytes = (1 << width); // src width bytes
+=======
+>>>>>>> feature/zephyr
 
     ch_info->src_gath = src_gath;
     ch_info->dst_scat = dst_scat;
@@ -1131,7 +1622,12 @@ _FAST_FUNC_RO int32_t dma_channel_configure_LLP (
     ch_info->CacheSyncStart = 0;
     ch_info->CacheSyncBytes = 0;
 
+<<<<<<< HEAD
     size = llp->u.SIZE > MAX_BLK_TS ? FIT_BLK_TS : llp->u.SIZE;
+=======
+    //size = llp->u.SIZE > MAX_BLK_TS ? FIT_BLK_TS : llp->u.SIZE;
+    size = llp->u.SIZE > MAX_BLK_TS ? MAX_BLK_TS : llp->u.SIZE;
+>>>>>>> feature/zephyr
     update_next_xfer_addr(ch_info, llp->CTL_LO, llp->SAR, llp->DAR, size);
 
     // do cache sync operation before the mock BLOCK transfer
@@ -1144,10 +1640,19 @@ _FAST_FUNC_RO int32_t dma_channel_configure_LLP (
     clear_all_interrupts(ch_bit);
 
     // Trigger first DMA transfer
+<<<<<<< HEAD
     return dma_channel_configure_internal(ch, llp->SAR, llp->DAR, size, llp->CTL_LO,
                                           config_low, config_high);
 }
 
+=======
+    return dma_channel_configure_internal(ch, 1, llp->SAR, llp->DAR, size, llp->CTL_LO,
+                                          config_low, config_high);
+}
+
+#endif // SUPPORT_HW_LLP
+
+>>>>>>> feature/zephyr
 
 /**
   \fn          int32_t dma_channel_suspend (uint8_t ch, uint8_t wait_done)
@@ -1372,6 +1877,10 @@ int32_t dma_channel_abort (uint8_t ch, uint8_t wait_done)
    - \b  1: channel enabled
    - \b  0: channel disabled
 */
+<<<<<<< HEAD
+=======
+/*
+>>>>>>> feature/zephyr
 uint32_t dma_channel_get_status (uint8_t ch)
 {
     // Check if channel is valid
@@ -1380,7 +1889,107 @@ uint32_t dma_channel_get_status (uint8_t ch)
 
     return ( (CSK_DMA->CH_EN & (1U << ch)) ? 1 : 0 );
 }
+<<<<<<< HEAD
 
+=======
+*/
+uint32_t dma_channel_get_status (uint8_t ch)
+{
+    return dma_channel_is_enabled(ch) ? 1 : 0;
+}
+
+
+bool dma_channel_is_enabled (uint8_t ch)
+{
+    // Check if channel is valid
+    if (ch >= DMA_NUMBER_OF_CHANNELS)
+        return false;
+
+    return ( (CSK_DMA->CH_EN & (1U << ch)) ? true : false );
+}
+
+bool dma_channel_is_polling(uint8_t ch)
+{
+    // Check if channel is valid, use interrupt by default
+    if (ch >= DMA_NUMBER_OF_CHANNELS)
+        return false;
+
+    DMA_Channel_Info *ch_info = &channel_info[ch];
+    return (ch_info->flags & DMA_FLAG_POLLING);
+}
+
+bool dma_channel_xfer_error(uint8_t ch)
+{
+    // Check if channel is valid
+    if (ch >= DMA_NUMBER_OF_CHANNELS)
+        return false;
+
+    return (CSK_DMA->RAW.ERROR & (1U << ch));
+}
+
+bool dma_channel_xfer_complete(uint8_t ch)
+{
+    // Check if channel is valid
+    if (ch >= DMA_NUMBER_OF_CHANNELS)
+        return false;
+    return (CSK_DMA->RAW.XFER & (1U << ch));
+}
+
+void dma_channel_clear_xfer_status(uint8_t ch)
+{
+    // Check if channel is valid
+    if (ch >= DMA_NUMBER_OF_CHANNELS)
+        return;
+
+    uint32_t ch_bit, size;
+    DMA_CHANNEL_REG * dma_ch;
+    DMA_Channel_Info *ch_info;
+    bool clear_status = false;
+
+    ch_bit = 0x1 << ch;
+    dma_ch = DMA_CHANNEL(ch);
+    ch_info = &channel_info[ch];
+
+    // Clear polling flag
+    ch_info->flags &= ~DMA_FLAG_POLLING; // use interrupt
+
+    // Error interrupt (raw set, but mask not set)
+    if ((CSK_DMA->RAW.ERROR & ch_bit) && !(CSK_DMA->MASK.ERROR & ch_bit)) {
+        clear_error_interrupts(ch_bit);
+        clear_status = true;
+    }
+
+    // Block interrupt (raw set, but mask not set)
+    if ((CSK_DMA->RAW.BLOCK & ch_bit) && !(CSK_DMA->MASK.BLOCK & ch_bit)) {
+        clear_block_interrupts(ch_bit);
+    }
+
+    // Xfer interrupt (raw set, but mask not set)
+    if ((CSK_DMA->RAW.XFER & ch_bit) && !(CSK_DMA->MASK.XFER & ch_bit)) {
+        clear_xfer_interrupts(ch_bit);
+        clear_status = true;
+
+        // update transferred size for the channel
+        size = dma_ch->CTL_HI & DMA_CH_CTLH_BLOCK_TS_MASK;
+        ch_info->SizeXfered += size;
+        if (ch_info->SizeToXfer > size)
+            ch_info->SizeToXfer -= size;
+        else
+            ch_info->SizeToXfer = 0;
+    }
+
+    if (clear_status) {
+        dma_ch->CTL_LO = 0U;
+        dma_ch->CTL_HI = 0U;
+        dma_ch->CFG_LO = 0U;
+        dma_ch->CFG_HI = 0U;
+        dma_ch->LLP = 0U;
+
+        // Clear Channel active flag
+        clear_channel_active_flag (ch);
+    }
+}
+>>>>>>> feature/zephyr
 
 /**
   \fn          uint32_t dma_channel_get_count (uint8_t ch)
@@ -1388,7 +1997,11 @@ uint32_t dma_channel_get_status (uint8_t ch)
   \param[in]   ch Channel number
   \returns     Number of transferred data items
 */
+<<<<<<< HEAD
 uint32_t dma_channel_get_count (uint8_t ch) {
+=======
+_FAST_FUNC_RO uint32_t dma_channel_get_count (uint8_t ch) {
+>>>>>>> feature/zephyr
 
     if (ch >= DMA_NUMBER_OF_CHANNELS) {
         return 0;
@@ -1458,6 +2071,18 @@ _FAST_FUNC_RO void dma_irq_handler (void) {
             // Clear interrupt flag
             clear_xfer_interrupts(ch_bit);
 
+<<<<<<< HEAD
+=======
+            bool done = false;
+
+        #if SUPPORT_HW_LLP
+            if (ch_info->flags & DMA_FLAG_HW_LLP) { // HW LLP
+                ch_info->SizeXfered = ch_info->SizeToXfer;
+                ch_info->SizeToXfer = 0;
+                done = true;
+            } else { // SW LLP or single block
+        #endif
+>>>>>>> feature/zephyr
             // update transferred size for the channel
             size = dma_ch->CTL_HI & DMA_CH_CTLH_BLOCK_TS_MASK;
             ch_info->SizeXfered += size;
@@ -1472,7 +2097,12 @@ _FAST_FUNC_RO void dma_irq_handler (void) {
             config_low = dma_ch->CFG_LO;
             config_high = dma_ch->CFG_HI;
 
+<<<<<<< HEAD
             size = ch_info->SizeToXfer > MAX_BLK_TS ? FIT_BLK_TS : ch_info->SizeToXfer;
+=======
+                //size = ch_info->SizeToXfer > MAX_BLK_TS ? FIT_BLK_TS : ch_info->SizeToXfer;
+                size = ch_info->SizeToXfer > MAX_BLK_TS ? MAX_BLK_TS : ch_info->SizeToXfer;
+>>>>>>> feature/zephyr
 
             if (size > 0) { // current LLI/block is not done
                 uint32_t src_addr, dst_addr;
@@ -1481,7 +2111,11 @@ _FAST_FUNC_RO void dma_irq_handler (void) {
                 update_next_xfer_addr(ch_info, control, src_addr, dst_addr, size);
 
                 // Trigger next DMA transfer
+<<<<<<< HEAD
                 dma_channel_configure_internal(ch, src_addr, dst_addr, size,
+=======
+                    dma_channel_configure_internal(ch, 1, src_addr, dst_addr, size,
+>>>>>>> feature/zephyr
                                                control, config_low, config_high);
             } else { // current LLI/block is done
                 // do post-dma invalidate operation if necessary
@@ -1497,16 +2131,35 @@ _FAST_FUNC_RO void dma_irq_handler (void) {
                     ch_info->llp = (DMA_LLP)cur->LLP;
                     ch_info->SizeToXfer = cur->u.SIZE;
 
+<<<<<<< HEAD
                     size = cur->u.SIZE > MAX_BLK_TS ? FIT_BLK_TS : cur->u.SIZE;
+=======
+                        //size = cur->u.SIZE > MAX_BLK_TS ? FIT_BLK_TS : cur->u.SIZE;
+                        size = cur->u.SIZE > MAX_BLK_TS ? MAX_BLK_TS : cur->u.SIZE;
+>>>>>>> feature/zephyr
                     update_next_xfer_addr(ch_info, cur->CTL_LO, cur->SAR, cur->DAR, size);
 
                     // do cache sync operation before the mock BLOCK transfer
                     do_cache_sync(ch_info, cur->CTL_LO, cur->SAR, cur->DAR, cur->u.SIZE);
 
                     // Trigger first DMA transfer
+<<<<<<< HEAD
                    dma_channel_configure_internal(ch, cur->SAR, cur->DAR, size, cur->CTL_LO,
                                                           config_low, config_high);
                 } else { // all LLIs/blocks are done
+=======
+                       dma_channel_configure_internal(ch, 1, cur->SAR, cur->DAR, size,
+                                                   cur->CTL_LO, config_low, config_high);
+                } else { // all LLIs/blocks are done
+                        done = true;
+                    } // end all LLI/block is done
+                } // end current LLI/block is done
+        #if SUPPORT_HW_LLP
+            } // end !SUPPORT_HW_LLP (SW_LLP or single block)
+        #endif
+
+            if (done) {
+>>>>>>> feature/zephyr
                     // Clear Channel active flag
                     clear_channel_active_flag (ch);
 
@@ -1518,8 +2171,13 @@ _FAST_FUNC_RO void dma_irq_handler (void) {
                                 ch_info->SizeXfered << ch_info->width_shift,
                                 ch_info->usr_param);
                     }
+<<<<<<< HEAD
                 } // end all LLI/block is done
             } // end current LLI/block is done
+=======
+            } // end done
+
+>>>>>>> feature/zephyr
         } // end DMA transfer complete interrupt
 
         // real BLOCK complete interrupt
@@ -1662,7 +2320,12 @@ _FAST_FUNC_RO int32_t dma_memcpy (uint8_t        ch,
         config_low = DMA_CH_CFGL_CH_PRIOR(0);
         config_high = DMA_CH_CFGH_FIFO_MODE; // DMA_CH_CFGH_SRC_PER(x) | DMA_CH_CFGH_DST_PER
 
+<<<<<<< HEAD
         size = ch_info->SizeToXfer > MAX_BLK_TS ? FIT_BLK_TS : ch_info->SizeToXfer;
+=======
+        //size = ch_info->SizeToXfer > MAX_BLK_TS ? FIT_BLK_TS : ch_info->SizeToXfer;
+        size = ch_info->SizeToXfer > MAX_BLK_TS ? MAX_BLK_TS : ch_info->SizeToXfer;
+>>>>>>> feature/zephyr
         update_next_xfer_addr(ch_info, control, src_addr, dst_addr, size);
 
         // do cache sync operation before the mock BLOCK transfer
@@ -1672,7 +2335,11 @@ _FAST_FUNC_RO int32_t dma_memcpy (uint8_t        ch,
         clear_all_interrupts(ch_bit);
 
         // Trigger first DMA transfer
+<<<<<<< HEAD
         int32_t ret = dma_channel_configure_internal(ch, src_addr, dst_addr, size, control, config_low, config_high);
+=======
+        int32_t ret = dma_channel_configure_internal(ch, 1, src_addr, dst_addr, size, control, config_low, config_high);
+>>>>>>> feature/zephyr
         if (ret < 0)
             return ret;
 
@@ -1756,7 +2423,12 @@ _FAST_FUNC_RO int32_t dma_memcpy_SG (uint8_t        ch,
     config_low = DMA_CH_CFGL_CH_PRIOR(0);
     config_high = DMA_CH_CFGH_FIFO_MODE; // DMA_CH_CFGH_SRC_PER(x) | DMA_CH_CFGH_DST_PER
 
+<<<<<<< HEAD
     size = ch_info->SizeToXfer > MAX_BLK_TS ? FIT_BLK_TS : ch_info->SizeToXfer;
+=======
+    //size = ch_info->SizeToXfer > MAX_BLK_TS ? FIT_BLK_TS : ch_info->SizeToXfer;
+    size = ch_info->SizeToXfer > MAX_BLK_TS ? MAX_BLK_TS : ch_info->SizeToXfer;
+>>>>>>> feature/zephyr
     update_next_xfer_addr(ch_info, control, src_addr, dst_addr, size);
 
     // do cache sync operation before the mock BLOCK transfer
@@ -1766,6 +2438,10 @@ _FAST_FUNC_RO int32_t dma_memcpy_SG (uint8_t        ch,
     clear_all_interrupts(ch_bit);
 
     // Trigger first DMA transfer
+<<<<<<< HEAD
     int32_t ret = dma_channel_configure_internal(ch, src_addr, dst_addr, size, control, config_low, config_high);
+=======
+    int32_t ret = dma_channel_configure_internal(ch, 1, src_addr, dst_addr, size, control, config_low, config_high);
+>>>>>>> feature/zephyr
     return ret;
 }

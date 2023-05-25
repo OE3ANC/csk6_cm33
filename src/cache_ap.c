@@ -9,7 +9,11 @@
 #include "ARMCM33_DSP_FP.h"
 #include "venus_ap.h"
 #include "cachel1_armv7.h"
+<<<<<<< HEAD
 #include "include/cache.h"
+=======
+#include "hal/cache.h"
+>>>>>>> feature/zephyr
 
 #define NO_CACHE_DEBUG   0
 

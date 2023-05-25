@@ -243,10 +243,13 @@ int32_t GPT_Initialize(void *pGpt, void *user_param)
 
 	for(ch=0; ch < GPT_NUMBER_OF_CHANNELS; ch++)
 	{
+<<<<<<< HEAD
 		if (pGpt_Temp->info->flags & GPT_FLAG_INITIALIZED)
 		{
 			continue;
 		}
+=======
+>>>>>>> feature/zephyr
 		pGpt_Temp->info->cb_event[ch] = NULL;
 		pGpt_Temp->info->clk_source[ch] = 0;
 		pGpt_Temp->info->origin_IRQ_handler = NULL;
