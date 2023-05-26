@@ -18,6 +18,7 @@
 #define CSK_RTC_CTRL_MIN_INT         (1UL << 5)
 #define CSK_RTC_CTRL_SEC_INT         (1UL << 6)
 #define CSK_RTC_CTRL_HSEC_INT        (1UL << 7)
+#define CSK_RTC_CLOCK_SRC            (1UL << 8)   // 0:digital 32k/   1:RCO 32k
 
 // RTC event ID
 #define CSK_RTC_EVENT_ALARM_INT     (1UL << 0)

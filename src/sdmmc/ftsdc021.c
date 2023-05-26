@@ -330,7 +330,6 @@ ftsdc021_wait_for_state(u8 ip_idx, u32 state, u32 ms)
             return 1;
         }
 
-        ftsdc021_delay(3);
     } while (((SDHost[ip_idx].Card->respLo >> 9) & 0xF) != state);
 
     return 0;
@@ -1390,8 +1389,8 @@ ftsdc021_set_bus_speed_mode(u8 ip_idx, u8 speed)
 
     if (speed < 4) {
         if (speed < 3) {
-            SDHost[ip_idx].Card->max_dtr = 25000000; // << speed; tiger debug
-            //SDHost[ip_idx].Card->max_dtr = 50000000;// << speed;
+//            SDHost[ip_idx].Card->max_dtr = 25000000; // << speed; tiger debug
+            SDHost[ip_idx].Card->max_dtr = 50000000;// << speed;
         } else { /* current controller stable @ max 130 MHz */
             SDHost[ip_idx].Card->max_dtr = SDHost[ip_idx].max_clk;
         }
