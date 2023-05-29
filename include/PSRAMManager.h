@@ -158,11 +158,21 @@ typedef enum _prefetch_level{
 #define PSRAM_DLL_BYPASS                    (0x1)
 
 //******************MR0
+#if PSRAM_CHIP_SIZE == 4
+// For 4M PSRAM
+// 0x0 1/16
+// 0x1 Half
+// 0x2 1/4
+// 0x3 1/8
+#define PSRAM_MR0_DRIVE_STR                 (0x1)      // bit0-1
+#elif PSRAM_CHIP_SIZE == 8
+// For 8M PSRAM
 // 0x0 Full (25Ω)
 // 0x1 Half (50Ω)
 // 0x2 1/4 (100Ω)
 // 0x3 1/8 (200Ω default)
-#define PSRAM_MR0_DRIVE_STR                 (0x0)      // bit0-1
+#define PSRAM_MR0_DRIVE_STR                 (0x0)
+#endif
 #define PSRAM_MR0_LT                        (0x1)      // bit5
 
 //******************MR1-MR2

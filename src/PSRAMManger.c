@@ -285,39 +285,7 @@ static void PSRAM_ISR_Handler(){
 
 static uint32_t MR_REG[9] = {0};
 
-static void dtw_counter_init(void)
-{
-    CoreDebug->DEMCR = CoreDebug_DEMCR_TRCENA_Msk;
-    DWT->CYCCNT = 0;
-    DWT->CTRL = DWT_CTRL_CYCCNTENA_Msk;
-}
-
-static inline uint32_t dtw_get_counter()
-{
-    return DWT->CYCCNT;
-}
-
-static void dwt_delay_us(uint32_t us)
-{
-    uint32_t target_cnt = US_TO_CNT(us);
-    uint32_t old = dtw_get_counter();
-    uint64_t need_to_wait = old + target_cnt;
-
-    while (1) {
-        if (need_to_wait <= UINT32_MAX) {
-            while (dtw_get_counter() < need_to_wait);
-            break;
-        } else {
-            while (dtw_get_counter() != 0);
-            need_to_wait -= UINT32_MAX;
-            continue;
-        }
-    }
-}
-
 int32_t PSRAM_Initialize(void){
-    dtw_counter_init();
-
     // Clock reset
     IP_SYSCTRL->REG_SW_RESET2.bit.PSRAM_CTRL_RESET = 0x1;
 
@@ -581,7 +549,12 @@ int32_t PSRAM_Initialize(void){
         // send PSRAM reset
         IP_PSRAMC->REG_MR0.all = 0x0;
         // wait
-        dwt_delay_us(20);
+        {
+            int i, j;
+            for(i = 0; i < 100; i++){
+                for(j = 0; j < 1000; j++);
+            }
+        }
 
         // reset command
         IP_PSRAMC->REG_MEM_CMD.bit.WRITE_REG_CMD = 0xc0;
