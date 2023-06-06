@@ -77,6 +77,9 @@ static inline void *priv_heap_aligned_realloc(struct k_heap *heap, void *ptr, si
 	}
 	__align = align | sizeof(heap_ref);
 
+	heap_ref = ptr;
+	ptr = --heap_ref;
+
 	mem = __heap_aligned_realloc(heap, ptr, __align, size, K_NO_WAIT);
 	if (mem == NULL)
 	{
