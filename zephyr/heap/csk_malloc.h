@@ -61,6 +61,10 @@ extern "C"
 
     extern void csk_heap_info(void);
 
+    void *csk_realloc(void *ptr, uint32_t bytes);
+
+    size_t csk_heap_free_size(void);
+
 #ifdef __cplusplus
 }
 #endif
