@@ -6,10 +6,11 @@
 
 zephyr_library()
 zephyr_library_cc_option(-O0)
-add_subdirectory_ifdef(CONFIG_CSK_HEAP ./zephyr/heap)
+add_subdirectory_ifdef(CONFIG_CSK_HEAP ../zephyr/heap)
 
 if(${CONFIG_SOC_CSK6})
     zephyr_compile_options(-DARMCM30_DSP_FP -DPLATFORM_AP -DCSK6001 -DIC_BOARD)
+    zephyr_include_directories(../..)
     zephyr_include_directories(..)
     zephyr_include_directories(../include)
     zephyr_include_directories(../include/reg)
