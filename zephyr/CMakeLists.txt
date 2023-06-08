@@ -49,8 +49,7 @@ if(${CONFIG_SOC_CSK6})
                             ../src/aon_timer.c
                             ../src/pwr.c
                             )
-else()
-    message(FATAL_ERROR 'listenai hal driver does not support this platform')
+
 endif()
 
 
