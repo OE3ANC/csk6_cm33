@@ -22,6 +22,20 @@
 // any channel of DMA controller
 #define DMA_CHANNEL_ANY                 ((uint8_t)0xFF)
 
+#define MAX_BLK_TS      4095 // see BLOCK_TS in CTLx bit[43:32]
+//#define FIT_BLK_TS      MAX_BLK_TS // 4092 // make it multiple of 4
+#define MAX_BLK_BITS    12
+
+// HW LLP (Linked list multi-block) is NOT supported on venus!!
+#define SUPPORT_HW_LLP  0
+
+#if SUPPORT_HW_LLP
+// max count of Link List Item implicitly supported by DMA driver
+// it means max. (4095 * DMA_MAX_LL_ITEMS) data can be transfered for 1 DMA interrupt.
+#define DMA_MAX_LL_ITEMS                4
+#define DMA_MAX_LL_DATA                 ((DMA_MAX_LL_ITEMS + 1) * MAX_BLK_TS)
+#endif // SUPPORT_HW_LLP
+
 extern uint32_t calc_max_burst_size(uint32_t items);
 
 #define WIDTH_BYTES(dma_width)      (1 << (dma_width))
@@ -273,8 +287,10 @@ extern void dma_channel_unreserve(uint8_t ch);
  */
 extern bool dma_channel_is_reserved(uint8_t ch);
 
+
 /**
-  \fn          int32_t dma_channel_configure (uint8_t      ch,
+  \fn          int32_t dma_channel_configure_wrapper (uint8_t      ch,
+                                    uint8_t         en_int,
                                     uint32_t        src_addr,
                                     uint32_t        dst_addr,
                                     uint32_t        total_size,
@@ -285,6 +301,7 @@ extern bool dma_channel_is_reserved(uint8_t ch);
                                     uint32_t        dst_scat);
   \brief       Configure DMA channel for block transfer (and enable DMA channel implicitly)
   \param[in]   ch           The selected Channel number returned by dma_channel_select()
+  \param[in]   en_int       Whether to enable DMA interrupts. enable interrupts if non-zero.
   \param[in]   src_addr     Source address
   \param[in]   dest_addr    Destination address
   \param[in]   total_size   Amount of data items to transfer from source (maybe greater than 4095)
@@ -298,7 +315,20 @@ extern bool dma_channel_is_reserved(uint8_t ch);
    - \b  0: function succeeded
    - \b -1: function failed
 */
-extern int32_t dma_channel_configure (uint8_t       ch,
+extern int32_t dma_channel_configure_wrapper (uint8_t      ch,
+                                            uint8_t       en_int,
+                                            uint32_t      src_addr,
+                                            uint32_t      dst_addr,
+                                            uint32_t      total_size,
+                                            uint32_t      control,
+                                            uint32_t      config_low,
+                                            uint32_t      config_high,
+                                            uint32_t      src_gath,
+                                            uint32_t      dst_scat);
+
+
+/**
+  \fn          int32_t dma_channel_configure (uint8_t      ch,
                                     uint32_t        src_addr,
                                     uint32_t        dst_addr,
                                     uint32_t        total_size,
@@ -307,6 +337,34 @@ extern int32_t dma_channel_configure (uint8_t       ch,
                                     uint32_t        config_high,
                                     uint32_t        src_gath,
                                     uint32_t        dst_scat);
+*/
+#define dma_channel_configure(ch, ...)  \
+    dma_channel_configure_wrapper(ch, 1, ##__VA_ARGS__)
+
+
+/**
+  \fn          int32_t dma_channel_configure_polling (uint8_t      ch,
+                                    uint32_t        src_addr,
+                                    uint32_t        dst_addr,
+                                    uint32_t        total_size,
+                                    uint32_t        control,
+                                    uint32_t        config_low,
+                                    uint32_t        config_high,
+                                    uint32_t        src_gath,
+                                    uint32_t        dst_scat);
+*/
+//#define dma_channel_configure_polling(ch, ...)  \
+//    dma_channel_configure_wrapper(ch, 0, ##__VA_ARGS__)
+
+extern int32_t dma_channel_configure_polling (uint8_t      ch,
+                                            uint32_t      src_addr,
+                                            uint32_t      dst_addr,
+                                            uint32_t      total_size,
+                                            uint32_t      control,
+                                            uint32_t      config_low,
+                                            uint32_t      config_high,
+                                            uint32_t      src_gath,
+                                            uint32_t      dst_scat);
 
 
 /**
@@ -337,8 +395,6 @@ extern int32_t dma_channel_configure_LLP (
                                    uint32_t     config_high,
                                    uint32_t     src_gath,
                                    uint32_t     dst_scat);
-
-//TODO: Is it necessary to implement dma_channel_configure_LLP_HW based on DW_DMAC LLP feature?
 
 
 /**
@@ -387,16 +443,22 @@ extern int32_t dma_channel_enable (uint8_t ch);
 extern int32_t dma_channel_disable (uint8_t ch, uint8_t wait_done);
 
 
+extern bool dma_channel_is_enabled(uint8_t ch);
+extern bool dma_channel_is_polling(uint8_t ch);
+
+extern bool dma_channel_xfer_error(uint8_t ch);
+extern bool dma_channel_xfer_complete(uint8_t ch);
+extern void dma_channel_clear_xfer_status(uint8_t ch);
+
 /**
   \fn          uint32_t dma_channel_get_status (uint8_t ch)
-  \brief       Check if DMA channel is enabled or disabled
+  \brief       Check if DMA channel is enabled or disabled [discarded]
   \param[in]   ch Channel number
   \returns     Channel status
    - \b  1: channel enabled
    - \b  0: channel disabled
 */
 extern uint32_t dma_channel_get_status (uint8_t ch);
-
 
 /**
   \fn          uint32_t dma_channel_get_count (uint8_t ch)
