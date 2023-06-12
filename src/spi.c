@@ -2071,7 +2071,7 @@ static bool spi_set_bus_speed(SPI_DEV *spi, uint32_t arg)
     } else {
         sclk_div = (clk / (2 * arg)) - 1;
         if (sclk_div >= 0xFF || sclk_div < 0) {
-            CLOGW("%s: CANNOT support SCLK = %d (SPI_CLK = %d)! ", __func__, arg, clk);
+            // CLOGW("%s: CANNOT support SCLK = %d (SPI_CLK = %d)! ", __func__, arg, clk);
             return false;
         }
         clk /= (sclk_div + 1) * 2;
