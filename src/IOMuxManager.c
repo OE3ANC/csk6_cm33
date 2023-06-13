@@ -12,12 +12,12 @@
 
 #include "venus_ap.h"
 
-static CMN_IOMUX_RegDef* iomux_reg = (CMN_IOMUX_RegDef*)CMN_IOMUX_BASE;
-static AON_IOMUX_RegDef* aon_iomux_reg = (AON_IOMUX_RegDef*)AON_IOMUX_BASE;
-static SYSCFG_RegDef *cmn_sys_ctrl = (SYSCFG_RegDef* )CMN_SYSCTRL_BASE;
-
-int32_t IOMuxManager_PinConfigure (uint8_t pad, uint8_t pin_num, uint32_t pin_cfg){
+int32_t IOMuxManager_PinConfigure (uint8_t pad, uint8_t pin_num, uint32_t pin_cfg)
+{
     volatile uint32_t * volatile pin_base = NULL;
+    CMN_IOMUX_RegDef* iomux_reg = (CMN_IOMUX_RegDef*)CMN_IOMUX_BASE;
+    AON_IOMUX_RegDef* aon_iomux_reg = (AON_IOMUX_RegDef*)AON_IOMUX_BASE;
+    SYSCFG_RegDef *cmn_sys_ctrl = (SYSCFG_RegDef* )CMN_SYSCTRL_BASE;
 
     switch (pad){
     case CSK_IOMUX_PAD_A:
@@ -71,7 +71,7 @@ int32_t IOMuxManager_PinConfigure (uint8_t pad, uint8_t pin_num, uint32_t pin_cf
 
 int32_t IOMuxManager_ModeConfigure(uint8_t pad, uint8_t pin_num, uint8_t pin_mode){
     volatile uint32_t * volatile pin_base = NULL;
-
+    CMN_IOMUX_RegDef* iomux_reg = (CMN_IOMUX_RegDef*)CMN_IOMUX_BASE;
     switch (pad){
     case CSK_IOMUX_PAD_A:
     {
@@ -128,6 +128,7 @@ int32_t IOMuxManager_ModeConfigure(uint8_t pad, uint8_t pin_num, uint8_t pin_mod
 
 int32_t IOMuxManager_GetConfig(uint8_t pad, uint8_t pin_num, uint32_t *pin_cfg){
     volatile uint32_t * volatile pin_base = NULL;
+    CMN_IOMUX_RegDef* iomux_reg = (CMN_IOMUX_RegDef*)CMN_IOMUX_BASE;
     switch (pad){
     case CSK_IOMUX_PAD_A:
     {
@@ -157,6 +158,7 @@ int32_t IOMuxManager_GetConfig(uint8_t pad, uint8_t pin_num, uint32_t *pin_cfg){
 
 int32_t IOMuxManager_GetPad(uint32_t addr, uint8_t *pad)
 {
+    CMN_IOMUX_RegDef* iomux_reg = (CMN_IOMUX_RegDef*)CMN_IOMUX_BASE;
 	if ((uint32_t)&iomux_reg->REG_PAD_GPIOA_00.all == addr) {
 		*pad = CSK_IOMUX_PAD_A;
 	} else if ((uint32_t)&iomux_reg->REG_PAD_GPIOB_00.all == addr) {
