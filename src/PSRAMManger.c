@@ -6,7 +6,7 @@
  */
 #include "PSRAMManager.h"
 #include "ClockManager.h"
-#include "include/cache.h"
+#include "cache.h"
 
 #include "venus_ap.h"
 
@@ -29,17 +29,15 @@
 #define PSRAM_LOGE(str, ...)
 
 
-#if (PSRAM_RD_DQS_SEARCH || PSRAM_WT_DQS_SEARCH)
-static uint32_t psram_src_array[PSRAM_SEARCH_DQS_NUM] __attribute__ ((aligned(32)));
-static uint32_t psram_dst_array[PSRAM_SEARCH_DQS_NUM] __attribute__ ((aligned(32)));
-
+static uint32_t* psram_src_array = NULL;
+static uint32_t* psram_dst_array = NULL;
 
 static void psram_data_init(void){
     unsigned int i=0;
     //init src with random data
     for (i = 0; i < PSRAM_SEARCH_DQS_NUM; i++)
     {
-        psram_src_array[i] = (uint32_t)i ;
+        psram_src_array[i] = (uint32_t)rand();
     }
 }
 
@@ -48,6 +46,8 @@ static uint32_t psram_random_data_check(uint8_t writed){
     unsigned int loop = 0;
 
     uint32_t *ptr_psram = (uint32_t *)PSRAM_BASE;
+    psram_src_array = (uint32_t*)malloc(PSRAM_SEARCH_DQS_NUM * sizeof(uint32_t));
+    psram_dst_array = (uint32_t*)malloc(PSRAM_SEARCH_DQS_NUM * sizeof(uint32_t));
 
     for (loop = 0; loop < PSRAM_INNER_SEARCH_LOOP_NUM; loop++){
 
@@ -66,10 +66,12 @@ static uint32_t psram_random_data_check(uint8_t writed){
         ptr_psram += PSRAM_SEARCH_DQS_NUM;
     }
 
+    free(psram_src_array);
+    free(psram_dst_array);
+
     // 0 means equal
     return ret;
 }
-#endif
 
 typedef struct {
     uint32_t delay_max;
@@ -77,7 +79,6 @@ typedef struct {
     uint32_t delay_gap;
 }DqsDelay_FmtDef;
 
-#if PSRAM_WT_DQS_SEARCH
 static int32_t search_write_dqs_delay(uint8_t writed){
     unsigned int ret=0;
     DqsDelay_FmtDef dqs_delay = {0};
@@ -165,9 +166,7 @@ static int32_t search_write_dqs_delay(uint8_t writed){
 
     return 0;
 }
-#endif
 
-#if PSRAM_RD_DQS_SEARCH
 static int32_t search_read_dqs_delay(uint8_t writed){
     unsigned int ret=0;
     DqsDelay_FmtDef dqs_delay = {0};
@@ -255,9 +254,8 @@ static int32_t search_read_dqs_delay(uint8_t writed){
 
     return 0;
 }
-#endif
 
-__attribute__((unused)) static void check_reg(uint32_t* address){
+static void check_reg(uint32_t* address){
     unsigned int rdata = 0x0;
 
     rdata = *address;
@@ -633,11 +631,9 @@ int32_t PSRAM_Initialize(void){
         {
             rdata = IP_PSRAMC->REG_MR1.all;
             uint8_t vendor_id = ((rdata & 0xff) >> PSRAM_MR1_VENDOR_ID_OFFSET) & 0x1f;
-            vendor_id = vendor_id;
 
             rdata = IP_PSRAMC->REG_MR2.all;
             uint8_t dev_id = ((rdata & 0xff) >> PSRAM_MR2_DEV_ID_OFFSET) & 0x3;
-            dev_id = dev_id;
 
             uint8_t gb = ((rdata & 0xff) >> PSRAM_MR2_GB_OFFSET) & 0x1;
             if (gb == 0){

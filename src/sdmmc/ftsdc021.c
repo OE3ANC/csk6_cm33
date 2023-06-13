@@ -330,7 +330,7 @@ ftsdc021_wait_for_state(u8 ip_idx, u32 state, u32 ms)
             return 1;
         }
 
-        ftsdc021_delay(3);
+        ftsdc021_delay(1);
     } while (((SDHost[ip_idx].Card->respLo >> 9) & 0xF) != state);
 
     return 0;

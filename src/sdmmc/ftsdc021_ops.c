@@ -173,7 +173,7 @@ ftsdc021_ops_send_app_op_cond(u8 ip_idx, u32 ocr, u32* rocr)
 {
     u32 i, err = 0;
     SDCardInfo* card = SDHost[ip_idx].Card;
-    for (i = 100; i; i--) {
+    for (i = 400; i; i--) {
         /* CMD 55: Indicate to the card the next cmd is app-specific command */
         err = ftsdc021_send_command(ip_idx, SDHCI_APP_CMD, SDHCI_CMD_TYPE_NORMAL, 0, SDHCI_CMD_RTYPE_R1R5R6R7, 0, 0);
         if (err)
@@ -193,7 +193,7 @@ ftsdc021_ops_send_app_op_cond(u8 ip_idx, u32 ocr, u32* rocr)
 
         err = 1;
 
-        ftsdc021_delay(80);
+        ftsdc021_delay(10);
     }
 
     if (rocr)

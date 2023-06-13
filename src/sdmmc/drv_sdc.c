@@ -359,7 +359,7 @@ lib_sdc_scan_card(u8 ip_idx, u8 speed)
     if (ftsdc021_ops_go_idle_state(ip_idx, 0) != 0)
         sdc_dbg_print("idle state fail\n");
     //ftsdc021_HCReset(ip_idx,SDHCI_SOFTRST_CMD|SDHCI_SOFTRST_DAT);
-    ftsdc021_delay(100);
+    // ftsdc021_delay(100);
 
     if (ftsdc021_scan_cards(ip_idx)) {
         sdc_dbg_print(" Scan card FAILED !\n");
