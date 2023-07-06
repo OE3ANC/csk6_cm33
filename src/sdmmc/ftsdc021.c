@@ -7,6 +7,7 @@
 #pragma GCC push_options
 #pragma GCC optimize("O2")
 
+
 #define FTSDC021_BASE_CLOCK  100
 
 volatile ftsdc021_reg* gpRegSD0 = (ftsdc021_reg*) SDC_FTSDC021_0_PA_BASE;
@@ -319,20 +320,25 @@ ftsdc021_wait_for_state(u8 ip_idx, u32 state, u32 ms)
     u32 t0;
 
     t0 = jiffies();
-    do {
-        if (ftsdc021_ops_send_card_status(ip_idx)) {
+
+    while(1) {
+         if (ftsdc021_ops_send_card_status(ip_idx)) {
             sdc_dbg_print(" ERR## ... Send Card Status Failed.\n");
             return 1;
+        }
+
+
+        if (((SDHost[ip_idx].Card->respLo >> 9) & 0xF) != state) {
+            ftsdc021_delay(3);
+        } else {
+            break;
         }
 
         if ((jiffies() - t0) > ms) {
             sdc_dbg_print(" ERR## ... Card Status not return to define(%d) state.\n", state);
             return 1;
         }
-
-        ftsdc021_delay(3);
-    } while (((SDHost[ip_idx].Card->respLo >> 9) & 0xF) != state);
-
+    }
     return 0;
 }
 
@@ -1390,8 +1396,8 @@ ftsdc021_set_bus_speed_mode(u8 ip_idx, u8 speed)
 
     if (speed < 4) {
         if (speed < 3) {
-            SDHost[ip_idx].Card->max_dtr = 25000000; // << speed; tiger debug
-            //SDHost[ip_idx].Card->max_dtr = 50000000;// << speed;
+            // SDHost[ip_idx].Card->max_dtr = 25000000; // << speed; tiger debug
+            SDHost[ip_idx].Card->max_dtr = SDHC_CLK_FREQ * 1000000;// << speed;
         } else { /* current controller stable @ max 130 MHz */
             SDHost[ip_idx].Card->max_dtr = SDHost[ip_idx].max_clk;
         }
@@ -2588,7 +2594,7 @@ ftsdc021_init_normal(u8 ip_idx)
     /* Optionally enable interrupt signal to CPU */
 //    ftsdc021_set_transfer_type(ip_idx,PIO, 4);
     //if(ip_idx == 0)
-    ftsdc021_set_transfer_type(ip_idx, SDMA, 4);  //tiger debug
+    ftsdc021_set_transfer_type(ip_idx, SDMA, 7);  //tiger debug
     //else
 //    ftsdc021_set_transfer_type(ip_idx, ADMA, 0);
     sdc_dbg_print(" Checking card ... ");
