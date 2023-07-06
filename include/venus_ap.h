@@ -8,6 +8,7 @@
 #ifndef INCLUDE_VENUS_AP_H_
 #define INCLUDE_VENUS_AP_H_
 
+#include "hal_config_def.h"
 #include "hal_os.h"
 
 #include <stddef.h> // for NULL etc.
