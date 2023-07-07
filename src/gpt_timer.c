@@ -564,22 +564,22 @@ int32_t HAL_GPT_StartTimer(void *pGpt, GPT_CHANNEL_TYPE channel)
 		default:
 			break;
 		case CSK_GPT_TIMER_32_BIT_TIMER:
+			//cnt start
+			pGptTimer->gpt_resources->reg->CH_CNT_EN |= 0x01<<channel;
             //channelx timer0 enable
             pGptTimer->gpt_resources->reg->CH_TIMER_ENABLE |= 0x01<<channel;
-			//cnt start
-			pGptTimer->gpt_resources->reg->CH_CNT_EN |= 0x01<<channel;
 			break;
 		case CSK_GPT_TIMER_16_BIT_TIMER:
+			//cnt start
+			pGptTimer->gpt_resources->reg->CH_CNT_EN |= 0x01<<channel;
 			//channelx timer0&timer1 enable
 			pGptTimer->gpt_resources->reg->CH_TIMER_ENABLE |= (0x01<<channel) | ((0x01<<8)<<channel);
-			//cnt start
-			pGptTimer->gpt_resources->reg->CH_CNT_EN |= 0x01<<channel;
 			break;
 		case CSK_GPT_TIMER_8_BIT_TIMER:
-			//channelx timer0&timer1&timer2&timer3 enable	
-			pGptTimer->gpt_resources->reg->CH_TIMER_ENABLE |= (0x01<<channel) | ((0x01<<8)<<channel) | ((0x01<<16)<<channel) | ((0x01<<24)<<channel);
 			//cnt start
 			pGptTimer->gpt_resources->reg->CH_CNT_EN |= 0x01<<channel;
+			//channelx timer0&timer1&timer2&timer3 enable	
+			pGptTimer->gpt_resources->reg->CH_TIMER_ENABLE |= (0x01<<channel) | ((0x01<<8)<<channel) | ((0x01<<16)<<channel) | ((0x01<<24)<<channel);
 			break;		
 	}
 	return CSK_DRIVER_OK;
@@ -641,6 +641,8 @@ int32_t HAL_GPT_StopTimer(void *pGpt, GPT_CHANNEL_TYPE channel)
     /* TODO: hardware layer */
 	//get timer mode
 	tmp =	(pGptTimer->gpt_resources->reg->CHx_CTRL[channel] & GPT_CHx_CTRL_CH_MODE_Msk) >> GPT_CHx_CTRL_CH_MODE_Pos;
+    //cnt stop
+    pGptTimer->gpt_resources->reg->CH_CNT_EN |= (0x0100<<channel);
 	switch(tmp){
 		default:
 			break;
