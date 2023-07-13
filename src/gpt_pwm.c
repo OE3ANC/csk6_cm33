@@ -432,7 +432,7 @@ int32_t HAL_GPT_SetPWMFreqDuty(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_t fr
 	}
 
 	pGptPWM->gpt_resources->reg->CHx_RELOAD[channel] = (high16bit<<16) | low16bit;
-	pGptPWM->gpt_resources->reg->SHADOW_LOAD = 0x101<<channel;
+	// pGptPWM->gpt_resources->reg->SHADOW_LOAD = 0x101<<channel;
 
 	return CSK_DRIVER_OK;
 }
@@ -460,7 +460,7 @@ int32_t HAL_GPT_EnablePWM(void *pGpt, GPT_CHANNEL_TYPE channel)
 	}	
 	
 	//counter start
-	pGptPWM->gpt_resources->reg->CH_CNT_EN |= 1<<channel;
+	// pGptPWM->gpt_resources->reg->CH_CNT_EN |= 1<<channel;
 	//channelx timer3 enable, for pwm
 	pGptPWM->gpt_resources->reg->CH_TIMER_ENABLE |= 0x01<<24<<channel;
 	//channel start	
