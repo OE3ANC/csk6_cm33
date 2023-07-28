@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "clock_config.h"
 
 #ifndef PSRAM_CHIP_SIZE

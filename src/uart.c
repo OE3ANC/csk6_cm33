@@ -28,7 +28,7 @@
  };
 
 #define CHECK_RESOURCES(res)  do{\
-        if((res != &uart0_resources) && (res != &uart1_resources) && (res != &uart2_resources) && (res != &uart3_resources)){\
+        if((res != &uart0_resources) && (res != &uart1_resources) && (res != &uart2_resources)){\
             return CSK_DRIVER_ERROR_PARAMETER;\
         }\
 }while(0)
@@ -145,25 +145,6 @@ static UART_RESOURCES uart2_resources = {
 };
 
 /*
- * UART3 DEVICE
- * */
-
-static void UART3_IRQ_Handler(void);
-
-static UART_INFO uart3_info = { 0 };
-
-static UART_RESOURCES uart3_resources = {
-    IP_CMN_UART,// REG
-    IRQ_CMN_UART_VECTOR,// IRQ NUM
-    UART3_IRQ_Handler,// IRQ HANDLER
-    CSK_UART3_FIFO,
-    NULL,// TX DMA INFO
-    NULL,// RX DMA INFO
-    &uart3_info,// TRANS INFO
-    0,
-};
-
-/*
  * DEVICE DESCRIPTION FUNCTION
  * */
 
@@ -179,9 +160,6 @@ void* UART2(void){
     return (void*)&uart2_resources;
 }
 
-void* UART3(void){
-    return (void*)&uart3_resources;
-}
 
 //
 //   Internal Functions
@@ -381,9 +359,6 @@ int32_t UART_PowerControl(void *res, CSK_POWER_STATE state)
         }else if (uart == &uart2_resources){
             IP_SYSCTRL->REG_SW_RESET2.bit.UART2_RESET = 0x1;
             __HAL_CRM_UART2_CLK_DISABLE();
-        }else if (uart == &uart3_resources){
-            IP_SYSCTRL->REG_SW_RESET2.bit.UART2_RESET = 0x1;
-            __HAL_CRM_UART3_CLK_DISABLE();
         }else {
             return CSK_DRIVER_ERROR_PARAMETER;
         }
@@ -429,12 +404,7 @@ int32_t UART_PowerControl(void *res, CSK_POWER_STATE state)
             __HAL_CRM_UART2_CLK_ENABLE();
 
             IP_SYSCTRL->REG_SW_RESET2.bit.UART2_RESET = 0x1;
-        }else if (uart == &uart3_resources){
-            __HAL_CRM_UART3_CLK_ENABLE();
-
-            IP_SYSCTRL->REG_SW_RESET2.bit.UART3_RESET = 0x1;
-        }
-        else {
+        }else {
             return CSK_DRIVER_ERROR_PARAMETER;
         }
 
@@ -900,8 +870,6 @@ int32_t UART_Control(void *res, uint32_t control, uint32_t arg)
             div = uart_compute_div(arg, CRM_GetUart1Freq());
         }else if (uart == &uart2_resources){
             div = uart_compute_div(arg, CRM_GetUart2Freq());
-        }else if (uart == &uart3_resources){
-            div = uart_compute_div(arg, CRM_GetUart3Freq());
         }else {
             return CSK_DRIVER_ERROR_PARAMETER;
         }
@@ -1239,8 +1207,4 @@ static void UART2_DMA_RX_Handler(uint32_t event, uint32_t xfer_bytes, uint32_t u
 }
 static void UART2_IRQ_Handler(void){
     UART_IRQ_Handler(&uart2_resources);;
-}
-
-static void UART3_IRQ_Handler(void){
-    UART_IRQ_Handler(&uart3_resources);;
 }

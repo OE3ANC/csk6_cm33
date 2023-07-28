@@ -353,9 +353,6 @@ extern int32_t dma_channel_configure_wrapper (uint8_t      ch,
                                     uint32_t        src_gath,
                                     uint32_t        dst_scat);
 */
-//#define dma_channel_configure_polling(ch, ...)  \
-//    dma_channel_configure_wrapper(ch, 0, ##__VA_ARGS__)
-
 extern int32_t dma_channel_configure_polling (uint8_t      ch,
                                             uint32_t      src_addr,
                                             uint32_t      dst_addr,

@@ -17,8 +17,8 @@
 #define SYSCTRL_RESET_NPU   (0xCAFE000C)
 
 #define max(a,b) \
-    ({ typeof(a) _a = (a); \
-       typeof(b) _b = (b); \
+    ({ __typeof__(a) _a = (a); \
+       __typeof__(b) _b = (b); \
        _a > _b ? _a : _b; })
 
 #if PSRAM_LOG_CHECK == 1

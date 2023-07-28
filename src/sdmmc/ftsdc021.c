@@ -1387,16 +1387,13 @@ ftsdc021_set_bus_speed_mode(u8 ip_idx, u8 speed)
     }
     SDHost[ip_idx].Card->speed = (Bus_Speed) speed;
 
-    if (speed < 4) {
-        if (speed < 3) {
-//            SDHost[ip_idx].Card->max_dtr = 25000000; // << speed; tiger debug
-            SDHost[ip_idx].Card->max_dtr = 50000000;// << speed;
-        } else { /* current controller stable @ max 130 MHz */
-            SDHost[ip_idx].Card->max_dtr = SDHost[ip_idx].max_clk;
-        }
-    } else
+    /* current controller stable @ max 50 MHz */
+    if (speed < 1) {
+        SDHost[ip_idx].Card->max_dtr = 25000000;
+    } else {
         SDHost[ip_idx].Card->max_dtr = 50000000;
-
+    }
+    
     ftsdc021_SetSDClock(ip_idx, SDHost[ip_idx].Card->max_dtr);
 
     // Make sure the state had been returned to "Transfer State"
