@@ -95,8 +95,9 @@ typedef enum {
 /*---------------------Control mode for application---------------------------------*/
 /*----- GPADC Trigger mode : hardware or software or both -----*/
 #define CSK_GPADC_TRIGGER_CONTROL_Pos             0
-#define CSK_GPADC_TRIGGER_CONTROL_Msk             (0x01UL << CSK_GPADC_TRIGGER_CONTROL_Pos)
+#define CSK_GPADC_TRIGGER_CONTROL_Msk             (0x03UL << CSK_GPADC_TRIGGER_CONTROL_Pos)
 #define CSK_GPADC_TRIGGER_HARDWARE_Enable         (0x01UL << CSK_GPADC_TRIGGER_CONTROL_Pos)
+#define CSK_GPADC_TRIGGER_GPT_Enable              (0x02UL << CSK_GPADC_TRIGGER_CONTROL_Pos)
 
 /*----- GPADC Sample time : 4/8/16/32 adc clocks -----*/
 #define CSK_GPADC_SAMPLETIME_Pos             	  2

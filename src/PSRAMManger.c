@@ -22,24 +22,22 @@
        _a > _b ? _a : _b; })
 
 #if PSRAM_LOG_CHECK == 1
-#define PSRAM_LOG(str, ...)
+#define PSRAM_LOG(str, ...)     
 #else
 #define PSRAM_LOG(str, ...)
 #endif
-#define PSRAM_LOGE(str, ...)
-
+#define PSRAM_LOGE(str, ...) 
 
 #if (PSRAM_RD_DQS_SEARCH || PSRAM_WT_DQS_SEARCH)
 static uint32_t psram_src_array[PSRAM_SEARCH_DQS_NUM] __attribute__ ((aligned(32)));
 static uint32_t psram_dst_array[PSRAM_SEARCH_DQS_NUM] __attribute__ ((aligned(32)));
-
 
 static void psram_data_init(void){
     unsigned int i=0;
     //init src with random data
     for (i = 0; i < PSRAM_SEARCH_DQS_NUM; i++)
     {
-        psram_src_array[i] = (uint32_t)i ;
+        psram_src_array[i] = i;
     }
 }
 
@@ -633,11 +631,9 @@ int32_t PSRAM_Initialize(void){
         {
             rdata = IP_PSRAMC->REG_MR1.all;
             uint8_t vendor_id = ((rdata & 0xff) >> PSRAM_MR1_VENDOR_ID_OFFSET) & 0x1f;
-            vendor_id = vendor_id;
 
             rdata = IP_PSRAMC->REG_MR2.all;
             uint8_t dev_id = ((rdata & 0xff) >> PSRAM_MR2_DEV_ID_OFFSET) & 0x3;
-            dev_id = dev_id;
 
             uint8_t gb = ((rdata & 0xff) >> PSRAM_MR2_GB_OFFSET) & 0x1;
             if (gb == 0){

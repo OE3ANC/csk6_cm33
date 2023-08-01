@@ -259,7 +259,8 @@ HAL_GPADC_Control(void* res, uint32_t control){
 
     //trigger mode
     tmp = (control & CSK_GPADC_TRIGGER_CONTROL_Msk) >> CSK_GPADC_TRIGGER_CONTROL_Pos;
-    pGpadc->reg->REG_ADC_CR.bit.HARD_TRIG_EN = tmp;
+    pGpadc->reg->REG_ADC_CR.bit.HARD_TRIG_EN = tmp&0x01;
+    pGpadc->reg->REG_ADC_CR.bit.GPT_TRIG_EN = (tmp&0x02)>>1;
 
     //fifo write clock
     pGpadc->reg->REG_ADC_CR.bit.FORCE_FIFO_WCLK_ON = 1;
@@ -422,8 +423,8 @@ uint32_t HAL_GPADC_Start_IT(void* res)
 	//mask complete = 0
 	pGpadc->reg->REG_ADC_IMR0.bit.ADC_COMPLETE_IMR = 0;
 
-//	//software adc conversion
-//	pGpadc->reg->REG_ADC_CR.bit.SOFT_TRIG = 1;
+	//software adc conversion
+	pGpadc->reg->REG_ADC_CR.bit.SOFT_TRIG = 1;
 
 	return CSK_DRIVER_OK;
 }
