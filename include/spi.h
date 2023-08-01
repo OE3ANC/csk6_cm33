@@ -39,6 +39,7 @@
 #define SLV_WRCNT(spi)               (((spi)->reg->SLVDATACNT >> 16) & 0x3FF)
 #define CLR_SLV_RDCNT(spi)           (spi)->reg->SLVDATACNT |= (1 << 15) // bit[15] = 1 to clear RCnt
 #define CLR_SLV_WRCNT(spi)           (spi)->reg->SLVDATACNT |= (1 << 31) // bit[31] = 1 to clear WCnt
+#define CLR_SLV_RDWRCNT(spi)         (spi)->reg->SLVDATACNT |= ((1 << 15) | (1 << 31)) // bit[15/31] = 1 to clear RCnt
 
 // SPI transfer mode
 #define SPI_TRANSMODE_WRnRD           (0x0 << 24)
@@ -61,15 +62,18 @@
 #define TXFIFORST                     (1UL << 2)
 #define RXDMAEN                       (1UL << 3)
 #define TXDMAEN                       (1UL << 4)
-#define RXTHRES(num)                  ((num) << 8)
-#define TXTHRES(num)                  ((num) << 16)
 
-#define THRES_MASK                    (0x1f)
+#define THRES_MASK                    (0x1fUL)
 #define RXTHRES_OFFSET                (8)
 #define TXTHRES_OFFSET                (16)
+#define RXTHRES_MASK                  (THRES_MASK << RXTHRES_OFFSET)
+#define TXTHRES_MASK                  (THRES_MASK << TXTHRES_OFFSET)
+#define RXTHRES(num)                  (((num) & THRES_MASK) << RXTHRES_OFFSET)
+#define TXTHRES(num)                  (((num) & THRES_MASK) << TXTHRES_OFFSET)
 
 /* SPI interrupt status register */
 /* SPI interrupt enable register */
+#define SPI_INT_MASK                  (0x3F)
 #define SPI_RXFIFOORINT               (1UL << 0)
 #define SPI_TXFIFOURINT               (1UL << 1)
 #define SPI_RXFIFOINT                 (1UL << 2)
@@ -82,12 +86,13 @@
 #define SLVST_OVER_RUN      (1UL << 17) //Data overrun, W1C
 #define SLVST_UNDER_RUN     (1UL << 18) //Data underrun, W1C
 
-// SPI flags
-#define SPI_FLAG_INITIALIZED          (1UL << 0)     // SPI initialized
-#define SPI_FLAG_POWERED              (1UL << 1)     // SPI powered on
-#define SPI_FLAG_CONFIGURED           (1UL << 2)     // SPI configured
-//#define SPI_FLAG_DATA_LOST            (1UL << 3)     // SPI data lost occurred
-//#define SPI_FLAG_MODE_FAULT           (1UL << 4)     // SPI mode fault occurred
+// SPI flags (internal use)
+#define SPI_FLAG_INITIALIZED          (1 << 7)     // SPI initialized
+#define SPI_FLAG_POWERED              (1 << 6)     // SPI powered on
+#define SPI_FLAG_CONFIGURED           (1 << 5)     // SPI configured
+
+#define SPI_FLAG_8BIT_MERGE           (1 << 1)     // DATA_MERGE when Data_bits is 8
+#define SPI_FLAG_NO_CS                (1 << 0)     //bit[0] = 1 indicates No CS pin connected
 
 /*****************************************************************************
  * SPI Registers Map on VENUS
@@ -173,14 +178,20 @@ typedef union {
 
 
 // SPI transfer operation
-#define SPI_SEND                      0x0
-#define SPI_RECEIVE                   0x1
-#define SPI_TRANSFER                  0x2
+//#define SPI_SEND                      0x0
+//#define SPI_RECEIVE                   0x1
+//#define SPI_TRANSFER                  0x2
+#define SPI_SEND                      0x1
+#define SPI_RECEIVE                   0x2
+#define SPI_TRANSFER                  0x3
 
 // SPI transfer information (Run-time)
 typedef struct _SPI_TRANSFER_INFO
 {
+    union {
     void *rx_buf;         // pointer to in data buffer
+    uint32_t rx_data;     // rx data when DMA_CH_CTLL_DST_FIX
+    };
     const void *tx_buf;   // pointer to out data buffer
     uint32_t rx_cnt;      // number of data received (see TRANSFMT register bit[12:8])
     uint32_t tx_cnt;      // number of data sent (see TRANSFMT register bit[12:8])
@@ -189,6 +200,7 @@ typedef struct _SPI_TRANSFER_INFO
     uint8_t  dma_tx_done; // whether dma send is done, 1: done, 0: not done
     uint8_t  dma_rx_done; // whether dma receive is done, 1: done, 0: not done
     uint8_t  cur_op;      // current operation, send, receive or both(transfer)?
+    uint8_t  rsvd;
 } SPI_TRANSFER_INFO;
 
 // SPI TX/RX IO & SPI Mode
@@ -214,6 +226,7 @@ typedef struct _SPI_INFO
 {
     CSK_SPI_SignalEvent_t cb_event;    // event callback
     uint32_t usr_param; // user parameter of event callback
+    SPI_CS_SET_FUNC cb_set_cs; // CS signal lower/raise callback
 
     uint8_t flags;            // SPI driver flags
     uint8_t txrx_mode;        // SPI TX/RX & mode
@@ -224,7 +237,7 @@ typedef struct _SPI_INFO
     uint8_t tx_bsize_shift;   // burst size shift for TX DMA
     uint8_t rx_bsize_shift;   // burst size shift for RX DMA
 
-    CSK_SPI_STATUS status;        // SPI status flags
+    volatile CSK_SPI_STATUS status;        // SPI status flags
     SPI_TRANSFER_INFO xfer;   // SPI transfer information
 
 } SPI_INFO;
@@ -243,9 +256,10 @@ typedef struct
 {
     CSK_SPI_RegDef *reg;  // pointer to SPI peripheral
     SYSCFG_SPI_CLK_REG16 *ext_clk; // pointer to external SPI clock config.
-    uint32_t txfifo_depth;  // TX FIFO depth, in words
-    uint32_t rxfifo_depth;  // RX FIFO depth, in words
-    uint32_t irq_num;      // SPI IRQ number
+    uint16_t txfifo_depth;  // TX FIFO depth, in words
+    uint16_t rxfifo_depth;  // RX FIFO depth, in words
+    uint16_t irq_num;      // SPI IRQ number
+    uint16_t spi_idx;       // SPI index, can be 0, 1, ...
     //void (*irq_handler)(void);
     ISR irq_handler;
 

@@ -160,6 +160,7 @@ void* UART2(void){
     return (void*)&uart2_resources;
 }
 
+
 //
 //   Internal Functions
 //
@@ -417,6 +418,10 @@ int32_t UART_PowerControl(void *res, CSK_POWER_STATE state)
 
         uart->info->flags = UART_FLAG_POWERED | UART_FLAG_INITIALIZED;
 
+        // Configure interrupt handle
+        register_ISR(uart->irq_num, uart->irq_handler, NULL);
+        enable_IRQ(uart->irq_num);
+
         break;
     }
     return CSK_DRIVER_OK;
@@ -642,8 +647,14 @@ int32_t UART_Control(void *res, uint32_t control, uint32_t arg)
 
         if (arg) {
             uart->info->flags |= UART_FLAG_RX_ENABLED;
+
+            // RX Line interrupt enable (overrun, framing, parity error, break)
+            uart->reg->REG_IER.all |= UARTC_IER_RLS;
+
         } else {
             uart->info->flags &= ~UART_FLAG_RX_ENABLED;
+            uart->reg->REG_IER.all &= ~UARTC_IER_RLS;
+
         }
 
         return CSK_DRIVER_OK;
@@ -714,10 +725,14 @@ int32_t UART_Control(void *res, uint32_t control, uint32_t arg)
 
         switch (control & CSK_UART_Function_CONTROL_Msk) {
             case CSK_UART_Function_CONTROL_Dma:
+                if (uart->dma_rx != NULL && uart->dma_tx != NULL){
                 val |= UARTC_FCR_DMA_EN;
                 uart->info->inter_en = 0;
                 // DMA initialize
                 dma_initialize();
+                } else {
+                    uart->info->inter_en = 1;
+                }
                 break;
             case CSK_UART_Function_CONTROL_Int:
                 uart->info->inter_en = 1;
@@ -745,7 +760,10 @@ int32_t UART_Control(void *res, uint32_t control, uint32_t arg)
             uart->info->timeout = 1;
             uart->info->rx_trig_lvl = CSK_UART_RX_TRIG_LVL;
             val |= CSK_UART_RX_TRIG_LVL_PARA;
+            // For timeout function, DMA must be set to byte size
+            if (uart->dma_rx){
             uart->dma_rx->bsize_para = CSK_UART_RX_DMA_BSIZE_PARA;
+            }
             break;
 
             // Default TX value
@@ -1002,7 +1020,7 @@ static void UART_IRQ_Handler(UART_RESOURCES *uart)
 
         // Transmit holding register empty
         // It depend on threshold
-        if ((iir & UARTC_IIR_INT_MASK) == UARTC_IIR_THRE) {
+        if ((iir & UARTC_IIR_THRE) == UARTC_IIR_THRE) {
 
             // TODO This is very importance
             // Get the residue FIFO data
@@ -1034,14 +1052,13 @@ static void UART_IRQ_Handler(UART_RESOURCES *uart)
         // 奇偶校验
         // Receive line status
         // Only trigger line status
-        if ((iir & UARTC_IIR_INT_MASK) == UARTC_IIR_RLS) {
+        if ((iir & UARTC_IIR_RLS) == UARTC_IIR_RLS) {
             event |= uart_rxline_irq_handler(uart);
         }
 
         // Receive data available and Character time-out indicator interrupt
         // 即使出现了TIME OUT 也需要把剩下的数据拷贝出来
-        if (((iir & UARTC_IIR_INT_MASK) == UARTC_IIR_RDA) ||
-                ((iir & UARTC_IIR_INT_MASK) == UARTC_IIR_RTO)) {
+        if (((iir & UARTC_IIR_RDA) == UARTC_IIR_RDA) || ((iir & UARTC_IIR_RTO) == UARTC_IIR_RTO)) {
 
 #if defined(CSK6001)
             // for dma mode
@@ -1056,7 +1073,7 @@ static void UART_IRQ_Handler(UART_RESOURCES *uart)
 
             // Read RX FIFO residue
             // This step is very importance, because it can promise to trigger uart time-out interrupt
-            i = uart->info->rx_trig_lvl == 1 ? uart->info->rx_trig_lvl : (uart->info->rx_trig_lvl - 1);
+            i = (uart->info->rx_trig_lvl == 1) ? uart->info->rx_trig_lvl : (uart->info->rx_trig_lvl - 1);
 
             // Get available data from RX FIFO
             while ((uart->reg->REG_LSR.all & UARTC_LSR_RDR) && (i--)) {
@@ -1089,16 +1106,17 @@ static void UART_IRQ_Handler(UART_RESOURCES *uart)
         // Character time-out indicator
         // 最后再传递TIME OUT 事件
         if(uart->info->timeout){
-            if ((iir & UARTC_IIR_INT_MASK) == UARTC_IIR_RTO) {
+            if ((iir & UARTC_IIR_RTO) == UARTC_IIR_RTO) {
                 // Signal RX Time-out event, if not all requested data received
                 if (uart->info->xfer.rx_cnt != uart->info->xfer.rx_num) {
+                    uart->info->rx_status.rx_busy = 0U;
                     event |= CSK_UART_EVENT_RX_TIMEOUT;
                 }
             }
         }
 
         // Modem interrupt
-         if ((iir & UARTC_IIR_INT_MASK) == UARTC_IIR_MODEM) {
+         if ((iir & UARTC_IIR_MODEM) == UARTC_IIR_MODEM) {
              // Save modem status register
              val = uart->reg->REG_MSR.all;
 
