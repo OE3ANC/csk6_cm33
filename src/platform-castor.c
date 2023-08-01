@@ -132,6 +132,8 @@ extern int mxic_get_dc(FLASH_DEV *dev, unsigned char *dc);
 #define FLASH_XTX   0x0b
 #define FLASH_GD    0xc8
 #define FLASH_WB    0xef
+#define FLASH_XMC   0x20
+#define FLASH_BOYA  0x28
 
 static uint8_t s_ext_addr4 = 0;
 
@@ -148,7 +150,7 @@ _EXT_RAM int platform_init(FLASH_DEV *dev, unsigned char udc0, unsigned char udc
 
     // printk("rdid[0] = 0x%x\n", rdid[0]);
     dev->lockable = 0;
-    if (rdid[0] == FLASH_XTX || rdid[0] == FLASH_GD || rdid[0] == FLASH_WB)
+    if (rdid[0] == FLASH_XTX || rdid[0] == FLASH_GD || rdid[0] == FLASH_WB || rdid[0] == FLASH_XMC || rdid[0] == FLASH_BOYA)
     {
         dev->lockable = 1;
     }

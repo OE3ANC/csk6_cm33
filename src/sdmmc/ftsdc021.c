@@ -7,6 +7,18 @@
 #pragma GCC push_options
 #pragma GCC optimize("O2")
 
+#ifndef SDHC_CLK_FREQ
+#define SDHC_CLK_FREQ 25
+#else
+#if (SDHC_CLK_FREQ != 25) && (SDHC_CLK_FREQ != 50)
+#error SDHC_CLK_FREQ must be 25Mhz or 50Mhz
+#endif
+#endif
+
+#ifndef SDHC_SDMA_LINE_BOUND
+#define SDHC_SDMA_LINE_BOUND 4
+#endif
+
 #define FTSDC021_BASE_CLOCK  100
 
 volatile ftsdc021_reg* gpRegSD0 = (ftsdc021_reg*) SDC_FTSDC021_0_PA_BASE;
@@ -319,6 +331,7 @@ ftsdc021_wait_for_state(u8 ip_idx, u32 state, u32 ms)
     u32 t0;
 
     t0 = jiffies();
+
     do {
         if (ftsdc021_ops_send_card_status(ip_idx)) {
             sdc_dbg_print(" ERR## ... Send Card Status Failed.\n");
@@ -1387,10 +1400,15 @@ ftsdc021_set_bus_speed_mode(u8 ip_idx, u8 speed)
     }
     SDHost[ip_idx].Card->speed = (Bus_Speed) speed;
 
-    /* current controller stable @ max 50 MHz */
-    if (speed < 1) {
-        SDHost[ip_idx].Card->max_dtr = 25000000;
+    if (speed < 4) {
+        if (speed < 3) {
+            // SDHost[ip_idx].Card->max_dtr = 25000000; // << speed; tiger debug
+            SDHost[ip_idx].Card->max_dtr = SDHC_CLK_FREQ * 1000000;// << speed;
+        } else { /* current controller stable @ max 130 MHz */
+            SDHost[ip_idx].Card->max_dtr = SDHost[ip_idx].max_clk;
+        }
     } else {
+
         SDHost[ip_idx].Card->max_dtr = 50000000;
     }
     
@@ -2584,7 +2602,7 @@ ftsdc021_init_normal(u8 ip_idx)
     /* Optionally enable interrupt signal to CPU */
 //    ftsdc021_set_transfer_type(ip_idx,PIO, 4);
     //if(ip_idx == 0)
-    ftsdc021_set_transfer_type(ip_idx, SDMA, 4);  //tiger debug
+    ftsdc021_set_transfer_type(ip_idx, SDMA, SDHC_SDMA_LINE_BOUND);  //tiger debug
     //else
 //    ftsdc021_set_transfer_type(ip_idx, ADMA, 0);
     sdc_dbg_print(" Checking card ... ");

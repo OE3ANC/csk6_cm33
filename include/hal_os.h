@@ -17,7 +17,7 @@
 #endif
 
 #if defined(__ZEPHYR__)
-#include "arch/cpu.h"
+#include "zephyr/arch/cpu.h"
 
 static inline uint32_t hal_irq_lock(void)
 {
