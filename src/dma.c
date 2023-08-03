@@ -1769,3 +1769,39 @@ _FAST_FUNC_RO int32_t dma_memcpy_SG (uint8_t        ch,
     int32_t ret = dma_channel_configure_internal(ch, src_addr, dst_addr, size, control, config_low, config_high);
     return ret;
 }
+
+_FAST_FUNC_RO int32_t dma_reload(uint8_t ch, void *dst_addr, void *src_addr, uint32_t size)
+{
+    DMA_CHANNEL_REG *dma_ch;
+    DMA_Channel_Info *ch_info;
+    uint32_t ch_bit;
+
+    ch_bit = 0x1U << ch;
+    dma_ch = DMA_CHANNEL(ch);
+    ch_info = &channel_info[ch];
+
+    // Disable DMA interrupts
+    disable_all_interrupts(ch_bit);
+
+    // Max block transfer size is 4095 (BLOCK_TS holds 12 bits)
+    assert(size <= MAX_BLK_TS);
+    // Set CTLx.BLOCK_TS = size and cTLx.Done = 0
+    dma_ch->CTL_HI = (size & DMA_CH_CTLH_BLOCK_TS_MASK);
+
+    // Set Source and Destination address
+    dma_ch->SAR = (uint32_t)src_addr;
+    dma_ch->DAR = (uint32_t)dst_addr;
+
+    // Write control & configuration etc. registers
+    dma_ch->CTL_LO |= DMA_CH_CTLL_INT_EN; // Enable interrupt
+
+
+    // Enable DMA XFER and ERROR interrupts (no BLOCK & TRANS interrupts)
+    enable_xfer_interrupts(ch_bit);
+    enable_error_interrupts(ch_bit);
+
+    // Enable DMA Channel to trigger data transfer
+    CSK_DMA->CH_EN = (ch_bit << 8) | ch_bit;
+
+    return 0;
+}

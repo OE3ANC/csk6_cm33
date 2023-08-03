@@ -1244,7 +1244,7 @@ SPI_GetStatus(void *spi_dev, CSK_SPI_STATUS *status)
     return CSK_DRIVER_OK;
 }
 
-
+_FAST_FUNC_RO
 static void
 spi_dma_tx_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param)
 {
@@ -1270,7 +1270,7 @@ spi_dma_tx_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param)
     }
 }
 
-
+_FAST_FUNC_RO
 static void
 spi_dma_rx_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param)
 {
@@ -1295,7 +1295,7 @@ spi_dma_rx_event(uint32_t event_info, uint32_t xfer_bytes, uint32_t usr_param)
     }
 }
 
-
+_FAST_FUNC_RO
 static void
 spi_irq_handler(SPI_DEV *spi)
 {
