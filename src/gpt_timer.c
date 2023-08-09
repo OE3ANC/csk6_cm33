@@ -450,8 +450,7 @@ int32_t HAL_GPT_SetTimerPeriodByMs(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_
 
 	uint32_t clocksrc = (pGptTimer->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_SEL) >> GPT_CHx_CLK_CTRL_CLK_SEL_Pos;
 	uint32_t cntdiv = (pGptTimer->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_DIV) >> GPT_CHx_CLK_CTRL_CLK_DIV_Pos;
-	uint32_t clockfreq, cntval,p_clock;
-	p_clock = BOARD_BOOTCLOCKRUN_AP_CMN_CFG_PCLK_CLK;
+	uint32_t clockfreq, cntval;
 	switch(clocksrc)
 	{
 		case 0x00:
@@ -464,10 +463,10 @@ int32_t HAL_GPT_SetTimerPeriodByMs(void *pGpt, GPT_CHANNEL_TYPE channel, uint32_
 		break;
 		case 0x02:
 		//PCLK
-			clockfreq = p_clock>>cntdiv;
+			clockfreq = CRM_GetApapbFreq()>>cntdiv;
 		break;
 		default:
-			clockfreq = p_clock>>cntdiv;
+			clockfreq = CRM_GetApapbFreq()>>cntdiv;
 		break;
 	}
 
@@ -506,8 +505,7 @@ int32_t HAL_GPT_SetTimerPeriodDirectByMs(void *pGpt, GPT_CHANNEL_TYPE channel, u
 
     uint32_t clocksrc = (pGptTimer->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_SEL) >> GPT_CHx_CLK_CTRL_CLK_SEL_Pos;
     uint32_t cntdiv = (pGptTimer->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_DIV) >> GPT_CHx_CLK_CTRL_CLK_DIV_Pos;
-	uint32_t clockfreq, cntval,p_clock;
-	p_clock = BOARD_BOOTCLOCKRUN_AP_CMN_CFG_PCLK_CLK;
+    uint32_t clockfreq, cntval;
     switch(clocksrc)
     {
         case 0x00:
@@ -520,10 +518,10 @@ int32_t HAL_GPT_SetTimerPeriodDirectByMs(void *pGpt, GPT_CHANNEL_TYPE channel, u
         break;
         case 0x02:
         //PCLK
-            clockfreq = p_clock>>cntdiv;
+            clockfreq = CRM_GetApapbFreq()>>cntdiv;
         break;
         default:
-            clockfreq = p_clock>>cntdiv;
+            clockfreq = CRM_GetApapbFreq()>>cntdiv;
         break;
     }
 

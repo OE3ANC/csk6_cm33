@@ -52,7 +52,7 @@ extern void XT_ISYNC(void);
   * @{
   */
 #define AUDIOPLL_XTAL_REFM_DIV_MASK    (0xF)
-#define AUDIOPLL_XTAL_REFN_DIV_MASK    (0x3F)
+#define AUDIOPLL_XTAL_REFN_DIV_MASK    (0x1ff)
 /**
   * @}
   */
@@ -136,17 +136,19 @@ int32_t SYSPLL_DeinitPLL(){
     }
     /// Power down
     IP_SYSPLL->REG_0X000.all = 0x7f;
+
     return CSK_DRIVER_OK;
 }
 int32_t SYSPLL_InitUsb(uint32_t div){
     uint32_t div_reg;
-    if ((div >= 2 || div <= 30) && div % 2 == 0){
+    if ((div >= 2 && div <= 30) && div % 2 == 0){
         div_reg = div/2;
         IP_SYSPLL->REG_0X018.bit.POSTDIV_USBCLK_SEL = div_reg;
         return CSK_DRIVER_OK;
     }
     return CSK_DRIVER_ERROR_PARAMETER;
 }
+
 #if defined(CSK6001)
 int32_t SYSPLL_InitPeri(syspll_peri_sel_t div){
     IP_SYSCTRL->REG_CORE_CLK_CFG.bit.SEL_SYS_AP_PERI = div;
@@ -159,7 +161,7 @@ int32_t SYSPLL_InitCore(syspll_core_sel_t div){
 }
 int32_t SYSPLL_InitFlash(uint32_t div){
     uint32_t div_reg;
-    if ((div >= 2 || div <= 30) && div % 2 == 0){
+    if ((div >= 2 && div <= 30) && div % 2 == 0){
         div_reg = div/2;
         IP_SYSPLL->REG_0X018.bit.POSTDIV_FLASHCLK_SEL = div_reg;
         return CSK_DRIVER_OK;
@@ -168,7 +170,7 @@ int32_t SYSPLL_InitFlash(uint32_t div){
 }
 int32_t SYSPLL_InitPsram(uint32_t div){
     uint32_t div_reg;
-    if ((div >= 2 || div <= 30) && div % 2 == 0){
+    if ((div >= 2 && div <= 30) && div % 2 == 0){
         div_reg = div/2;
         IP_SYSPLL->REG_0X018.bit.POSTDIV_PSRAMCLK_SEL = div_reg;
         return CSK_DRIVER_OK;
@@ -235,33 +237,42 @@ int32_t AUDIOPLL_InitPLL(uint8_t div_n, uint8_t div_m, uint32_t nf){
     /// 获得当前系统时钟
 #ifdef PLATFORM_AP
     sys_freq = CRM_GetApFreq();
+
 #elif defined PLATFORM_CP
     sys_freq = CRM_GetCpFreq();
 #else
 #error "Undefine PLATFORM_AP or PLATFORM_CP"
 #endif
+
     uint32_t wait_time = sys_freq / WAITTIME_CLOCK10_DIV;
+
     /// Reset
     IP_ANA->REG_0X000.all = 0x0;
     IP_AUDPLL->REG_0X000.all = 0x0;
     IP_ANACORE->REG_0X000.all = 0x4;
+
     do{
         i++;
         rdata = IP_AUDPLL->REG_0X000.all;
     } while(rdata == 0 && i < wait_time);
+
+    /// Reset
+    IP_AUDPLL->REG_0X004.all = 0x0;
+
     wait_time = sys_freq / WAITTIME_CLOCK100_DIV;
     IP_AUDPLL->REG_0X020.bit.FBDIV_N = div_n;
     IP_AUDPLL->REG_0X014.bit.REFDIV_N = (div_m - 1);
     IP_AUDPLL->REG_0X020.bit.FBSDM_N = nf;
     IP_AUDPLL->REG_0X024.bit.FB_DIV_APPLY=1; //write the REFDIV_N/FBSDM_N
 
-    /// Reset
-    IP_AUDPLL->REG_0X004.all = 0x0;
+//    /// Reset
+//    IP_AUDPLL->REG_0X004.all = 0x0;
     /// Wait lock
     do{
         i++;
         rdata = IP_ANACORE->REG_0X008.bit.AUDPLL_LOCK;
     } while(rdata == 0 && i < wait_time);
+
     /// 如果lock超时，手动配置为clock
     if (i >= wait_time){
         IP_SYSCTRL->REG_CORE_CLK_CFG.bit.DIS_AUD_PLL_UNLOCK = 0x1;
@@ -270,18 +281,19 @@ int32_t AUDIOPLL_InitPLL(uint8_t div_n, uint8_t div_m, uint32_t nf){
 }
 #undef WAITTIME_CLOCK100_DIV
 #undef WAITTIME_CLOCK10_DIV
+
 int32_t AUDIOPLL_InitPsram(uint32_t div){
     uint32_t div_reg;
-    if ((div >= 2 || div <= 30) && div % 2 == 0){
+    if ((div >= 2 && div <= 30) && div % 2 == 0){
         div_reg = div/2;
-        IP_AUDPLL->REG_0X018.bit.POSTDIV_FLASHCLK_SEL = div_reg;
+        IP_AUDPLL->REG_0X018.bit.POSTDIV_PSRAMCLK_SEL = div_reg;
         return CSK_DRIVER_OK;
     }
     return CSK_DRIVER_ERROR_PARAMETER;
 }
 int32_t AUDIOPLL_InitFlash(uint32_t div){
     uint32_t div_reg;
-    if ((div >= 2 || div <= 30) && div % 2 == 0){
+    if ((div >= 2 && div <= 30) && div % 2 == 0){
         div_reg = div/2;
         IP_AUDPLL->REG_0X018.bit.POSTDIV_FLASHCLK_SEL = div_reg;
         return CSK_DRIVER_OK;
@@ -294,9 +306,9 @@ int32_t AUDIOPLL_InitCore(audiopll_core_sel_t div){
 }
 int32_t AUDIOPLL_InitAudio(uint32_t div){
     uint32_t div_reg;
-    if ((div >= 2 || div <= 62) && div % 2 == 0){
+    if ((div >= 2 && div <= 62) && div % 2 == 0){
         div_reg = div/2;
-        IP_AUDPLL->REG_0X018.bit.POSTDIV_FLASHCLK_SEL = div_reg;
+        IP_AUDPLL->REG_0X018.bit.POSTDIV_AUDCLK_SEL = div_reg;
         return CSK_DRIVER_OK;
     }
     return CSK_DRIVER_ERROR_PARAMETER;
@@ -304,9 +316,10 @@ int32_t AUDIOPLL_InitAudio(uint32_t div){
 /**
   * @}
   */
+
 /// XTAL * (N + NF/2^24) / M
 static uint32_t AUDIOPLL_GetPLLFreq(void){
-    double nf = ((double)IP_AUDPLL->REG_0X020.bit.FBSDM_N) / (1 << 24);
+    double nf = ((double)IP_AUDPLL->REG_0X020.bit.FBSDM_N) / (1 << 23);
     double n_nf = (double)IP_AUDPLL->REG_0X020.bit.FBDIV_N + nf;
     return (uint32_t)(BOARD_H_XTAL_SRC_FREQ * n_nf / (IP_AUDPLL->REG_0X014.bit.REFDIV_N + 1));
 }

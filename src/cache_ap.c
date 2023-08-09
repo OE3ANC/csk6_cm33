@@ -5,7 +5,11 @@
  *
  */
 #include <assert.h>
-#include "toolchain/gcc.h"
+
+#if defined(__ZEPHYR__)
+#include "zephyr/toolchain/gcc.h"
+#endif
+
 #include "ARMCM33_DSP_FP.h"
 #include "venus_ap.h"
 #include "cachel1_armv7.h"

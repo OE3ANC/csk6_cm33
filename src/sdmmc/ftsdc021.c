@@ -332,23 +332,19 @@ ftsdc021_wait_for_state(u8 ip_idx, u32 state, u32 ms)
 
     t0 = jiffies();
 
-    while(1) {
-         if (ftsdc021_ops_send_card_status(ip_idx)) {
+    do {
+        if (ftsdc021_ops_send_card_status(ip_idx)) {
             sdc_dbg_print(" ERR## ... Send Card Status Failed.\n");
             return 1;
-        }
-
-
-        if (((SDHost[ip_idx].Card->respLo >> 9) & 0xF) != state) {
-        } else {
-            break;
         }
 
         if ((jiffies() - t0) > ms) {
             sdc_dbg_print(" ERR## ... Card Status not return to define(%d) state.\n", state);
             return 1;
         }
-    }
+
+    } while (((SDHost[ip_idx].Card->respLo >> 9) & 0xF) != state);
+
     return 0;
 }
 
@@ -1411,9 +1407,11 @@ ftsdc021_set_bus_speed_mode(u8 ip_idx, u8 speed)
         } else { /* current controller stable @ max 130 MHz */
             SDHost[ip_idx].Card->max_dtr = SDHost[ip_idx].max_clk;
         }
-    } else
-        SDHost[ip_idx].Card->max_dtr = 50000000;
+    } else {
 
+        SDHost[ip_idx].Card->max_dtr = 50000000;
+    }
+    
     ftsdc021_SetSDClock(ip_idx, SDHost[ip_idx].Card->max_dtr);
 
     // Make sure the state had been returned to "Transfer State"

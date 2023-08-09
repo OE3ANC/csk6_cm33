@@ -3,10 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr.h>
-#include <kernel.h>
+#include <zephyr/kernel.h>
 #include <string.h>
-#include <sys/math_extras.h>
+#include <zephyr/sys/math_extras.h>
 #include "priv_heap.c"
 #include "heap.h"
 

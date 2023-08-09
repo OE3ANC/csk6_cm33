@@ -8,7 +8,7 @@
 #include "Driver_Common.h"
 
 #define CSK_SPI_API_VERSION CSK_DRIVER_VERSION_MAJOR_MINOR(1,0)  /* API version */
-
+#define SUPPORT_8BIT_DATA_MERGE     0 // 1
 
 /****** SPI Control Codes *****/
 
@@ -54,7 +54,8 @@
 #define CSK_SPI_DATA_BITS_Pos            12
 #define CSK_SPI_DATA_BITS_Msk           (0x3FUL << CSK_SPI_DATA_BITS_Pos)       // bit[17:12]
 #define CSK_SPI_DATA_BITS_UNSET         (0UL << CSK_SPI_DATA_BITS_Pos)          ///< Number of Data bits is kept unchanged
-#define CSK_SPI_DATA_BITS(n)            (((n) & 0x3F) << CSK_SPI_DATA_BITS_Pos) ///< Number of Data bits
+#define CSK_SPI_DATA_BITS(n)            (((n) & 0x3F) << CSK_SPI_DATA_BITS_Pos) ///< Number of Data bits, generally 1 <= n <= 32, the only
+                                                                                ///< exception is 40(8+32), it means 8bit with DATA_MERGE
 
 /*----- SPI Control Codes: Mode Parameters: Bit Order -----*/
 #define CSK_SPI_BIT_ORDER_Pos            18
@@ -72,6 +73,9 @@
 #define CSK_SPI_GET_BUS_SPEED           (2UL << CSK_SPI_EXCL_OP_Pos)        ///< Get Bus Speed in bps
 #define CSK_SPI_ABORT_TRANSFER          (3UL << CSK_SPI_EXCL_OP_Pos)        ///< Abort current data transfer, arg:
                                                                             // 1 = remain state; 0 = clean state
+#define CSK_SPI_RESET_FIFO              (4UL << CSK_SPI_EXCL_OP_Pos)        ///< Reset RX/TX FIFO, arg=1: RX FIFO,
+                                                                            // arg=2: TX FIFO, arg=3: RX & TX FIFO
+
 /*----- SPI Control Codes: Miscellaneous Controls -----*/
 
 
@@ -84,7 +88,8 @@
 typedef enum _emIOMode {
    NO_IO = 0,
    DMA_IO = 1,
-   PIO_IO = 2
+   PIO_IO = 2,
+   NUM_IO = 3 // Total Number of IO Mode
 } emIOMode;
 
 /**
@@ -93,12 +98,13 @@ typedef enum _emIOMode {
 typedef struct _CSK_SPI_STATUS_BIT
 {
     uint32_t busy :1;       ///< Transmitter/Receiver busy flag
-    //uint32_t data_lost :1;  ///< Data lost: Receive overflow / Transmit underflow (cleared on start of transfer operation)
+    uint32_t no_endint :1;  ///< ENDINT is not enabled when set to 1
     uint32_t data_ovf :1;  ///< Data Overflow: receiver overflow (cleared on start of transfer operation)
     uint32_t data_unf :1;  ///< Data Underflow: transmit underflow (cleared on start of transfer operation)
-    uint32_t rsvd1 :1;
     uint32_t tx_mode :2;   ///< Current TX mode: 0 = NO data TX, 1 = DMA, 2 = PIO
     uint32_t rx_mode :2;   ///< Current RX mode: 0 = NO data RX, 1 = DMA, 2 = PIO
+    uint32_t rx_sync :1;   ///< RX of duplex-Transfer is only for sync with TX if set to 1
+    //uint32_t dma_merge :1; ///< use WORD data_width of DMA when 8bit DATA MERGE if set to 1
     //TODO: add other status flags?
 } CSK_SPI_STATUS_BIT;
 
@@ -147,6 +153,12 @@ SPI_GetVersion();
 int32_t
 SPI_Initialize(void *spi_dev, CSK_SPI_SignalEvent_t cb_event, uint32_t usr_param);
 
+//spi_idx   SPI device index, 0, 1,...
+//level     0 = Low, not 0 = High
+typedef void (*SPI_CS_SET_FUNC)(uint8_t spi_idx, uint8_t level);
+int32_t
+SPI_Initialize_NCS(void *spi_dev, CSK_SPI_SignalEvent_t cb_event, uint32_t usr_param, SPI_CS_SET_FUNC func_set_cs);
+
 /**
  \fn          int32_t SPI_Uninitialize (void)
  \brief       De-initialize SPI Interface.
@@ -177,6 +189,26 @@ SPI_PowerControl(void *spi_dev, CSK_POWER_STATE state);
 int32_t
 SPI_Send(void *spi_dev, const void *data, uint32_t num);
 
+/*
+// Experimental API: SPI_Send_Sync
+// Sending data until completed (blocked send)
+// NOTE: This API function can be called in TASK context ONLY!!
+//      And it may cause dead lock when called in ISR context...
+int32_t
+SPI_Send_Sync(void *spi_dev, const void *data, uint32_t num);
+*/
+
+// Experimental API: SPI_Wait_Done
+// Wait for SPI operation (Send/Receive/Transfer) done...
+// NOTE: This API function can be called in TASK context ONLY!!
+//      And it may cause dead lock when called in ISR context...
+void SPI_Wait_Done(void *spi_dev);
+
+// Experimental API: SPI_Send_NEnd
+// Sending data continuously without triggering ENDINT interrupt (when CS signal is raised up)
+int32_t
+SPI_Send_NEnd(void *spi_dev, const void *data, uint32_t num);
+
 /**
  \fn          int32_t SPI_Receive (void *spi_dev, void *data, uint32_t num)
  \brief       Start receiving data from SPI receiver.
@@ -187,6 +219,11 @@ SPI_Send(void *spi_dev, const void *data, uint32_t num);
 */
 int32_t
 SPI_Receive(void *spi_dev, void *data, uint32_t num);
+
+// Experimental API: SPI_Receive_NEnd
+// Receiving data continuously without triggering ENDINT interrupt (when CS signal is raised up)
+int32_t
+SPI_Receive_NEnd(void *spi_dev, void *data, uint32_t num);
 
 /**
  \fn          int32_t SPI_Transfer (void *spi_dev, const void *data_out, void *data_in, uint32_t num)
@@ -199,6 +236,11 @@ SPI_Receive(void *spi_dev, void *data, uint32_t num);
 */
 int32_t
 SPI_Transfer(void *spi_dev, const void *data_out, void *data_in, uint32_t num);
+
+// Experimental API: SPI_Transfer_NEnd
+// Duplex-Transfering data continuously without triggering ENDINT interrupt (when CS signal is raised up)
+int32_t
+SPI_Transfer_NEnd(void *spi_dev, const void *data_out, void *data_in, uint32_t num);
 
 /**
  \fn          uint32_t SPI_GetDataCount (void *spi_dev)
@@ -253,5 +295,11 @@ void* SPI1();
 // */
 //void* SPI2();
 
+/**
+ \fn          uint16_t SPI_Index(void *spi_dev)
+ \brief       Get SPI device index
+ \return      SPI device index, 0, 1,..., and 0xFF if not existing.
+ */
+uint8_t SPI_Index(void *spi_dev);
 
 #endif /* __DRIVER_SPI_H */

@@ -1,7 +1,10 @@
 #ifndef FTSDC021_H
 #define FTSDC021_H
 
-#include <kernel.h>
+#if defined(__ZEPHYR__)
+#include <zephyr/kernel.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

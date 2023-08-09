@@ -75,6 +75,7 @@ typedef struct _CRYPTO_INFO {
     volatile uint8_t   hardware_busy;
 
     uint8_t            flags;         // CRYPTO driver flags
+    uint8_t            sha_inv;
 } CRYPTO_INFO;
 
 // CRYPTO Resources definitions
