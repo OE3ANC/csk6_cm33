@@ -2153,6 +2153,15 @@ ftsdc021_read_ext_csd(u8 ip_idx)
         SDHost[ip_idx].Card->block_addr = 0;
     }
 
+    SDHost[ip_idx].Card->read_block_len = (1 << SDHost[ip_idx].Card->CSD_MMC.READ_BL_LEN);
+    SDHost[ip_idx].Card->write_block_len = (1 << SDHost[ip_idx].Card->CSD_MMC.READ_BL_LEN);
+    SDHost[ip_idx].Card->erase_sector_size = (SDHost[ip_idx].Card->CSD_MMC.ERASE_GRP_SIZE + 1) 
+        * (SDHost[ip_idx].Card->CSD_MMC.ERASE_GRP_MULT + 1);
+
+    sdc_dbg_print("block num = %d, block length = %d / %d bytes, erase sector size =%d\n",
+            SDHost[ip_idx].Card->numOfBlocks,
+            SDHost[ip_idx].Card->write_block_len, SDHost[ip_idx].Card->read_block_len,
+            SDHost[ip_idx].Card->erase_sector_size);
     /* Index start from zero */
     SDHost[ip_idx].Card->numOfBlocks -= 1;
 
