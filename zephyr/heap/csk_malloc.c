@@ -51,6 +51,14 @@ void *csk_calloc(size_t nmemb, size_t size)
 	return ret;
 }
 
+void *csk_aligned_alloc(uint32_t align,size_t size)
+{
+
+	void *ret = priv_aligned_alloc(align, size);
+
+	return ret;
+}
+
 void *csk_realloc(void *ptr, uint32_t bytes)
 {
 	void *ret = priv_aligned_realloc(ptr, sizeof(void *), bytes);
