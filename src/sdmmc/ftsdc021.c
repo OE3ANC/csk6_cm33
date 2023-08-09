@@ -2294,6 +2294,8 @@ ftsdc021_scan_cards(u8 ip_idx)            //, u8 boot_mode)
             return 1;
         }
 
+        SDHost[ip_idx].Card->OCR = rocr;
+
         if (((SDHost[ip_idx].Card->OCR >> 29) & 3) == 2) {
             SDHost[ip_idx].Card->block_addr = 1;
             sdc_dbg_print(" Found MMC Card .... sector mode \n");
