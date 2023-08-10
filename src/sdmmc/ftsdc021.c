@@ -2151,8 +2151,10 @@ ftsdc021_read_ext_csd(u8 ip_idx)
         SDHost[ip_idx].Card->block_addr = 0;
     }
 
-    SDHost[ip_idx].Card->read_block_len = (1 << SDHost[ip_idx].Card->CSD_MMC.READ_BL_LEN);
-    SDHost[ip_idx].Card->write_block_len = (1 << SDHost[ip_idx].Card->CSD_MMC.READ_BL_LEN);
+    u32 bl_size = (SDHost[ip_idx].Card->CSD_MMC.READ_BL_LEN > 9) ? 9 : SDHost[ip_idx].Card->CSD_MMC.READ_BL_LEN;
+
+    SDHost[ip_idx].Card->read_block_len = (1 << bl_size);
+    SDHost[ip_idx].Card->write_block_len = (1 << bl_size);
     SDHost[ip_idx].Card->erase_sector_size = (SDHost[ip_idx].Card->CSD_MMC.ERASE_GRP_SIZE + 1) 
         * (SDHost[ip_idx].Card->CSD_MMC.ERASE_GRP_MULT + 1);
 
