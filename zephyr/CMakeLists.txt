@@ -49,6 +49,7 @@ if(${CONFIG_SOC_CSK6})
                             ../src/sdmmc/ftsdc021.c
                             ../src/aon_timer.c
                             ../src/pwr.c
+                            ../src/wdt.c
                             )
 
 
