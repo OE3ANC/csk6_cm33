@@ -368,7 +368,8 @@ int32_t HAL_CP_WDT_RegisterCallback(__cp_wdt_callback callback, void* para){
 
 static void
 WDT_IRQ_Handler(void){
-    while(1);
+    wdt0_resources.reg->REG_ST.all = 1;
+    //user code
 }
 
 static void
