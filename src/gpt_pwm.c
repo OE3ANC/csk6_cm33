@@ -276,7 +276,7 @@ int32_t HAL_GPT_PWMControl(void *pGpt, uint32_t control, GPT_CHANNEL_TYPE channe
 	if(pGptPWM->gpt_resources->hardware->channel_stat[channel] == HARDWARE_CHANNEL_STAT_USED_BY_LEDC)
 	{
 		//configure ledc duty cycle as fixed 0.4us and 0.85us
-		uint32_t high16bits, low16bits, sysclock;
+		uint32_t high16bits, low16bits;
 		uint8_t pos, freqpos;
 		pos = (pGptPWM->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_DIV) >> GPT_CHx_CLK_CTRL_CLK_DIV_Pos;
 		freqpos = (pGptPWM->gpt_resources->reg->CHx_CLK_CTRL[channel] & GPT_CHx_CLK_CTRL_CLK_SEL) >> GPT_CHx_CLK_CTRL_CLK_SEL_Pos;
@@ -301,7 +301,7 @@ int32_t HAL_GPT_PWMControl(void *pGpt, uint32_t control, GPT_CHANNEL_TYPE channe
 //			//DMA request select GPT channel x
 //			#define SYSTEM_CLK    ((SYSCFG_RegDef* ) CMN_SYSCTRL_BASE)
 //			//channel0 => CFG0, channel1-channel3 => CFG1
-//			SYSTEM_CLK->REG_AP_CTRL1.bit.AP_DMA_HS_SEL &= ~(channel==0 ? AP_GPT_TX0:(channel==1 ? AP_GPT_TX1:\
+//			SYSTEM_CLK->REG_AP_CTRL1.bit.AP_DMA_HS_SEL &= ~(channel==0 ? AP_GPT_TX0:(channel==1 ? AP_GPT_TX1:
 //														   (channel==2 ? AP_GPT_TX2:(channel==3 ? AP_GPT_TX3 : 0x0))));
 //			SYSTEM_CLK->REG_AP_CTRL1.bit.AP_DMA_HS_SEL |= (channel==1 ? AP_GPT_TX1:
 //														  (channel==2 ? AP_GPT_TX2:(channel==3 ? AP_GPT_TX3 : 0x0)));

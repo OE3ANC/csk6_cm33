@@ -532,7 +532,7 @@ SPI_Send(void *spi_dev, const void *data, uint32_t num)
         return CSK_DRIVER_ERROR_PARAMETER;
     }
 
-    int32_t stat;
+
 
     if ((data == NULL) || (num == 0U) || (num > MAX_TRANCNT))
         return CSK_DRIVER_ERROR_PARAMETER;
@@ -783,7 +783,7 @@ SPI_Send_NEnd(void *spi_dev, const void *data, uint32_t num)
 
     bool xfer_started = false;
     uint32_t intren = 0, count = num;
-    uint32_t thres = spi->txfifo_depth >> 1;
+    
 
     // DMA mode
     while ( TX_DMA(spi->info->txrx_mode) ) { // DMA TX

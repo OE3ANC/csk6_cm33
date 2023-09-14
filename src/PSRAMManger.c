@@ -631,9 +631,11 @@ int32_t PSRAM_Initialize(void){
         {
             rdata = IP_PSRAMC->REG_MR1.all;
             uint8_t vendor_id = ((rdata & 0xff) >> PSRAM_MR1_VENDOR_ID_OFFSET) & 0x1f;
+            vendor_id = vendor_id;
 
             rdata = IP_PSRAMC->REG_MR2.all;
             uint8_t dev_id = ((rdata & 0xff) >> PSRAM_MR2_DEV_ID_OFFSET) & 0x3;
+            dev_id = dev_id;
 
             uint8_t gb = ((rdata & 0xff) >> PSRAM_MR2_GB_OFFSET) & 0x1;
             if (gb == 0){
