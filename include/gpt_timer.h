@@ -9,6 +9,7 @@
 
 #include "Driver_GPT_TIMER.h"
 #include "gpt.h"
+#include "ClockManager.h"
 
 /*-----------------------------Typedef for driver-----------------------------------*/
 
