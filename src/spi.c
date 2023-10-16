@@ -671,6 +671,9 @@ SPI_Send(void *spi_dev, const void *data, uint32_t num)
     }
 
 
+    // enable interrupts
+    // (Interrupt could be triggered soon once enabled, so enable interrupts at the end!!)
+    spi->reg->INTREN = intren;
 
     // trigger transfer when SPI master mode
     if (is_master) {
@@ -680,9 +683,6 @@ SPI_Send(void *spi_dev, const void *data, uint32_t num)
         spi->reg->CMD = 0;
     }
 
-    // enable interrupts
-    // (Interrupt could be triggered soon once enabled, so enable interrupts at the end!!)
-    spi->reg->INTREN = intren;
 
 
     return CSK_DRIVER_OK;
