@@ -1093,7 +1093,7 @@ SPI_Receive(void *spi_dev, void *data, uint32_t num)
 	if(is_slave) {
 	    CLR_SLV_RDCNT(spi); // clear RCnt on updated IP
 	    //spi->reg->INTREN |= SPI_RXFIFOORINT | SPI_SLVCMD;
-	    intren |= SPI_RXFIFOORINT | SPI_SLVCMD;
+	    spi->reg->INTREN |= SPI_RXFIFOORINT | SPI_SLVCMD;
 	} else { // trigger transfer when SPI master mode
         spi->reg->CMD = 0;
 	}
@@ -1582,7 +1582,7 @@ SPI_Transfer(void *spi_dev, const void *data_out, void *data_in, uint32_t num)
     if(is_slave) {
         CLR_SLV_RDCNT(spi); // clear RCnt on updated IP
         //spi->reg->INTREN |= SPI_RXFIFOORINT | SPI_SLVCMD;
-        intren |= SPI_RXFIFOORINT | SPI_SLVCMD;
+        spi->reg->INTREN |= SPI_RXFIFOORINT | SPI_SLVCMD;
         spi->reg->SLVST |= SLVST_READY;
     } else { // trigger transfer when SPI master mode
         // wait until there's at least 1 data in the TX FIFO?
@@ -1942,7 +1942,7 @@ SPI_Transfer_NEnd(void *spi_dev, const void *data_out, void *data_in, uint32_t n
     // set the Ready bit in the SPI Slave Status Register
     if(is_slave) {
         CLR_SLV_RDWRCNT(spi); // clear RCnt & WCnt on updated IP
-        intren |= SPI_TXFIFOURINT | SPI_RXFIFOORINT | SPI_SLVCMD;
+        spi->reg->INTREN |= SPI_TXFIFOURINT | SPI_RXFIFOORINT | SPI_SLVCMD;
         spi->reg->SLVST |= SLVST_READY;
         if (no_cs && spi->info->cb_set_cs != NULL)
            spi->info->cb_set_cs(spi->spi_idx, 0);
