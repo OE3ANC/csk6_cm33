@@ -671,12 +671,12 @@ SPI_Send(void *spi_dev, const void *data, uint32_t num)
     }
 
 
-    // enable interrupts
-    // (Interrupt could be triggered soon once enabled, so enable interrupts at the end!!)
-    spi->reg->INTREN = intren;
 
     // trigger transfer when SPI master mode
     if (is_master) {
+        // enable interrupts
+        // (Interrupt could be triggered soon once enabled, so enable interrupts at the end!!)
+        spi->reg->INTREN = intren;
         // wait until there's at least 1 data in the TX FIFO??
         //while(SPI_TXFIFO_ENTRIES(spi) == 0);
         while(SPI_TXFIFO_EMPTY(spi)) ;
@@ -921,14 +921,15 @@ SPI_Send_NEnd(void *spi_dev, const void *data, uint32_t num)
     spi->reg->TRANSCTRL = (SPI_TRANSMODE_WRONLY | WR_TRANCNT(num) |
                 (spi->reg->TRANSCTRL & SPI_TRANSMODE_CMD_EN));
 
-    // enable interrupts
-    // (Interrupt could be triggered soon once enabled, so enable interrupts at the end!!)
-    spi->reg->INTREN = intren;
 
     if (is_slave) {
         if (no_cs && spi->info->cb_set_cs != NULL)
             spi->info->cb_set_cs(spi->spi_idx, 0);
     } else { // trigger transfer when SPI master mode
+        // enable interrupts
+        // (Interrupt could be triggered soon once enabled, so enable interrupts at the end!!)
+        spi->reg->INTREN = intren;
+
         // wait until there's at least 1 data in the TX FIFO??
         //while(SPI_TXFIFO_ENTRIES(spi) == 0);
         while(SPI_TXFIFO_EMPTY(spi)) ;
@@ -1084,17 +1085,18 @@ SPI_Receive(void *spi_dev, void *data, uint32_t num)
         return CSK_DRIVER_ERROR;
     }
 
-    // enable interrupts
-    // (Interrupt could be triggered soon once enabled, so enable interrupts at the end!!)
-    spi->reg->INTREN = intren;
 
     // enable RX FIFO overrun interrupt when slave mode
     // set slave cmd interrupt
 	if(is_slave) {
 	    CLR_SLV_RDCNT(spi); // clear RCnt on updated IP
 	    //spi->reg->INTREN |= SPI_RXFIFOORINT | SPI_SLVCMD;
-	    intren |= SPI_RXFIFOORINT | SPI_SLVCMD;
+        intren |= SPI_RXFIFOORINT | SPI_SLVCMD;
+	    spi->reg->INTREN |= intren;
 	} else { // trigger transfer when SPI master mode
+        // enable interrupts
+        // (Interrupt could be triggered soon once enabled, so enable interrupts at the end!!)
+        spi->reg->INTREN = intren;
         spi->reg->CMD = 0;
 	}
 
@@ -1309,15 +1311,14 @@ SPI_Receive_NEnd(void *spi_dev, void *data, uint32_t num)
     spi->reg->TRANSCTRL = (SPI_TRANSMODE_RDONLY | RD_TRANCNT(num) |
                 (spi->reg->TRANSCTRL & SPI_TRANSMODE_CMD_EN));
 
-    // enable interrupts
-    // (Interrupt could be triggered soon once enabled, so enable interrupts at the end!!)
-    spi->reg->INTREN = intren;
-
     // trigger transfer when SPI master mode
     if (is_slave) {
         if (no_cs && spi->info->cb_set_cs != NULL)
             spi->info->cb_set_cs(spi->spi_idx, 0);
     } else {
+        // enable interrupts
+        // (Interrupt could be triggered soon once enabled, so enable interrupts at the end!!)
+        spi->reg->INTREN = intren;
         spi->reg->CMD = 0;
     }
 
@@ -1573,9 +1574,6 @@ SPI_Transfer(void *spi_dev, const void *data_out, void *data_in, uint32_t num)
         return CSK_DRIVER_ERROR;
     }
 
-    // enable interrupts
-    // (Interrupt could be triggered soon once enabled, so enable interrupts at the end!!)
-    spi->reg->INTREN = intren;
 
     // enable RX FIFO overrun interrupt when slave mode
     // set the Ready bit in the SPI Slave Status Register
@@ -1583,8 +1581,12 @@ SPI_Transfer(void *spi_dev, const void *data_out, void *data_in, uint32_t num)
         CLR_SLV_RDCNT(spi); // clear RCnt on updated IP
         //spi->reg->INTREN |= SPI_RXFIFOORINT | SPI_SLVCMD;
         intren |= SPI_RXFIFOORINT | SPI_SLVCMD;
+        spi->reg->INTREN = intren;
         spi->reg->SLVST |= SLVST_READY;
     } else { // trigger transfer when SPI master mode
+        // enable interrupts
+        // (Interrupt could be triggered soon once enabled, so enable interrupts at the end!!)
+        spi->reg->INTREN = intren;
         // wait until there's at least 1 data in the TX FIFO?
         //while(SPI_TXFIFO_ENTRIES(spi) == 0);
         while(SPI_TXFIFO_EMPTY(spi));
@@ -1934,19 +1936,21 @@ SPI_Transfer_NEnd(void *spi_dev, const void *data_out, void *data_in, uint32_t n
     spi->reg->TRANSCTRL = (SPI_TRANSMODE_WRnRD | WR_TRANCNT(num) | RD_TRANCNT(num) |
                         (spi->reg->TRANSCTRL & SPI_TRANSMODE_CMD_EN));
 
-    // enable interrupts
-    // (Interrupt could be triggered soon once enabled, so enable interrupts at the end!!)
-    spi->reg->INTREN = intren;
 
     // enable RX FIFO overrun, TX FIFO underrun, and slave cmd interrupt when slave mode
     // set the Ready bit in the SPI Slave Status Register
     if(is_slave) {
         CLR_SLV_RDWRCNT(spi); // clear RCnt & WCnt on updated IP
         intren |= SPI_TXFIFOURINT | SPI_RXFIFOORINT | SPI_SLVCMD;
+        spi->reg->INTREN = intren;
         spi->reg->SLVST |= SLVST_READY;
         if (no_cs && spi->info->cb_set_cs != NULL)
            spi->info->cb_set_cs(spi->spi_idx, 0);
     } else { // trigger transfer when SPI master mode
+        // enable interrupts
+        // (Interrupt could be triggered soon once enabled, so enable interrupts at the end!!)
+        spi->reg->INTREN = intren;
+
         // wait until there's at least 1 data in the TX FIFO?
         //while(SPI_TXFIFO_EMPTY(spi));
         spi->reg->CMD = 0;
