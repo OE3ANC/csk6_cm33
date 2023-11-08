@@ -53,10 +53,6 @@ RTC_Initialize(void *res, CSK_RTC_SignalEvent_t cb_event, void* workspace)
 
     rtc->info->flag = RTC_FLAG_INITIALIZED;
 
-    //硬件上rtc和keysense使用同一个寄存器配置时钟源
-    IP_PMUCTRL->REG_AON_CRM_CTRL1.bit.ENA_KEYSENSE_CLK = 1;
-    IP_PMUCTRL->REG_AON_CRM_CTRL1.bit.SEL_KEYSENSE_CLK = 0;
-
     return CSK_DRIVER_OK;
 }
 
@@ -114,6 +110,7 @@ RTC_PowerControl(void* res, CSK_POWER_STATE state)
         }
 
         // TODO reset pheripheral (importance)
+
         register_ISR(rtc->irq_num, rtc->irq_handler, NULL);
         enable_IRQ(rtc->irq_num);
 
@@ -223,6 +220,7 @@ RTC_Control(void* res, uint32_t control, uint32_t arg)
 
     // wait register update
     while(!(rtc->reg->STATUS & STATUS_WRITEDONE));
+
     switch (control)
     {
     case CSK_RTC_CTRL_EN:
@@ -252,7 +250,6 @@ RTC_Control(void* res, uint32_t control, uint32_t arg)
         // INT OFF
         else if (arg == 0)
         {
-
             CSK_AON_RTC->CTRL &= (~CTRL_ALARM_INT);
             rtc->info->flag &= (~RTC_FLAG_ALARM);
         }
@@ -342,6 +339,14 @@ RTC_Control(void* res, uint32_t control, uint32_t arg)
             rtc->info->flag &= (~RTC_FLAG_HSEC_INT);
         }
         break;
+    case CSK_RTC_CLOCK_SRC:
+        if (arg == 1){
+            IP_PMUCTRL->REG_AON_CRM_CTRL1.bit.SEL_KEYSENSE_CLK = 0x1;
+        } else if (arg == 0){
+            IP_PMUCTRL->REG_AON_CRM_CTRL1.bit.SEL_KEYSENSE_CLK = 0x0;
+        }
+        IP_PMUCTRL->REG_AON_CRM_CTRL1.bit.ENA_KEYSENSE_CLK = 0x1;
+        break;
     default:
         return CSK_DRIVER_ERROR_UNSUPPORTED;
     }
@@ -384,6 +389,8 @@ __RTC_Handler__(RTC_RESOURCES *rtc){
     if(rtc->info->cb_event && event != 0){
         rtc->info->cb_event(event, rtc->info->workspace);
     }
+
+    while(!(rtc->reg->STATUS & STATUS_WRITEDONE));
 }
 
 static void
