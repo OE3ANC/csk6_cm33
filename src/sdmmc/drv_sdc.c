@@ -353,6 +353,7 @@ lib_sdc_scan_card(u8 ip_idx, u8 speed)
     ftsdc021_SetSDClock(ip_idx, 400000);    //SDHost[ip_idx].min_clk);
     ftsdc021_SetPower(ip_idx, 21);      //3.3v
     ftsdc021_intr_en(ip_idx, 0);
+    ftsdc021_delay(2);
     ftsdc021_sdio_CMD52(ip_idx, 0, 0, SDIO_CCCR_ABORT, 0, NULL);
     ftsdc021_sdio_CMD52(ip_idx, 1, 0, SDIO_CCCR_ABORT, (1<<3), NULL);
 
