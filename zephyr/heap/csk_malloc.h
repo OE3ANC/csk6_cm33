@@ -58,6 +58,26 @@ extern "C"
      * @return Pointer to memory the caller can now use, or NULL
      */
     extern void *csk_realloc(void *ptr, uint32_t bytes);
+    
+    /**
+     * @brief Allocate memory from the heap with a specified alignment.
+     *
+     * This routine provides semantics similar to aligned_alloc(); memory is
+     * allocated from the heap with a specified alignment. However, one minor
+     * difference is that csk_aligned_alloc() accepts any non-zero @p size,
+     * whereas aligned_alloc() only accepts a @p size that is an integral
+     * multiple of @p align.
+     *
+     * Above, aligned_alloc() refers to:
+     * C11 standard (ISO/IEC 9899:2011): 7.22.3.1
+     * The aligned_alloc function (p: 347-348)
+     *
+     * @param align Alignment of memory requested (in bytes).
+     * @param size Amount of memory requested (in bytes).
+     *
+     * @return Address of the allocated memory if successful; otherwise NULL.
+     */   
+    extern void *csk_aligned_alloc(uint32_t align,size_t size);
 
     extern void csk_heap_info(void);
 
