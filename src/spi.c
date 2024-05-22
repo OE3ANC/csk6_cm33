@@ -591,8 +591,17 @@ SPI_Receive(void *spi_dev, void *data, uint32_t num)
         LOGD("%s: invalid SPI device (0x%08x)!", __func__, spi_dev);
         return CSK_DRIVER_ERROR_PARAMETER;
     }
+    bool is_slave = ((spi->info->txrx_mode & CSK_SPI_MODE_Msk) == CSK_SPI_MODE_SLAVE);
 
-    if ((data == NULL) || (num == 0U) || (num > MAX_TRANCNT))
+    if ((data == NULL) || (num == 0U))
+        return CSK_DRIVER_ERROR_PARAMETER;
+
+    if (is_slave)
+    {
+        if (num > MAX_DMACNT)
+            return CSK_DRIVER_ERROR_PARAMETER;
+    }
+    else if (num > MAX_TRANCNT)
         return CSK_DRIVER_ERROR_PARAMETER;
 
     if (!(spi->info->flags & SPI_FLAG_CONFIGURED))
