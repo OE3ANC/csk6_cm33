@@ -159,9 +159,9 @@ typedef enum _prefetch_level{
 // port5 DVP
 // bit[N]=1: port N in group1
 // bit[N]=0: port N in group0
-#define CONTROLLER_PRIO_FIXED               (0x0)
+#define CONTROLLER_PRIO_FIXED               (0x01)
 #define CONTROLLER_PRIO_ROUND_ROBIN         (0x3f)
-#define CONTROLLER_PRIO_SETTING             (CONTROLLER_PRIO_ROUND_ROBIN)
+#define CONTROLLER_PRIO_SETTING             (CONTROLLER_PRIO_FIXED)
 
 // bypass 置1时，表示DQS delay采用delay cells去延迟，反之表示，采用百分比延迟
 #define PSRAM_DLL_BYPASS                    (0x1)
