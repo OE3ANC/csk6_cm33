@@ -952,7 +952,17 @@ SPI_Receive(void *spi_dev, void *data, uint32_t num)
         return CSK_DRIVER_ERROR_PARAMETER;
     }
 
-    if ((data == NULL) || (num == 0U) || (num > MAX_TRANCNT))
+    bool is_slave = ((spi->info->txrx_mode & CSK_SPI_MODE_Msk) == CSK_SPI_MODE_SLAVE);
+
+    if ((data == NULL) || (num == 0U))
+        return CSK_DRIVER_ERROR_PARAMETER;
+
+    if (is_slave)
+    {
+        if (num > MAX_DMACNT)
+            return CSK_DRIVER_ERROR_PARAMETER;
+    }
+    else if (num > MAX_TRANCNT)
         return CSK_DRIVER_ERROR_PARAMETER;
 
     if (!(spi->info->flags & SPI_FLAG_CONFIGURED))
@@ -969,7 +979,6 @@ SPI_Receive(void *spi_dev, void *data, uint32_t num)
     spi->info->xfer.req_rx_cnt = num;
     spi->info->xfer.cur_op = SPI_RECEIVE;
 
-    bool is_slave = ((spi->info->txrx_mode & CSK_SPI_MODE_Msk) == CSK_SPI_MODE_SLAVE);
     bool xfer_started = false;
 
     // wait prior transfer finish
@@ -2783,13 +2792,13 @@ spi_irq_handler(SPI_DEV *spi)
             } //end for
             //FIXME: [IP bug on VENUS_V2_MP] when data_bits = 1,
             // SLV_RDCNT() always return 0 even if RX DMA COUNT > 0 !!
-            if ((spi->info->txrx_mode & CSK_SPI_MODE_Msk) == CSK_SPI_MODE_SLAVE) { // && spi->info->data_bits > 1
-                //count = spi->reg->SLVDATACNT & 0x1FF;
-                count = SLV_RDCNT(spi);
-                CLR_SLV_RDCNT(spi); // clear RCnt on updated IP
-                LOGD("%s: SLVDATACNT.RCnt = %d Data\n", __func__, count);
-                spi->info->xfer.rx_cnt = count;
-            }
+            // if ((spi->info->txrx_mode & CSK_SPI_MODE_Msk) == CSK_SPI_MODE_SLAVE) { // && spi->info->data_bits > 1
+            //     //count = spi->reg->SLVDATACNT & 0x1FF;
+            //     count = SLV_RDCNT(spi);
+            //     CLR_SLV_RDCNT(spi); // clear RCnt on updated IP
+            //     LOGD("%s: SLVDATACNT.RCnt = %d Data\n", __func__, count);
+            //     spi->info->xfer.rx_cnt = count;
+            // }
         }
 
         // clear TX/RX FIFOs

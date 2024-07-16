@@ -25,6 +25,7 @@
 
 /* Max RD/WR transfer count each time, limited by SPI transfer control register */
 #define MAX_TRANCNT                   512
+#define MAX_DMACNT                    4095
 
 /* SPI transfer control register */
 // RD/WR transfer count
