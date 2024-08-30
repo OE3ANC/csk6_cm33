@@ -55,6 +55,13 @@ if(${CONFIG_SOC_CSK6})
 
 zephyr_compile_options(-DHAL_CUSTOM_CONFIG_FILE="hal_config.h")
 
+if (CONFIG_PSRAM_SIZE EQUAL 0x400000)
+    message(STATUS "psram size: 4M")
+    zephyr_compile_options(-DPSRAM_CHIP_SIZE=4)
+else()
+    message(STATUS "psram size: 8M")
+endif()
+
 endif()
 
 
