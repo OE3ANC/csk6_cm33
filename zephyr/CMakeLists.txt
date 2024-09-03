@@ -54,7 +54,7 @@ if(${CONFIG_SOC_CSK6})
 
 
 zephyr_compile_options(-DHAL_CUSTOM_CONFIG_FILE="hal_config.h")
-
+zephyr_compile_options(-Wno-double-promotion)
 endif()
 
 

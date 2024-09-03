@@ -7,7 +7,7 @@
 #include <assert.h>
 
 #if defined(__ZEPHYR__)
-#include "zephyr/toolchain/gcc.h"
+#include <zephyr/toolchain.h>
 #endif
 
 #include "ARMCM33_DSP_FP.h"
