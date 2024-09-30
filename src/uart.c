@@ -188,8 +188,8 @@ uart_compute_div(uint32_t baudrate, uint32_t clk){
     uint32_t div_i = clk / tmp;
     // 获得小数部分
     float div_f = ((float)clk / (float)tmp) - div_i;
-    float div1 = div_i + (float)((uint32_t)(div_f * 16)) / 16.0;
-    float div2 = div_i + (float)((uint32_t)(div_f * 16) + 1) / 16.0;
+    float div1 = div_i + (float)((uint32_t)(div_f * 16)) / (float)16.0;
+    float div2 = div_i + (float)((uint32_t)(div_f * 16) + 1) / (float)16.0;
 
     int32_t err = clk - div1 * tmp;
     int32_t err2 = div2 * tmp - clk;

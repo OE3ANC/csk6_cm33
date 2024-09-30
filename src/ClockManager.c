@@ -413,7 +413,7 @@ uint32_t HAL_CRM_SetUart0ClkSrc(clock_src_name_t src){
 int32_t HAL_CRM_CalcUart0ClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8_t* div_m){
     uint32_t n, m;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -483,7 +483,7 @@ uint32_t HAL_CRM_SetUart1ClkSrc(clock_src_name_t src){
 int32_t HAL_CRM_CalcUart1ClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8_t* div_m){
     uint32_t n, m;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -553,7 +553,7 @@ uint32_t HAL_CRM_SetUart2ClkSrc(clock_src_name_t src){
 int32_t HAL_CRM_CalcUart2ClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8_t* div_m){
     uint32_t n, m;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -623,7 +623,7 @@ uint32_t HAL_CRM_SetUart3ClkSrc(clock_src_name_t src){
 int32_t HAL_CRM_CalcUart3ClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8_t* div_m){
     uint32_t n, m;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -693,7 +693,7 @@ uint32_t HAL_CRM_SetSdioClkSrc(clock_src_name_t src){
 int32_t HAL_CRM_CalcSdioClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8_t* div_m){
     uint32_t n, m;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -752,7 +752,7 @@ int32_t HAL_CRM_CalcGpioaClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint
     uint32_t n, m;
     ref = ref / 2;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -809,7 +809,7 @@ int32_t HAL_CRM_CalcGpiobClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint
     uint32_t n, m;
     ref = ref / 2;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -866,7 +866,7 @@ int32_t HAL_CRM_CalcGptsClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8
     uint32_t n, m;
     ref = ref / 2;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -923,7 +923,7 @@ int32_t HAL_CRM_CalcGptt0ClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint
     uint32_t n, m;
     ref = ref / 2;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -991,7 +991,7 @@ uint32_t HAL_CRM_SetSpi0ClkSrc(clock_src_name_t src){
 int32_t HAL_CRM_CalcSpi0ClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8_t* div_m){
     uint32_t n, m;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -1061,7 +1061,7 @@ uint32_t HAL_CRM_SetSpi1ClkSrc(clock_src_name_t src){
 int32_t HAL_CRM_CalcSpi1ClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8_t* div_m){
     uint32_t n, m;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -1328,7 +1328,7 @@ uint32_t HAL_CRM_SetFlashClkSrc(clock_src_name_t src){
 int32_t HAL_CRM_CalcFlashClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8_t* div_m){
     uint32_t n, m;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -1402,7 +1402,7 @@ uint32_t HAL_CRM_SetPsramClkSrc(clock_src_name_t src){
 int32_t HAL_CRM_CalcPsramClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8_t* div_m){
     uint32_t n, m;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -1476,7 +1476,7 @@ uint32_t HAL_CRM_SetRootClkSrc(clock_src_name_t src){
 int32_t HAL_CRM_CalcRootClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8_t* div_m){
     uint32_t n, m;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -1575,7 +1575,7 @@ void HAL_CRM_SetCpapbClkDiv(uint8_t div_n, uint8_t div_m){
 int32_t HAL_CRM_CalcCpapbClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8_t* div_m){
     uint32_t n, m;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -1631,7 +1631,7 @@ void HAL_CRM_SetAprootClkDiv(uint8_t div_n, uint8_t div_m){
 int32_t HAL_CRM_CalcAprootClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8_t* div_m){
     uint32_t n, m;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -1715,7 +1715,7 @@ void HAL_CRM_SetApapbClkDiv(uint8_t div_n, uint8_t div_m){
 int32_t HAL_CRM_CalcApapbClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8_t* div_m){
     uint32_t n, m;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if ((float)coe == (float)1.0){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
@@ -1797,7 +1797,7 @@ void HAL_CRM_SetApcmnapbClkDiv(uint8_t div_m){
 int32_t HAL_CRM_CalcApcmnapbClkDiv(uint32_t ref, uint32_t des, uint8_t* div_n, uint8_t* div_m){
     uint32_t n, m;
     float coe = (float)des / (float)ref;
-    if (coe == 1.0){
+    if (coe == 1.0f){
         *div_n = 1;
         *div_m = 1;
         return CSK_DRIVER_OK;
