@@ -1,8 +1,0 @@
-#ifndef __HAL_CONFIG_H__
-
-#include "autoconf.h"
-
-#define SDHC_CLK_FREQ CONFIG_CSK6_SDHC_CLK_FREQ
-#define SDHC_SDMA_LINE_BOUND CONFIG_CSK6_SDHC_SDMA_LINE_BOUND
-
-#endif
